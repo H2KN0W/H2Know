@@ -95,6 +95,11 @@ html, body, #root {
   color: var(--color-text);
   margin: 0 0 4px;
 }
+.brand-title sub {
+  font-size: 0.6em;
+  bottom: -0.15em;
+  font-weight: 700;
+}
 
 .brand-tagline {
   font-size: 0.82rem;

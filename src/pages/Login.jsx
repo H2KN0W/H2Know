@@ -161,7 +161,9 @@ const Login = () => {
           </div>
         </div>
 
-        <h1 className="brand-title">H2KNOW</h1>
+        <h1 className="brand-title">
+            H<sub>2</sub>KNOW
+        </h1>
         <p className="brand-tagline">Know the Flow, Before You Go</p>
         <span className="access-badge">Authorized Personnel Only</span>
 
