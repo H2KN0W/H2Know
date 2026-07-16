@@ -21,6 +21,7 @@ const Login = () => {
   const [googleLoading, setGoogleLoading] = useState(false);
   const [error, setError] = useState("");
   const [checkingSession, setCheckingSession] = useState(true);
+  const [resetSent, setResetSent] = useState(false);
 
   // Create Password screen state
   const [needsPassword, setNeedsPassword] = useState(false);
@@ -138,6 +139,7 @@ const Login = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
+    setResetSent(false);
     setLoading(true);
 
     try {
@@ -166,6 +168,7 @@ const Login = () => {
 
   const handleGoogleLogin = async () => {
     setError("");
+    setResetSent(false);
     setGoogleLoading(true);
 
     const { error: oauthError } = await supabase.auth.signInWithOAuth({
@@ -181,8 +184,26 @@ const Login = () => {
     }
   };
 
-  const handleForgotPassword = (e) => {
+  const handleForgotPassword = async (e) => {
     e.preventDefault();
+    setError("");
+    setResetSent(false);
+
+    if (!email.trim()) {
+      setError("Please enter your email above, then click Forgot Password.");
+      return;
+    }
+
+    const { error: resetError } = await supabase.auth.resetPasswordForEmail(
+      email.trim(),
+      { redirectTo: `${window.location.origin}/reset-password` }
+    );
+
+    if (resetError) {
+      setError(getFriendlyErrorMessage(resetError));
+    } else {
+      setResetSent(true);
+    }
   };
 
   const handleCreatePassword = async (e) => {
@@ -400,6 +421,12 @@ const Login = () => {
         <span className="access-badge">Authorized Personnel Only</span>
 
         <form className="login-form" onSubmit={handleSubmit}>
+          {resetSent && (
+            <div className="form-success" role="status">
+              Check your email for a password reset link.
+            </div>
+          )}
+
           {error && (
             <div className="form-error" role="alert">
               {error}

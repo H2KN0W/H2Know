@@ -340,6 +340,16 @@ html, body, #root {
   opacity: 0.7;
   cursor: not-allowed;
 }
+.form-success {
+  padding: 12px 14px;
+  border-radius: 8px;
+  background: #e3f7ea;
+  border: 1px solid #b8e6c4;
+  color: #1a9e5c;
+  font-size: 0.85rem;
+  text-align: left;
+  margin-bottom: 4px;
+}
 
 .spinner-dark {
   border: 2.5px solid rgba(0, 119, 182, 0.25);
