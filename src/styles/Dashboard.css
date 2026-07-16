@@ -1,25 +1,27 @@
 :root {
-  --navy: #031a2b;
-  --primary: #0077b6;
-  --secondary: #0096c7;
-  --bg-page: #f5fbff;
+  --color-primary: #0077b6;
+  --color-secondary: #0096c7;
+  --color-accent: #00b4d8;
+  --color-light: #caf0f8;
+  --color-white: #ffffff;
+  --color-bg: #f5fbff;
+  --color-text: #0a2e3d;
+  --color-text-muted: #5b7c88;
   --border: #e2eef4;
-  --text-dark: #0a2e3d;
-  --text-muted: #6b8794;
 }
 
 .admin-shell {
   display: flex;
   min-height: 100vh;
-  background: var(--bg-page);
+  background: var(--color-bg);
   font-family: "Inter", sans-serif;
 }
 
-/* Sidebar */
+/* Sidebar — same gradient family as the login page background */
 .admin-sidebar {
   width: 240px;
   flex-shrink: 0;
-  background: var(--navy);
+  background: linear-gradient(160deg, #023e5c 0%, var(--color-primary) 45%, var(--color-secondary) 100%);
   color: #fff;
   display: flex;
   flex-direction: column;
@@ -32,7 +34,7 @@
   gap: 10px;
   padding-bottom: 20px;
   margin-bottom: 16px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.15);
 }
 
 .sidebar-logo {
@@ -40,6 +42,7 @@
   height: 36px;
   border-radius: 50%;
   object-fit: cover;
+  border: 2px solid rgba(255, 255, 255, 0.4);
 }
 
 .sidebar-title {
@@ -55,7 +58,7 @@
 
 .sidebar-subtitle {
   font-size: 0.7rem;
-  color: rgba(255, 255, 255, 0.55);
+  color: rgba(255, 255, 255, 0.65);
   margin: 0;
 }
 
@@ -70,7 +73,7 @@
   font-size: 0.65rem;
   text-transform: uppercase;
   letter-spacing: 0.06em;
-  color: rgba(255, 255, 255, 0.4);
+  color: rgba(255, 255, 255, 0.5);
   margin: 0 0 8px 10px;
 }
 
@@ -79,18 +82,18 @@
   padding: 10px 12px;
   border-radius: 8px;
   font-size: 0.85rem;
-  color: rgba(255, 255, 255, 0.75);
+  color: rgba(255, 255, 255, 0.8);
   text-decoration: none;
   transition: background 0.15s ease, color 0.15s ease;
 }
 
 .sidebar-link:hover {
-  background: rgba(255, 255, 255, 0.06);
+  background: rgba(255, 255, 255, 0.1);
   color: #fff;
 }
 
 .sidebar-link.active {
-  background: var(--primary);
+  background: rgba(255, 255, 255, 0.18);
   color: #fff;
   font-weight: 600;
 }
@@ -98,10 +101,10 @@
 .sidebar-logout {
   margin-top: 16px;
   padding: 10px 12px;
-  border: 1px solid rgba(255, 255, 255, 0.15);
+  border: 1px solid rgba(255, 255, 255, 0.25);
   border-radius: 8px;
   background: transparent;
-  color: rgba(255, 255, 255, 0.8);
+  color: rgba(255, 255, 255, 0.9);
   font-size: 0.85rem;
   cursor: pointer;
   text-align: left;
@@ -109,7 +112,7 @@
 }
 
 .sidebar-logout:hover {
-  background: rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.12);
 }
 
 /* Main content */
@@ -126,13 +129,13 @@
   font-family: "Space Grotesk", sans-serif;
   font-size: 1.6rem;
   font-weight: 700;
-  color: var(--text-dark);
+  color: var(--color-text);
   margin: 0 0 4px;
 }
 
 .page-header p {
   font-size: 0.88rem;
-  color: var(--text-muted);
+  color: var(--color-text-muted);
   margin: 0;
 }
 
@@ -144,16 +147,16 @@
 }
 
 .summary-card {
-  background: #fff;
+  background: var(--color-white);
   border-radius: 14px;
   padding: 18px 20px;
-  box-shadow: 0 4px 16px rgba(3, 26, 43, 0.06);
+  box-shadow: 0 8px 24px rgba(0, 119, 182, 0.08);
   border: 1px solid var(--border);
 }
 
 .summary-label {
   font-size: 0.75rem;
-  color: var(--text-muted);
+  color: var(--color-text-muted);
   margin: 0 0 6px;
 }
 
@@ -161,12 +164,12 @@
   font-size: 1.1rem;
   font-weight: 700;
   margin: 0;
-  color: var(--text-dark);
+  color: var(--color-text);
 }
 
 .tone-positive { color: #1a9e5c; }
 .tone-warning { color: #d68a00; }
-.tone-neutral { color: var(--text-dark); }
+.tone-neutral { color: var(--color-text); }
 
 /* Panels (tables) */
 .panel-grid {
@@ -176,10 +179,10 @@
 }
 
 .panel {
-  background: #fff;
+  background: var(--color-white);
   border-radius: 14px;
   padding: 20px;
-  box-shadow: 0 4px 16px rgba(3, 26, 43, 0.06);
+  box-shadow: 0 8px 24px rgba(0, 119, 182, 0.08);
   border: 1px solid var(--border);
 }
 
@@ -187,7 +190,7 @@
   font-family: "Space Grotesk", sans-serif;
   font-size: 1rem;
   font-weight: 700;
-  color: var(--text-dark);
+  color: var(--color-text);
   margin: 0 0 14px;
 }
 
@@ -204,7 +207,7 @@ table {
 thead th {
   text-align: left;
   padding: 8px 10px;
-  color: var(--text-muted);
+  color: var(--color-text-muted);
   font-weight: 600;
   border-bottom: 1px solid var(--border);
   white-space: nowrap;
@@ -213,7 +216,7 @@ thead th {
 tbody td {
   padding: 10px;
   border-bottom: 1px solid var(--border);
-  color: var(--text-dark);
+  color: var(--color-text);
   white-space: nowrap;
 }
 
@@ -235,8 +238,8 @@ tbody tr:last-child td {
 }
 
 .badge-normal {
-  background: #e3f7ea;
-  color: #1a9e5c;
+  background: var(--color-light);
+  color: var(--color-primary);
 }
 
 .badge-success {
@@ -245,6 +248,21 @@ tbody tr:last-child td {
 }
 
 .badge-failed {
+  background: #fdecec;
+  color: #d64545;
+}
+
+.badge-pending {
+  background: #fff2d9;
+  color: #b3760a;
+}
+
+.badge-approved {
+  background: #e3f7ea;
+  color: #1a9e5c;
+}
+
+.badge-rejected {
   background: #fdecec;
   color: #d64545;
 }
