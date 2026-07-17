@@ -76,7 +76,10 @@ const ResetPassword = () => {
       }
 
       setSuccess(true);
-      setTimeout(() => navigate("/"), 2500);
+      setTimeout(async () => {
+      await supabase.auth.signOut();
+      navigate("/");
+    }, 2500);
     } catch (err) {
       setError(err.message || "Something went wrong. Please try again.");
     } finally {
