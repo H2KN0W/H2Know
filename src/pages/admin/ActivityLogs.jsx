@@ -13,7 +13,7 @@ import H2knowLogo from "../../assets/img/H2knowlogo.jpg";
 const navItems = [
   { label: "Dashboard", path: "/admin/dashboard" },
   { label: "Alert History", path: "/admin/alert-history" },
-  { label: "User Activity Logs", path: "/admin/user-activity-logs" },
+  { label: "Activity Logs", path: "/admin/user-activity-logs" },
   { label: "Data Records", path: "/admin/data-records" },
   { label: "Reports", path: "/admin/reports" },
   { label: "User Management", path: "/admin/user-management" },

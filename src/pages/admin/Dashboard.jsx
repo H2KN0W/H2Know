@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { NavLink, useNavigate } from "react-router-dom";
 import { supabase } from "../../lib/supabase";
 import "../../styles/Dashboard.css";
@@ -16,7 +17,7 @@ import H2knowLogo from "../../assets/img/H2knowlogo.jpg";
 const navItems = [
   { label: "Dashboard", path: "/admin/dashboard" },
   { label: "Alert History", path: "/admin/alert-history" },
-  { label: "User Activity Logs", path: "/admin/user-activity-logs" },
+  { label: "Activity Logs", path: "/admin/user-activity-logs" },
   { label: "Data Records", path: "/admin/data-records" },
   { label: "Reports", path: "/admin/reports" },
   { label: "User Management", path: "/admin/user-management" },
@@ -44,6 +45,36 @@ const userActivity = [
 
 const Dashboard = () => {
   const navigate = useNavigate();
+
+  const [profile, setProfile] = useState(null);
+
+  useEffect(() => {
+    const loadProfile = async () => {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
+      if (!user) {
+        navigate("/");
+        return;
+      }
+
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("full_name, role")
+        .eq("id", user.id)
+        .single();
+
+      if (error) {
+        console.error("Failed to load profile:", error);
+        return;
+      }
+
+      setProfile(data);
+    };
+
+    loadProfile();
+  }, [navigate]);
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -88,7 +119,14 @@ const Dashboard = () => {
       <main className="admin-main">
         <header className="page-header">
           <h1>Dashboard</h1>
-          <p>Welcome back, Admin User · Admin</p>
+          <p>
+  Welcome back,{" "}
+  {profile?.full_name
+    ? profile.full_name
+        .toLowerCase()
+        .replace(/\b\w/g, (char) => char.toUpperCase())
+    : "Loading..."}
+</p>
         </header>
 
         <div className="summary-grid">
