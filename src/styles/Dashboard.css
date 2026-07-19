@@ -12,20 +12,27 @@
 
 .admin-shell {
   display: flex;
-  min-height: 100vh;
+  height: 100vh;
   background: var(--color-bg);
   font-family: "Inter", sans-serif;
+  overflow: hidden;
 }
 
-/* Sidebar — same gradient family as the login page background */
+/* Sidebar — same gradient family as the login page background.
+   Sticks to full viewport height regardless of how tall the main
+   content grows, instead of stretching only to its own content. */
 .admin-sidebar {
   width: 240px;
   flex-shrink: 0;
+  height: 100vh;
+  position: sticky;
+  top: 0;
   background: linear-gradient(160deg, #023e5c 0%, var(--color-primary) 45%, var(--color-secondary) 100%);
   color: #fff;
   display: flex;
   flex-direction: column;
   padding: 24px 16px;
+  overflow-y: auto;
 }
 
 .sidebar-brand {
@@ -115,10 +122,11 @@
   background: rgba(255, 255, 255, 0.12);
 }
 
-/* Main content */
+/* Main content — scrolls independently of the sidebar */
 .admin-main {
   flex: 1;
   padding: 28px 32px;
+  overflow-y: auto;
   overflow-x: hidden;
   display: flex;
   flex-direction: column;
@@ -270,13 +278,18 @@ tbody tr:last-child td {
 @media (max-width: 900px) {
   .admin-shell {
     flex-direction: column;
+    height: auto;
+    overflow: visible;
   }
 
   .admin-sidebar {
     width: 100%;
+    height: auto;
+    position: relative;
     flex-direction: row;
     align-items: center;
     overflow-x: auto;
+    overflow-y: visible;
     padding: 12px 16px;
   }
 
@@ -288,5 +301,9 @@ tbody tr:last-child td {
   .sidebar-logout {
     margin-top: 0;
     margin-left: 8px;
+  }
+
+  .admin-main {
+    overflow-y: visible;
   }
 }
