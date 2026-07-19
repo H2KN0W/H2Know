@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "../lib/supabase";
 import "../styles/Login.css";
 import H2knowLogo from "../assets/img/H2knowlogo.jpg";
+import { logActivity } from "../lib/logActivity";
 
 const REMEMBER_KEY = "h2know_remembered_email";
 
@@ -68,7 +69,7 @@ const Login = () => {
   };
 
   const redirectByRole = async (role) => {
-    if (role === "admin" || role === "manager") {
+    if (role === "admin") {
       navigate("/admin/dashboard", { replace: true });
     } else {
       setError("You do not have access to this dashboard.");
@@ -152,6 +153,14 @@ const Login = () => {
 
       const profile = await verifyAccess(data.user.id);
 
+      await logActivity({
+        user_id: data.user.id,
+        full_name: profile.full_name,
+        role: profile.role,
+        activity: "Logged In",
+        status: "Success",
+      });
+
       if (rememberMe) {
         localStorage.setItem(REMEMBER_KEY, email.trim());
       } else {
@@ -160,6 +169,13 @@ const Login = () => {
 
       await redirectByRole(profile.role);
     } catch (err) {
+      await logActivity({
+        user_id: null,
+        full_name: "Unknown",
+        role: null,
+        activity: "Login Attempt",
+        status: "Failed",
+      });
       setError(getFriendlyErrorMessage(err));
     } finally {
       setLoading(false);

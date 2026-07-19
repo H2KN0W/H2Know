@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { NavLink, useNavigate } from "react-router-dom";
 import { supabase } from "../../lib/supabase";
 import "../../styles/Dashboard.css";
+import { useLogPageView } from "../../lib/useLogPageView";
 import H2knowLogo from "../../assets/img/H2knowlogo.jpg";
 
 /**
@@ -44,6 +45,7 @@ const userActivity = [
 ];
 
 const Dashboard = () => {
+  useLogPageView("Viewed Dashboard"); // add this line first inside the component
   const navigate = useNavigate();
 
   const [profile, setProfile] = useState(null);

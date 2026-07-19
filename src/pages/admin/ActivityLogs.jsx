@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { NavLink, useNavigate } from "react-router-dom";
 import { supabase } from "../../lib/supabase";
 import "../../styles/Dashboard.css";
+import { useLogPageView } from "../../lib/useLogPageView";
 import H2knowLogo from "../../assets/img/H2knowlogo.jpg";
 
 /**
@@ -28,6 +29,7 @@ const formatDateTime = (isoString) => {
 };
 
 const ActivityLogs = () => {
+  useLogPageView("Viewed User Activity Logs");
   const navigate = useNavigate();
   const [logs, setLogs] = useState([]);
   const [loading, setLoading] = useState(true);
