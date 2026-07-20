@@ -3,7 +3,7 @@ import { NavLink, useNavigate } from "react-router-dom";
 import { supabase } from "../../lib/supabase";
 import "../../styles/Dashboard.css";
 import { useLogPageView } from "../../lib/useLogPageView";
-import { logActivity } from "../../lib/logActivity";
+import LogoutButton from "../../components/LogoutButton";
 import H2knowLogo from "../../assets/img/H2knowlogo.jpg";
 
 /**
@@ -79,31 +79,6 @@ const Dashboard = () => {
     loadProfile();
   }, [navigate]);
 
- const handleLogout = async () => {
-  const { data: { session } } = await supabase.auth.getSession();
-
-  if (session) {
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("full_name, role")
-      .eq("id", session.user.id)
-      .single();
-
-    if (profile) {
-      await logActivity({
-        user_id: session.user.id,
-        full_name: profile.full_name,
-        role: profile.role,
-        activity: "Logged Out",
-        status: "Success",
-      });
-    }
-  }
-
-  await supabase.auth.signOut();
-  navigate("/");
-};
-
   return (
     <div className="admin-shell">
       {/* Sidebar */}
@@ -133,9 +108,7 @@ const Dashboard = () => {
           ))}
         </nav>
 
-        <button className="sidebar-logout" onClick={handleLogout}>
-          Logout
-        </button>
+        <LogoutButton />
       </aside>
 
       {/* Main content */}
