@@ -65,7 +65,7 @@ const ActivityLogs = () => {
           <img src={H2knowLogo} alt="H2KNOW logo" className="sidebar-logo" />
           <div>
             <p className="sidebar-title">
-              H<sub>2</sub>KNOW
+              H2KNOW
             </p>
             <p className="sidebar-subtitle">Admin Panel</p>
           </div>
