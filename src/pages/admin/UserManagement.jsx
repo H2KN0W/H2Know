@@ -146,14 +146,13 @@ const UserManagement = () => {
 
   const handleDeleteConfirmed = async () => {
     setActionError("");
-    
-    const { error: deleteError } = await supabase
-      .from("profiles")
-      .delete()
-      .eq("id", confirmDeleteUser.id);
 
-    if (deleteError) {
-      setActionError(deleteError.message);
+    const { data, error: fnError } = await supabase.functions.invoke("manage-user", {
+      body: { action: "delete", user_id: confirmDeleteUser.id },
+    });
+
+    if (fnError || data?.error) {
+      setActionError(data?.error || fnError.message);
       return;
     }
 
@@ -164,21 +163,56 @@ const UserManagement = () => {
 
   const handleModalSave = async (formData, isNewUser) => {
     if (isNewUser) {
-      setActionError(
-        "Add New User requires a server-side Edge Function (Supabase Admin API) to create the login account — not built yet. Ask to build this next."
-      );
-      return;
+      const { data, error: fnError } = await supabase.functions.invoke("manage-user", {
+        body: {
+          action: "create",
+          email: formData.email,
+          password: formData.password,
+          full_name: formData.full_name,
+          role: formData.role,
+        },
+      });
+
+      if (fnError || data?.error) {
+        return { success: false, error: data?.error || fnError.message };
+      }
+
+      await logAdminAction(`Added new user: ${formData.full_name}`);
+      await fetchProfiles();
+      return { success: true };
     }
 
+    // Existing user: role always goes through the normal profiles update.
     const ok = await updateProfile(modalUser.id, {
       full_name: formData.full_name,
       role: formData.role,
     });
 
-    if (ok) {
-      await logAdminAction(`Edited user: ${formData.full_name}`);
-      setModalUser(null);
+    if (!ok) {
+      return { success: false, error: actionError || "Could not save changes." };
     }
+
+    // Only call the Edge Function if the email actually changed.
+    if (formData.email && formData.email !== modalUser.email) {
+      const { data, error: fnError } = await supabase.functions.invoke("manage-user", {
+        body: {
+          action: "update_email",
+          user_id: modalUser.id,
+          new_email: formData.email,
+        },
+      });
+
+      if (fnError || data?.error) {
+        return { success: false, error: data?.error || fnError.message };
+      }
+
+      setProfiles((prev) =>
+        prev.map((p) => (p.id === modalUser.id ? { ...p, email: formData.email } : p))
+      );
+    }
+
+    await logAdminAction(`Edited user: ${formData.full_name}`);
+    return { success: true };
   };
 
   return (
@@ -355,6 +389,7 @@ const UserManagement = () => {
         <UserModal
           user={modalUser}
           onCancel={() => setModalUser(null)}
+          onClose={() => setModalUser(null)}
           onSave={handleModalSave}
         />
       )}
@@ -382,75 +417,129 @@ const UserManagement = () => {
   );
 };
 
-const UserModal = ({ user, onCancel, onSave }) => {
+const UserModal = ({ user, onCancel, onSave, onClose }) => {
   const isNewUser = !user.id;
   const [fullName, setFullName] = useState(user.full_name || "");
   const [email, setEmail] = useState(user.email || "");
   const [role, setRole] = useState(user.role || "manager");
   const [password, setPassword] = useState("");
+  const [validationError, setValidationError] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
+
+  const handleSave = async () => {
+    setValidationError("");
+
+    if (!fullName.trim()) {
+      setValidationError("Full name is required.");
+      return;
+    }
+
+    const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailPattern.test(email)) {
+      setValidationError("Please enter a valid email address (e.g. name@h2know.com).");
+      return;
+    }
+
+    if (isNewUser && !password) {
+      setValidationError("Password is required for new users.");
+      return;
+    }
+
+    setSaving(true);
+    const result = await onSave({ full_name: fullName, email, role, password }, isNewUser);
+    setSaving(false);
+
+    if (!result.success) {
+      setValidationError(result.error);
+      return;
+    }
+
+    setSaved(true);
+    setTimeout(() => {
+      onClose();
+    }, 1100);
+  };
 
   return (
-    <div className="um-modal-overlay" onClick={onCancel}>
+    <div className="um-modal-overlay" onClick={saving ? undefined : onCancel}>
       <div className="um-modal" onClick={(e) => e.stopPropagation()}>
-        <h2>{isNewUser ? "Add User" : "Edit User"}</h2>
-
-        <label className="um-modal-label">Full Name</label>
-        <input
-          className="um-modal-input"
-          placeholder="Enter full name..."
-          value={fullName}
-          onChange={(e) => setFullName(e.target.value)}
-        />
-
-        <label className="um-modal-label">Email</label>
-        <input
-          className="um-modal-input"
-          placeholder="Enter email address..."
-          value={email}
-          disabled={!isNewUser}
-          onChange={(e) => setEmail(e.target.value)}
-        />
-        {!isNewUser && (
-          <p className="um-modal-note">
-            Email can't be changed here yet — requires the Supabase Admin API.
-          </p>
-        )}
-
-        <label className="um-modal-label">Role</label>
-        <select
-          className="um-modal-input"
-          value={role}
-          onChange={(e) => setRole(e.target.value)}
-        >
-          <option value="admin">Admin</option>
-          <option value="manager">Manager</option>
-        </select>
-
-        {isNewUser && (
+        {saved ? (
+          <div className="um-modal-success">
+            <div className="um-modal-success-check">✓</div>
+            <p>{isNewUser ? "User created successfully" : "Changes saved successfully"}</p>
+          </div>
+        ) : (
           <>
-            <label className="um-modal-label">Password</label>
+            <h2>{isNewUser ? "Add User" : "Edit User"}</h2>
+
+            {validationError && (
+              <div className="um-modal-error">
+                <span className="um-modal-error-icon">!</span>
+                <span>{validationError}</span>
+              </div>
+            )}
+
+            <label className="um-modal-label">Full Name</label>
             <input
               className="um-modal-input"
-              type="password"
-              placeholder="Enter password or leave blank to keep..."
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
+              placeholder="Enter full name..."
+              value={fullName}
+              disabled={saving}
+              onChange={(e) => setFullName(e.target.value)}
             />
-            <p className="um-modal-note">
-              Creating a new user requires a server-side Edge Function — not built yet.
-            </p>
+
+            <label className="um-modal-label">Email</label>
+            <input
+              className="um-modal-input"
+              placeholder="Enter email address..."
+              value={email}
+              disabled={saving}
+              onChange={(e) => setEmail(e.target.value)}
+            />
+
+            <label className="um-modal-label">Role</label>
+            <select
+              className="um-modal-input"
+              value={role}
+              disabled={saving}
+              onChange={(e) => setRole(e.target.value)}
+            >
+              <option value="admin">Admin</option>
+              <option value="manager">Manager</option>
+            </select>
+
+            {isNewUser && (
+              <>
+                <label className="um-modal-label">Password</label>
+                <input
+                  className="um-modal-input"
+                  type="password"
+                  placeholder="Enter a password for this user..."
+                  value={password}
+                  disabled={saving}
+                  onChange={(e) => setPassword(e.target.value)}
+                />
+              </>
+            )}
+
+            <div className="um-modal-actions">
+              <button className="um-modal-cancel" onClick={onCancel} disabled={saving}>
+                Cancel
+              </button>
+              <button className="um-modal-save" onClick={handleSave} disabled={saving}>
+                {saving ? (
+                  <span className="um-modal-save-loading">
+                    <span className="spinner" role="status" aria-label="Saving" />
+                    Saving...
+                  </span>
+                ) : (
+                  "Save"
+                )}
+              </button>
+            </div>
           </>
         )}
-
-        <div className="um-modal-actions">
-          <button className="um-modal-cancel" onClick={onCancel}>Cancel</button>
-          <button
-            className="um-modal-save"
-            onClick={() => onSave({ full_name: fullName, email, role, password }, isNewUser)}
-          >
-            Save
-          </button>
-        </div>
       </div>
     </div>
   );
