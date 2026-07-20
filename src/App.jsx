@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Login from "./pages/Login";
 import Dashboard from "./pages/admin/Dashboard";
 import ActivityLogs from "./pages/admin/ActivityLogs";
+import UserManagement from "./pages/admin/UserManagement";
 import ProtectedRoute from "./routes/ProtectedRoute";
 import ResetPassword from "./pages/ResetPassword";
 import "./App.css";
@@ -25,6 +26,14 @@ function App() {
           element={
             <ProtectedRoute requiredRole="admin">
               <ActivityLogs />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/user-management"
+          element={
+            <ProtectedRoute requiredRole="admin">
+              <UserManagement />
             </ProtectedRoute>
           }
         />

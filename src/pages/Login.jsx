@@ -160,6 +160,11 @@ const Login = () => {
         activity: "Logged In",
         status: "Success",
       });
+      
+       await supabase
+        .from("profiles")
+        .update({ last_login: new Date().toISOString() })
+        .eq("id", data.user.id);
 
       if (rememberMe) {
         localStorage.setItem(REMEMBER_KEY, email.trim());
