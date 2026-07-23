@@ -1,21 +1,10 @@
 import { useEffect, useState, useMemo } from "react";
-import { NavLink } from "react-router-dom";
 import { supabase } from "../../lib/supabase";
 import "../../styles/Dashboard.css";
 import "../../styles/UserManagement.css";
-import H2knowLogo from "../../assets/img/H2knowlogo.jpg";
-import LogoutButton from "../../components/LogoutButton";
+import Sidebar from "../../components/Sidebar";
 import { useLogPageView } from "../../lib/useLogPageView";
 import { logActivity } from "../../lib/logActivity";
-
-const navItems = [
-  { label: "Dashboard", path: "/admin/dashboard" },
-  { label: "Alert History", path: "/admin/alert-history" },
-  { label: "Activity Logs", path: "/admin/user-activity-logs" },
-  { label: "Data Records", path: "/admin/data-records" },
-  { label: "Reports", path: "/admin/reports" },
-  { label: "User Management", path: "/admin/user-management" },
-];
 
 const PAGE_SIZE = 5;
 
@@ -217,34 +206,7 @@ const UserManagement = () => {
 
   return (
     <div className="admin-shell">
-      <aside className="admin-sidebar">
-        <div className="sidebar-brand">
-          <img src={H2knowLogo} alt="H2KNOW logo" className="sidebar-logo" />
-          <div>
-            <p className="sidebar-title">
-                H2KNOW
-            </p>
-            <p className="sidebar-subtitle">Admin Panel</p>
-          </div>
-        </div>
-
-        <nav className="sidebar-nav">
-          <p className="sidebar-nav-label">Menu</p>
-          {navItems.map((item) => (
-            <NavLink
-              key={item.path}
-              to={item.path}
-              className={({ isActive }) =>
-                isActive ? "sidebar-link active" : "sidebar-link"
-              }
-            >
-              {item.label}
-            </NavLink>
-          ))}
-        </nav>
-
-        <LogoutButton />
-      </aside>
+      <Sidebar />
 
       <main className="admin-main">
         <header className="page-header">
@@ -273,16 +235,22 @@ const UserManagement = () => {
 
         <div className="summary-grid">
           <div className="summary-card">
-            <p className="summary-label">Total Users</p>
-            <p className="summary-value tone-neutral">{summary.total}</p>
+            <div className="summary-card-body">
+              <p className="summary-label">Total Users</p>
+              <p className="summary-value tone-neutral">{summary.total}</p>
+            </div>
           </div>
           <div className="summary-card">
-            <p className="summary-label">Active Users</p>
-            <p className="summary-value tone-positive">{summary.active}</p>
+            <div className="summary-card-body">
+              <p className="summary-label">Active Users</p>
+              <p className="summary-value tone-positive">{summary.active}</p>
+            </div>
           </div>
           <div className="summary-card">
-            <p className="summary-label">Disabled/Pending Users</p>
-            <p className="summary-value tone-warning">{summary.disabledPending}</p>
+            <div className="summary-card-body">
+              <p className="summary-label">Disabled/Pending Users</p>
+              <p className="summary-value tone-warning">{summary.disabledPending}</p>
+            </div>
           </div>
         </div>
 

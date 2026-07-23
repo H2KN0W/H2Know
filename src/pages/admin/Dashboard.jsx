@@ -1,10 +1,10 @@
 import { useEffect, useState } from "react";
-import { NavLink, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { supabase } from "../../lib/supabase";
 import "../../styles/Dashboard.css";
 import { useLogPageView } from "../../lib/useLogPageView";
-import LogoutButton from "../../components/LogoutButton";
-import H2knowLogo from "../../assets/img/H2knowlogo.jpg";
+import Sidebar from "../../components/Sidebar";
+import { Wifi, Clock, AlertTriangle, Database, Users } from "lucide-react";
 
 /**
  * Dashboard — Admin/Manager landing page.
@@ -16,21 +16,12 @@ import H2knowLogo from "../../assets/img/H2knowlogo.jpg";
  * tables exist in the database.
  */
 
-const navItems = [
-  { label: "Dashboard", path: "/admin/dashboard" },
-  { label: "Alert History", path: "/admin/alert-history" },
-  { label: "Activity Logs", path: "/admin/user-activity-logs" },
-  { label: "Data Records", path: "/admin/data-records" },
-  { label: "Reports", path: "/admin/reports" },
-  { label: "User Management", path: "/admin/user-management" },
-];
-
 const summaryCards = [
-  { label: "Sensor Status", value: "Online", tone: "positive" },
-  { label: "Last Data Received", value: "10 seconds ago", tone: "neutral" },
-  { label: "Active Alerts", value: "3 Warnings", tone: "warning" },
-  { label: "Total Data Records", value: "15,420 readings", tone: "neutral" },
-  { label: "Total Users", value: "5 accounts", tone: "neutral" },
+  { label: "Sensor Status", value: "Online", tone: "positive", icon: Wifi, live: true },
+  { label: "Last Data Received", value: "10 sec ago", tone: "neutral", icon: Clock },
+  { label: "Active Alerts", value: "3 Warnings", tone: "warning", icon: AlertTriangle },
+  { label: "Total Data Records", value: "15,420", tone: "neutral", icon: Database },
+  { label: "Total Users", value: "5", tone: "neutral", icon: Users },
 ];
 
 const alertHistory = [
@@ -81,57 +72,40 @@ const Dashboard = () => {
 
   return (
     <div className="admin-shell">
-      {/* Sidebar */}
-      <aside className="admin-sidebar">
-        <div className="sidebar-brand">
-          <img src={H2knowLogo} alt="H2KNOW logo" className="sidebar-logo" />
-          <div>
-            <p className="sidebar-title">
-              H2KNOW
-            </p>
-            <p className="sidebar-subtitle">Admin Panel</p>
-          </div>
-        </div>
-
-        <nav className="sidebar-nav">
-          <p className="sidebar-nav-label">Menu</p>
-          {navItems.map((item) => (
-            <NavLink
-              key={item.path}
-              to={item.path}
-              className={({ isActive }) =>
-                isActive ? "sidebar-link active" : "sidebar-link"
-              }
-            >
-              {item.label}
-            </NavLink>
-          ))}
-        </nav>
-
-        <LogoutButton />
-      </aside>
+      <Sidebar />
 
       {/* Main content */}
       <main className="admin-main">
         <header className="page-header">
           <h1>Dashboard</h1>
           <p>
-  Welcome back,{" "}
-  {profile?.full_name
-    ? profile.full_name
-        .toLowerCase()
-        .replace(/\b\w/g, (char) => char.toUpperCase())
-    : "Loading..."}
-</p>
+            Welcome back,{" "}
+            {profile?.full_name
+              ? profile.full_name
+                  .toLowerCase()
+                  .replace(/\b\w/g, (char) => char.toUpperCase())
+              : "Loading..."}
+          </p>
         </header>
 
         <div className="summary-grid">
-          {summaryCards.map((card) => (
-            <div className="summary-card" key={card.label}>
-              <p className="summary-label">{card.label}</p>
-              <p className={`summary-value tone-${card.tone}`}>{card.value}</p>
-            </div>
-          ))}
+          {summaryCards.map((card) => {
+            const Icon = card.icon;
+            return (
+              <div className="summary-card" key={card.label}>
+                <div className="summary-card-body">
+                  <p className="summary-label">{card.label}</p>
+                  <p className={`summary-value tone-${card.tone}`}>
+                    {card.live && <span className="live-dot" />}
+                    {card.value}
+                  </p>
+                </div>
+                <div className="summary-icon">
+                  <Icon size={17} strokeWidth={2} />
+                </div>
+              </div>
+            );
+          })}
         </div>
 
         <div className="panel-grid">
@@ -153,8 +127,8 @@ const Dashboard = () => {
                     <tr key={i}>
                       <td>{row.time}</td>
                       <td>{row.parameter}</td>
-                      <td>{row.reading}</td>
-                      <td>{row.threshold}</td>
+                      <td className="data-cell">{row.reading}</td>
+                      <td className="data-cell">{row.threshold}</td>
                       <td>
                         <span className={`badge badge-${row.level.toLowerCase()}`}>
                           {row.level}
