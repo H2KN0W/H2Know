@@ -3,6 +3,8 @@ import Login from "./pages/Login";
 import Dashboard from "./pages/admin/Dashboard";
 import ActivityLogs from "./pages/admin/ActivityLogs";
 import UserManagement from "./pages/admin/UserManagement";
+import DataRecords from "./pages/admin/DataRecords";
+import AlertHistory from "./pages/admin/AlertHistory";
 import ProtectedRoute from "./routes/ProtectedRoute";
 import ResetPassword from "./pages/ResetPassword";
 import "./App.css";
@@ -34,6 +36,22 @@ function App() {
           element={
             <ProtectedRoute requiredRole="admin">
               <UserManagement />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/data-records"
+          element={
+            <ProtectedRoute requiredRole="admin">
+              <DataRecords />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/alert-history"
+          element={
+            <ProtectedRoute requiredRole="admin">
+              <AlertHistory />
             </ProtectedRoute>
           }
         />
