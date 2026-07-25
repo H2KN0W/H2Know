@@ -1,4 +1,3 @@
-/* ── Mobile/tablet top bar (hidden on desktop) ───────────────────── */
 .sidebar-topbar {
   display: none;
   align-items: center;
@@ -9,9 +8,22 @@
   position: sticky;
   top: 0;
   z-index: 40;
+  justify-content: space-between;   /* add this */
+}
+
+.sidebar-topbar-brand {
+  order: 1;                          /* add this */
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 0.95rem;
+  color: var(--color-text);
 }
 
 .sidebar-hamburger {
+  order: 2;                          /* add this */
   width: 34px;
   height: 34px;
   display: flex;

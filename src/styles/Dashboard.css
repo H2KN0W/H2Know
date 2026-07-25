@@ -190,6 +190,7 @@
   padding: 18px 20px 8px;
   box-shadow: 0 1px 2px rgba(10, 46, 61, 0.04), 0 8px 20px rgba(0, 119, 182, 0.06);
   border: 1px solid var(--border);
+  min-width: 0;
 }
 
 .panel h2 {
@@ -269,5 +270,29 @@ td.data-cell {
 
   .panel-grid {
     grid-template-columns: 1fr;
+  }
+}
+
+/* Force predictable card columns in the mid-range where auto-fit
+   otherwise stretches a single card across the full width */
+@media (max-width: 640px) {
+  .summary-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+  }
+}
+
+@media (max-width: 380px) {
+  .summary-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 480px) {
+  .summary-card {
+    padding: 14px 16px;
+  }
+  .summary-value {
+    font-size: 1.05rem;
   }
 }
