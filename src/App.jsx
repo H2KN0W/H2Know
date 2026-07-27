@@ -5,6 +5,7 @@ import ActivityLogs from "./pages/admin/ActivityLogs";
 import UserManagement from "./pages/admin/UserManagement";
 import DataRecords from "./pages/admin/DataRecords";
 import AlertHistory from "./pages/admin/AlertHistory";
+import Reports from "./pages/admin/Reports";
 import ProtectedRoute from "./routes/ProtectedRoute";
 import ResetPassword from "./pages/ResetPassword";
 import "./App.css";
@@ -52,6 +53,14 @@ function App() {
           element={
             <ProtectedRoute requiredRole="admin">
               <AlertHistory />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/reports"
+          element={
+            <ProtectedRoute requiredRole="admin">
+              <Reports />
             </ProtectedRoute>
           }
         />

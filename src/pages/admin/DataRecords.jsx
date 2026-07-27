@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "../../lib/supabase";
 import "../../styles/Dashboard.css";
+import "../../styles/DataRecords.css";
 import { useLogPageView } from "../../lib/useLogPageView";
 import Sidebar from "../../components/Sidebar";
 
@@ -11,7 +12,7 @@ const PAGE_SIZE = 15;
  * `sensor_readings` is normalized: one row per single-parameter reading
  * (id, node_id, parameter_id, value, source, recorded_at), joined to
  * `parameters` (name, unit) and `nodes` (device_label) for display.
- * Server-side paginated since this table grows continuously.
+ * Server-side paginated, filterable by parameter and date range.
  */
 
 const formatDateTime = (isoString) => {
@@ -33,7 +34,31 @@ const DataRecords = () => {
   const [page, setPage] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
 
+  // Filters
+  const [parameters, setParameters] = useState([]);
+  const [parameterFilter, setParameterFilter] = useState("");
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
+
   const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
+
+  // Load the parameter list once, for the filter dropdown.
+  useEffect(() => {
+    const fetchParameters = async () => {
+      const { data, error: fetchError } = await supabase
+        .from("parameters")
+        .select("id, name")
+        .order("name", { ascending: true });
+
+      if (!fetchError) {
+        // H2KNOW only monitors pH, TDS, Turbidity, and Temperature —
+        // exclude Water Level in case it's still seeded in the DB.
+        setParameters(data.filter((p) => p.name?.toLowerCase() !== "water level"));
+      }
+    };
+
+    fetchParameters();
+  }, []);
 
   useEffect(() => {
     const fetchRecords = async () => {
@@ -43,14 +68,26 @@ const DataRecords = () => {
       const from = (page - 1) * PAGE_SIZE;
       const to = from + PAGE_SIZE - 1;
 
-      const { data, error: fetchError, count } = await supabase
+      let query = supabase
         .from("sensor_readings")
         .select(
           `id, value, source, recorded_at,
-           parameters ( name, unit ),
+           parameters!inner ( name, unit ),
            nodes ( device_label )`,
           { count: "exact" }
-        )
+        );
+
+      if (parameterFilter) {
+        query = query.eq("parameter_id", parameterFilter);
+      }
+      if (dateFrom) {
+        query = query.gte("recorded_at", `${dateFrom}T00:00:00`);
+      }
+      if (dateTo) {
+        query = query.lte("recorded_at", `${dateTo}T23:59:59`);
+      }
+
+      const { data, error: fetchError, count } = await query
         .order("recorded_at", { ascending: false })
         .range(from, to);
 
@@ -64,7 +101,31 @@ const DataRecords = () => {
     };
 
     fetchRecords();
-  }, [page]);
+  }, [page, parameterFilter, dateFrom, dateTo]);
+
+  const handleParameterChange = (e) => {
+    setPage(1);
+    setParameterFilter(e.target.value);
+  };
+
+  const handleDateFromChange = (e) => {
+    setPage(1);
+    setDateFrom(e.target.value);
+  };
+
+  const handleDateToChange = (e) => {
+    setPage(1);
+    setDateTo(e.target.value);
+  };
+
+  const handleClearFilters = () => {
+    setPage(1);
+    setParameterFilter("");
+    setDateFrom("");
+    setDateTo("");
+  };
+
+  const hasActiveFilters = parameterFilter || dateFrom || dateTo;
 
   return (
     <div className="admin-shell">
@@ -78,6 +139,49 @@ const DataRecords = () => {
 
         <section className="panel">
           <h2>All Readings</h2>
+
+          <div className="dr-filter-bar">
+            <select
+              className="dr-filter-select"
+              value={parameterFilter}
+              onChange={handleParameterChange}
+            >
+              <option value="">All Parameters</option>
+              {parameters.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.name}
+                </option>
+              ))}
+            </select>
+
+            <label className="dr-filter-date-label">
+              From
+              <input
+                type="date"
+                className="dr-filter-input"
+                value={dateFrom}
+                onChange={handleDateFromChange}
+                max={dateTo || undefined}
+              />
+            </label>
+
+            <label className="dr-filter-date-label">
+              To
+              <input
+                type="date"
+                className="dr-filter-input"
+                value={dateTo}
+                onChange={handleDateToChange}
+                min={dateFrom || undefined}
+              />
+            </label>
+
+            {hasActiveFilters && (
+              <button className="dr-filter-clear-btn" onClick={handleClearFilters}>
+                Clear Filters
+              </button>
+            )}
+          </div>
 
           {loading && <p>Loading data records...</p>}
           {error && <p style={{ color: "#d64545" }}>{error}</p>}
@@ -98,7 +202,7 @@ const DataRecords = () => {
                   <tbody>
                     {records.length === 0 && (
                       <tr>
-                        <td colSpan={5}>No data records found.</td>
+                        <td colSpan={5}>No records match the current filters.</td>
                       </tr>
                     )}
                     {records.map((row) => (
