@@ -340,10 +340,73 @@ html, body, #root {
   opacity: 0.7;
   cursor: not-allowed;
 }
+.form-success {
+  padding: 12px 14px;
+  border-radius: 8px;
+  background: #e3f7ea;
+  border: 1px solid #b8e6c4;
+  color: #1a9e5c;
+  font-size: 0.85rem;
+  text-align: left;
+  margin-bottom: 4px;
+}
 
 .spinner-dark {
   border: 2.5px solid rgba(0, 119, 182, 0.25);
   border-top-color: var(--color-primary);
+}
+.strength-meter {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 6px;
+}
+
+.strength-bar-track {
+  flex: 1;
+  height: 5px;
+  border-radius: 999px;
+  background: #e2eef4;
+  overflow: hidden;
+}
+
+.strength-bar-fill {
+  height: 100%;
+  border-radius: 999px;
+  transition: width 0.25s ease, background 0.25s ease;
+}
+
+/* Weak — red */
+.strength-0, .strength-1 {
+  background: #e14b4b;
+}
+
+/* Medium — orange-ish shifting toward blue */
+.strength-2, .strength-3 {
+  background: #4b9ec9;
+}
+
+/* Strong — full blue, matches your theme */
+.strength-4, .strength-5 {
+  background: var(--color-primary);
+}
+
+.strength-label {
+  font-size: 0.7rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.strength-text-0, .strength-text-1 {
+  color: #e14b4b;
+}
+
+.strength-text-2, .strength-text-3 {
+  color: #4b9ec9;
+}
+
+.strength-text-4, .strength-text-5 {
+  color: var(--color-primary);
 }
 
 @keyframes spin {
