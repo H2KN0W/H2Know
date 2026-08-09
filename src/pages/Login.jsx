@@ -71,6 +71,8 @@ const Login = () => {
   const redirectByRole = async (role) => {
     if (role === "admin") {
       navigate("/admin/dashboard", { replace: true });
+    } else if (role === "manager") {
+      navigate("/manager/dashboard", { replace: true });
     } else {
       setError("You do not have access to this dashboard.");
       await supabase.auth.signOut();
