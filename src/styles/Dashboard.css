@@ -82,6 +82,45 @@
   margin: 0;
 }
 
+/* Search bar */
+.dashboard-search {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--color-white);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 0 14px;
+  height: 42px;
+  max-width: 480px;
+  box-shadow: 0 1px 2px rgba(10, 46, 61, 0.03);
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.dashboard-search:focus-within {
+  border-color: var(--color-accent);
+  box-shadow: 0 0 0 3px rgba(0, 180, 216, 0.15);
+}
+
+.dashboard-search-icon {
+  color: var(--color-text-muted);
+  flex-shrink: 0;
+}
+
+.dashboard-search input {
+  border: none;
+  outline: none;
+  background: transparent;
+  width: 100%;
+  font-size: 0.85rem;
+  color: var(--color-text);
+  font-family: var(--font-body);
+}
+
+.dashboard-search input::placeholder {
+  color: var(--color-text-muted);
+}
+
 /* Summary cards */
 .summary-grid {
   display: grid;
@@ -263,6 +302,75 @@ td.data-cell {
 .badge-approved { background: var(--status-positive-bg); color: var(--status-positive); }
 .badge-rejected { background: var(--status-danger-bg); color: var(--status-danger); }
 
+/* Row-level action buttons (e.g. Active Threshold Alerts) */
+.table-actions {
+  display: flex;
+  gap: 6px;
+  white-space: nowrap;
+}
+
+.table-action-btn {
+  padding: 5px 10px;
+  border-radius: 7px;
+  border: 1px solid var(--border);
+  background: var(--color-white);
+  color: var(--color-text-muted);
+  font-size: 0.72rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background var(--transition-fast), border-color var(--transition-fast), color var(--transition-fast);
+}
+
+.table-action-btn:hover {
+  background: var(--color-light);
+  border-color: var(--color-accent);
+  color: var(--color-primary);
+}
+
+.table-action-btn-danger:hover {
+  background: var(--status-danger-bg);
+  border-color: var(--status-danger);
+  color: var(--status-danger);
+}
+
+/* System Status panel — key/value rows instead of a table */
+.status-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.status-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 2px;
+  border-bottom: 1px solid var(--border);
+}
+
+.status-row:last-child {
+  border-bottom: none;
+}
+
+.status-row-highlight {
+  padding-bottom: 16px;
+  margin-bottom: 2px;
+  border-bottom: 1px solid var(--border);
+}
+
+.status-label {
+  font-size: 0.82rem;
+  color: var(--color-text-muted);
+}
+
+.status-value {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--color-text);
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
 @media (max-width: 900px) {
   .admin-main {
     padding: 20px 16px 32px;
@@ -294,5 +402,14 @@ td.data-cell {
   }
   .summary-value {
     font-size: 1.05rem;
+  }
+
+  .dashboard-search {
+    max-width: none;
+  }
+
+  .table-actions {
+    flex-direction: column;
+    gap: 4px;
   }
 }
