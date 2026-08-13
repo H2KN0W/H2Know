@@ -5,6 +5,7 @@ import "../../styles/UserManagement.css";
 import Sidebar from "../../components/Sidebar";
 import { useLogPageView } from "../../lib/useLogPageView";
 import { logActivity } from "../../lib/logActivity";
+import { Plus, Pencil, Ban, CircleCheck, Trash2 } from "lucide-react";
 
 const PAGE_SIZE = 5;
 
@@ -229,7 +230,8 @@ const UserManagement = () => {
             className="um-add-btn"
             onClick={() => setModalUser({})}
           >
-            + Add New User
+            <Plus size={16} strokeWidth={2.5} />
+            Add New User
           </button>
         </div>
 
@@ -281,44 +283,54 @@ const UserManagement = () => {
                         <td colSpan={6}>No users match your search.</td>
                       </tr>
                     )}
-                    {pagedProfiles.map((p) => (
-                      <tr key={p.id}>
-                        <td>{p.full_name || "—"}</td>
-                        <td>{p.email}</td>
-                        <td>{p.role === "admin" ? "Administrator" : "Manager"}</td>
-                        <td>
-                          <span
-                            className={`badge um-status-${p.status}`}
-                          >
-                            {statusToLabel(p.status)}
-                          </span>
-                        </td>
-                        <td>{formatDateTime(p.last_login)}</td>
-                        <td className="um-actions-icons">
-                          <button
-                            className="um-icon-btn"
-                            title="Edit"
-                            onClick={() => setModalUser(p)}
-                          >
-                            ✏️
-                          </button>
-                          <button
-                            className="um-icon-btn"
-                            title={p.status === "approved" ? "Disable" : "Enable"}
-                            onClick={() => handleToggleDisable(p)}
-                          >
-                            🚫
-                          </button>
-                          <button
-                            className="um-icon-btn um-icon-danger"
-                            title="Delete"
-                            onClick={() => setConfirmDeleteUser(p)}
-                          >
-                            🗑️
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
+                    {pagedProfiles.map((p) => {
+                      const isActive = p.status === "approved";
+                      return (
+                        <tr key={p.id}>
+                          <td>{p.full_name || "—"}</td>
+                          <td>{p.email}</td>
+                          <td>{p.role === "admin" ? "Administrator" : "Manager"}</td>
+                          <td>
+                            <span
+                              className={`badge um-status-${p.status}`}
+                            >
+                              {statusToLabel(p.status)}
+                            </span>
+                          </td>
+                          <td>{formatDateTime(p.last_login)}</td>
+                          <td className="um-actions-icons">
+                            <button
+                              className="um-icon-btn um-icon-edit"
+                              title="Edit"
+                              aria-label="Edit user"
+                              onClick={() => setModalUser(p)}
+                            >
+                              <Pencil size={15} strokeWidth={2} />
+                            </button>
+                            <button
+                              className={`um-icon-btn ${isActive ? "um-icon-disable" : "um-icon-enable"}`}
+                              title={isActive ? "Disable" : "Enable"}
+                              aria-label={isActive ? "Disable user" : "Enable user"}
+                              onClick={() => handleToggleDisable(p)}
+                            >
+                              {isActive ? (
+                                <Ban size={15} strokeWidth={2} />
+                              ) : (
+                                <CircleCheck size={15} strokeWidth={2} />
+                              )}
+                            </button>
+                            <button
+                              className="um-icon-btn um-icon-danger"
+                              title="Delete"
+                              aria-label="Delete user"
+                              onClick={() => setConfirmDeleteUser(p)}
+                            >
+                              <Trash2 size={15} strokeWidth={2} />
+                            </button>
+                          </td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>
