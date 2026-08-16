@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
-import { MapContainer, TileLayer, GeoJSON, useMap } from "react-leaflet";
+import { MapContainer, TileLayer, GeoJSON, Marker, Popup, useMap, useMapEvents } from "react-leaflet";
+import { Copy, Check } from "lucide-react";
 import L from "leaflet";
 import catchmentData from "../../data/dicklumCatchment.json";
 import "../../styles/manager/CatchmentMap.css";
@@ -17,13 +18,44 @@ const FitBounds = ({ data }) => {
   return null;
 };
 
+const ClickToPin = ({ onPick }) => {
+  useMapEvents({ click: (e) => onPick(e.latlng) });
+  return null;
+};
+
+const CoordPopupContent = ({ latlng }) => {
+  const [copied, setCopied] = useState(false);
+  const text = `${latlng.lat.toFixed(6)}, ${latlng.lng.toFixed(6)}`;
+
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    } catch {
+      // clipboard blocked (e.g. non-HTTPS) — fail silently, coords are still shown
+    }
+  };
+
+  return (
+    <div className="catchment-pin-popup">
+      <span>{text}</span>
+      <button type="button" onClick={handleCopy} title="Copy coordinates" aria-label="Copy coordinates">
+        {copied ? <Check size={13} /> : <Copy size={13} />}
+        {copied ? "Copied" : "Copy"}
+      </button>
+    </div>
+  );
+};
+
 const CatchmentMap = () => {
-  const [hovered, setHovered] = useState(false);
+  const [boundaryHovered, setBoundaryHovered] = useState(false);
+  const [pin, setPin] = useState(null);
 
   const onEachFeature = useMemo(() => (feature, layer) => {
     layer.on({
-      mouseover: (e) => { e.target.setStyle(HOVER_STYLE); setHovered(true); },
-      mouseout: (e) => { e.target.setStyle(BOUNDARY_STYLE); setHovered(false); },
+      mouseover: (e) => { e.target.setStyle(HOVER_STYLE); setBoundaryHovered(true); },
+      mouseout: (e) => { e.target.setStyle(BOUNDARY_STYLE); setBoundaryHovered(false); },
     });
   }, []);
 
@@ -36,8 +68,23 @@ const CatchmentMap = () => {
         />
         <GeoJSON data={catchmentData} style={BOUNDARY_STYLE} onEachFeature={onEachFeature} />
         <FitBounds data={catchmentData} />
+        <ClickToPin onPick={setPin} />
+        {pin && (
+          <>
+            <Marker position={pin} />
+            <Popup
+              key={`${pin.lat}-${pin.lng}`}
+              position={pin}
+              autoClose={false}
+              closeOnClick={false}
+              eventHandlers={{ remove: () => setPin(null) }}
+            >
+              <CoordPopupContent latlng={pin} />
+            </Popup>
+          </>
+        )}
       </MapContainer>
-      {hovered && <span className="catchment-map-hint">Dicklum River Catchment Boundary</span>}
+      {boundaryHovered && <span className="catchment-map-hint">Dicklum River Catchment Boundary</span>}
     </div>
   );
 };
