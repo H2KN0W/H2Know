@@ -30,3 +30,29 @@
 .leaflet-control-attribution {
   font-size: 0.65rem;
 }
+
+.catchment-pin-popup {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--font-data, monospace);
+  font-size: 0.78rem;
+}
+
+.catchment-pin-popup button {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: #0077b6;
+  border: none;
+  color: #fff;
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 4px 8px;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+.catchment-pin-popup button:hover {
+  background: #0096c7;
+}
