@@ -2,8 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis, Legend } from "recharts";
 import { supabase } from "../../lib/supabase";
 import { useLogPageView } from "../../lib/useLogPageView";
-import ManagerSidebar from "../../components/manager/ManagerSidebar";
-import "../../styles/admin/AdminDashboard.css";
+import ManagerSidebar from "./ManagerSidebar";
 import "../../styles/manager/ManagerPortal.css";
 import "../../styles/manager/AnalyticsTrends.css";
 
@@ -26,7 +25,7 @@ const AnalyticsTrends = () => {
   const [page, setPage] = useState(1); const [loading, setLoading] = useState(true); const [error, setError] = useState("");
   const isAll = parameterId === ALL_VALUE;
 
-  useEffect(() => { supabase.from("parameters").select("id, name, unit").order("name").then(({ data, error: fetchError }) => { if (fetchError) setError("Could not load parameters."); else { const available = (data || []).filter((item) => item.name?.toLowerCase() !== "water level"); setParameters(available); setParameterId(available[0]?.id || ""); } }); }, []);
+  useEffect(() => { supabase.from("parameters").select("id, name, unit").order("name").then(({ data, error: fetchError }) => { if (fetchError) setError("Could not load parameters."); else { const available = (data || []).filter((item) => item.name?.toLowerCase() !== "water level"); setParameters(available); setParameterId(ALL_VALUE); } }); }, []);
   useEffect(() => {
     if (!parameterId) return;
     const load = async () => {

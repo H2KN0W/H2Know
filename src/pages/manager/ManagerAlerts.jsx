@@ -1,8 +1,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "../../lib/supabase";
 import { useLogPageView } from "../../lib/useLogPageView";
-import ManagerSidebar from "../../components/manager/ManagerSidebar";
-import "../../styles/admin/AdminDashboard.css";
+import ManagerSidebar from "./ManagerSidebar";
 import "../../styles/manager/ManagerPortal.css";
 import "../../styles/manager/ManagerAlerts.css";
 

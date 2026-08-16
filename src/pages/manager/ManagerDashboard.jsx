@@ -1,9 +1,9 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Activity, Droplets, Gauge, Thermometer, Waves } from "lucide-react";
 import { supabase } from "../../lib/supabase";
 import { useLogPageView } from "../../lib/useLogPageView";
-import ManagerSidebar from "../../components/manager/ManagerSidebar";
-import "../../styles/admin/AdminDashboard.css";
+import ManagerSidebar from "./ManagerSidebar";
+import CatchmentMap from "./CatchmentMap";
 import "../../styles/manager/ManagerPortal.css";
 import "../../styles/manager/ManagerDashboard.css";
 
@@ -47,6 +47,19 @@ const ManagerDashboard = () => {
   const nodeLastSync = (node) => readings.find((reading) => reading.nodes?.id === node.id)?.recorded_at;
   const isOnline = (time) => time && checkedAt - new Date(time).getTime() <= 5 * 60 * 1000;
 
+  const recentRows = useMemo(() => {
+    const map = new Map();
+    readings.forEach((reading) => {
+      const key = reading.recorded_at;
+      if (!map.has(key)) map.set(key, { recorded_at: key });
+      const name = reading.parameters?.name?.toLowerCase();
+      if (name) map.get(key)[name] = reading.value;
+    });
+    return Array.from(map.values())
+      .sort((a, b) => new Date(b.recorded_at) - new Date(a.recorded_at))
+      .slice(0, 10);
+  }, [readings]);
+
   return <div className="admin-shell"><ManagerSidebar /><main className="admin-main manager-main">
     <header className="page-header"><h1>Monitoring Dashboard</h1><p>Current water-quality readings and node health</p></header>
     {error && <p className="manager-error">{error}</p>}
@@ -57,13 +70,60 @@ const ManagerDashboard = () => {
           return <article className="manager-stat-card" key={name}><Icon size={21} /><div><p>{name}</p><strong>{reading ? `${reading.value} ${reading.parameters?.unit || ""}` : "No reading"}</strong><small>{reading ? formatDateTime(reading.recorded_at) : "Awaiting data"}</small></div></article>;
         })}
       </section>
-      <section className="manager-panel"><div className="manager-panel-heading"><h2>Sensor Status</h2><span>Online if synced in the last 5 minutes</span></div><div className="manager-node-grid">
-        {nodes.length === 0 && <p>No monitoring nodes found.</p>}
-        {nodes.map((node) => { const sync = nodeLastSync(node); return <article className="manager-node-card" key={node.id}><div><strong>{node.device_label || "Unnamed node"}</strong><p>Last sync: {formatDateTime(sync)}</p></div><span className={`manager-state ${isOnline(sync) ? "online" : "offline"}`}>{isOnline(sync) ? "Online" : "Offline"}</span></article>; })}
-      </div></section>
+
       <section className="manager-two-column">
-        <article className="manager-panel"><h2>Active Alerts</h2><div className="table-wrap"><table><thead><tr><th>Parameter</th><th>Reading</th><th>Threshold</th><th>Severity</th></tr></thead><tbody>{alerts.length === 0 ? <tr><td colSpan={4}>No active alerts.</td></tr> : alerts.map((alert) => { const threshold = alert.thresholds; return <tr key={alert.id}><td>{threshold?.parameters?.name || "—"}</td><td>{alert.sensor_readings?.value ?? "—"} {threshold?.parameters?.unit || ""}</td><td>{threshold?.min_value ?? "—"} – {threshold?.max_value ?? "—"}</td><td><span className={`badge ${severityClass(threshold?.severity_label)}`}>{threshold?.severity_label || "—"}</span></td></tr>; })}</tbody></table></div></article>
-        <article className="manager-panel"><h2>Recent Readings</h2><div className="table-wrap"><table><thead><tr><th>Time</th><th>Parameter</th><th>Value</th></tr></thead><tbody>{readings.slice(0, 10).map((reading) => <tr key={reading.id}><td>{formatDateTime(reading.recorded_at)}</td><td>{reading.parameters?.name || "—"}</td><td>{reading.value} {reading.parameters?.unit || ""}</td></tr>)}</tbody></table></div></article>
+        <article className="manager-panel">
+          <h2>Catchment Map</h2>
+          <CatchmentMap />
+        </article>
+        <article className="manager-panel">
+          <div className="manager-panel-heading"><h2>Sensor Status</h2><span>Online if synced in the last 5 minutes</span></div>
+          <div className="manager-node-grid">
+            {nodes.length === 0 && <p>No monitoring nodes found.</p>}
+            {nodes.map((node) => { const sync = nodeLastSync(node); return <article className="manager-node-card" key={node.id}><div><strong>{node.device_label || "Unnamed node"}</strong><p>Last sync: {formatDateTime(sync)}</p></div><span className={`manager-state ${isOnline(sync) ? "online" : "offline"}`}>{isOnline(sync) ? "Online" : "Offline"}</span></article>; })}
+          </div>
+        </article>
+      </section>
+
+      <section className="manager-panel">
+        <h2>Active Alerts</h2>
+        <div className="table-wrap">
+          <table>
+            <thead><tr><th>Parameter</th><th>Reading</th><th>Threshold</th><th>Severity</th></tr></thead>
+            <tbody>
+              {alerts.length === 0 ? <tr><td colSpan={4}>No active alerts.</td></tr> : alerts.map((alert) => {
+                const threshold = alert.thresholds;
+                return <tr key={alert.id}>
+                  <td>{threshold?.parameters?.name || "—"}</td>
+                  <td className="data-cell">{alert.sensor_readings?.value ?? "—"} {threshold?.parameters?.unit || ""}</td>
+                  <td className="data-cell">{threshold?.min_value ?? "—"} – {threshold?.max_value ?? "—"}</td>
+                  <td><span className={`badge ${severityClass(threshold?.severity_label)}`}>{threshold?.severity_label || "—"}</span></td>
+                </tr>;
+              })}
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section className="manager-panel">
+        <h2>Recent Readings Log</h2>
+        <div className="table-wrap">
+          
+          <table className="readings-table">
+            <thead><tr><th>Timestamp</th><th>pH</th><th>Turbidity (NTU)</th><th>TDS (mg/L)</th><th>Temperature (°C)</th></tr></thead>
+            <tbody>
+              {recentRows.length === 0 ? <tr><td colSpan={5}>No readings yet.</td></tr> : recentRows.map((row) => (
+                <tr key={row.recorded_at}>
+                  <td>{formatDateTime(row.recorded_at)}</td>
+                  <td className="data-cell">{row.ph ?? "—"}</td>
+                  <td className="data-cell">{row.turbidity ?? "—"}</td>
+                  <td className="data-cell">{row.tds ?? "—"}</td>
+                  <td className="data-cell">{row.temperature ?? "—"}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </section>
     </>}
   </main></div>;
