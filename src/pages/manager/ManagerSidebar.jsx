@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { NavLink } from "react-router-dom";
 import { BarChart3, Bell, LayoutDashboard, FileText, Menu, X } from "lucide-react";
-import LogoutButton from "../LogoutButton";
+import LogoutButton from "../../components/LogoutButton";
 import H2knowLogo from "../../assets/img/H2knowLogo.jpg";
 import "../../styles/Sidebar.css";
 
