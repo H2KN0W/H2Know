@@ -29,7 +29,7 @@
 
 .manager-two-column {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: 3fr 2fr;
   gap: 1.25rem;
 }
 
@@ -92,3 +92,11 @@
   }
 }
 
+.readings-table {
+  table-layout: fixed;
+}
+
+.readings-table th,
+.readings-table td {
+  width: 20%;
+}
