@@ -3,8 +3,9 @@ import { supabase } from "../../lib/supabase";
 import { useLogPageView } from "../../lib/useLogPageView";
 import { logActivity } from "../../lib/logActivity";
 import ManagerSidebar from "../../components/manager/ManagerSidebar";
-import "../../styles/Dashboard.css";
+import "../../styles/admin/AdminDashboard.css";
 import "../../styles/manager/ManagerPortal.css";
+import "../../styles/manager/ManagerReports.css";
 
 const PAGE_SIZE = 15;
 const formatDateTime = (value) => value ? new Date(value).toLocaleString() : "—";

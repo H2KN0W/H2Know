@@ -1,0 +1,42 @@
+.manager-tabs {
+  display: flex;
+  border-bottom: 1px solid #dce3e6;
+  gap: 0.25rem;
+  margin-bottom: 1rem;
+}
+
+.manager-tabs button {
+  border: 0;
+  border-bottom: 2px solid transparent;
+  padding: 0.6rem 0.8rem;
+  background: transparent;
+  cursor: pointer;
+  color: #52646a;
+}
+
+.manager-tabs button.active {
+  color: #176b7b;
+  border-bottom-color: #176b7b;
+  font-weight: 700;
+}
+
+.manager-tabs span {
+  background: #e5eef0;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  padding: 0.1rem 0.35rem;
+}
+
+.manager-actions {
+  white-space: nowrap;
+}
+
+.manager-actions button + button {
+  margin-left: 0.35rem;
+  background: #53737c;
+}
+
+.manager-actions span {
+  color: #5e6d72;
+  font-size: 0.82rem;
+}

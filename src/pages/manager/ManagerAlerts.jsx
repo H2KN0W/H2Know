@@ -2,8 +2,9 @@ import { useEffect, useState } from "react";
 import { supabase } from "../../lib/supabase";
 import { useLogPageView } from "../../lib/useLogPageView";
 import ManagerSidebar from "../../components/manager/ManagerSidebar";
-import "../../styles/Dashboard.css";
+import "../../styles/admin/AdminDashboard.css";
 import "../../styles/manager/ManagerPortal.css";
+import "../../styles/manager/ManagerAlerts.css";
 
 const PAGE_SIZE = 15;
 const formatDateTime = (value) => value ? new Date(value).toLocaleString() : "—";

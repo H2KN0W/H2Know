@@ -3,8 +3,9 @@ import { Activity, Droplets, Gauge, Thermometer, Waves } from "lucide-react";
 import { supabase } from "../../lib/supabase";
 import { useLogPageView } from "../../lib/useLogPageView";
 import ManagerSidebar from "../../components/manager/ManagerSidebar";
-import "../../styles/Dashboard.css";
+import "../../styles/admin/AdminDashboard.css";
 import "../../styles/manager/ManagerPortal.css";
+import "../../styles/manager/ManagerDashboard.css";
 
 const PARAMETERS = ["pH", "Turbidity", "TDS", "Temperature"];
 const icons = { ph: Droplets, turbidity: Waves, tds: Gauge, temperature: Thermometer };
