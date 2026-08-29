@@ -85,3 +85,84 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* Deliberate, utility-focused dashboard treatment. */
+.manager-shell .manager-card-grid {
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.manager-shell .manager-stat-card,
+.manager-shell .manager-node-card {
+  background: #ffffff;
+  border: 1px solid #d9e2e8;
+  border-radius: 6px;
+  box-shadow: none;
+}
+
+.manager-shell .manager-stat-card {
+  min-height: 118px;
+  padding: 16px;
+  gap: 12px;
+}
+
+.manager-shell .manager-stat-card svg {
+  color: #1e5f8c;
+  margin-top: 2px;
+  stroke-width: 1.8;
+}
+
+.manager-shell .manager-stat-card p {
+  margin: 0 0 6px;
+  color: #5f7280;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.manager-shell .manager-stat-card strong {
+  color: #173042;
+  font-family: var(--font-data);
+  font-size: 1.05rem;
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+.manager-shell .river-condition-card strong { color: #1e5f8c; }
+.manager-shell .river-condition-safe svg,
+.manager-shell .river-condition-safe strong { color: #277447; }
+.manager-shell .river-condition-warning svg,
+.manager-shell .river-condition-warning strong { color: #9a5d00; }
+.manager-shell .river-condition-critical svg,
+.manager-shell .river-condition-critical strong { color: #b42318; }
+.manager-shell .river-condition-unknown svg,
+.manager-shell .river-condition-unknown strong { color: #476b80; }
+
+.manager-shell .manager-stat-card small {
+  margin-top: 7px;
+  color: #6b7e8b;
+  font-size: 0.75rem;
+  line-height: 1.4;
+}
+
+.manager-shell .manager-node-grid { grid-template-columns: 1fr; gap: 8px; }
+.manager-shell .manager-node-card { padding: 12px; gap: 12px; }
+.manager-shell .manager-node-card strong { color: #173042; font-size: 0.88rem; font-weight: 600; }
+.manager-shell .manager-node-card p { margin-top: 4px; color: #6b7e8b; font-size: 0.75rem; }
+.manager-shell .manager-state { border-radius: 4px; padding: 4px 8px; font-size: 0.7rem; font-weight: 600; }
+.manager-shell .manager-state.online { background: #e8f3ec; color: #277447; }
+.manager-shell .manager-state.offline { background: #f9ecd9; color: #9a5d00; }
+
+@media (max-width: 1200px) {
+  .manager-shell .manager-card-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+
+@media (max-width: 720px) {
+  .manager-shell .manager-card-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+@media (max-width: 480px) {
+  .manager-shell .manager-card-grid { grid-template-columns: 1fr; }
+}
