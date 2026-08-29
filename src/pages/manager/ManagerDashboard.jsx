@@ -99,7 +99,7 @@ const ManagerDashboard = () => {
       .slice(0, 10);
   }, [readings]);
 
-  return <div className="admin-shell"><ManagerSidebar /><main className="admin-main manager-main">
+  return <div className="admin-shell manager-shell"><ManagerSidebar /><main className="admin-main manager-main">
     <header className="page-header"><h1>Monitoring Dashboard</h1><p>Current water-quality readings and node health</p></header>
     {error && <p className="manager-error">{error}</p>}
     {loading ? <p>Loading monitoring data...</p> : <>
@@ -107,7 +107,7 @@ const ManagerDashboard = () => {
         {(() => {
           const Icon = conditionIcon[riverCondition.condition];
           const detail = riverCondition.condition === "unknown" ? "Awaiting a complete set of fresh readings" : riverCondition.message;
-          return <article className="manager-stat-card river-condition-card" aria-live="polite"><Icon size={21} /><div><p>River Condition</p><strong>{conditionLabel[riverCondition.condition]}</strong><small>{detail}</small></div></article>;
+          return <article className={`manager-stat-card river-condition-card river-condition-${riverCondition.condition}`} aria-live="polite"><Icon size={21} /><div><p>River Condition</p><strong>{conditionLabel[riverCondition.condition]}</strong><small>{detail}</small></div></article>;
         })()}
         {PARAMETERS.map((name) => {
           const reading = latestFor(name); const Icon = icons[name.toLowerCase()] || Activity;
