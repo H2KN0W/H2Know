@@ -133,11 +133,12 @@ const ManagerDashboard = () => {
         <h2>Active Alerts</h2>
         <div className="table-wrap">
           <table>
-            <thead><tr><th>Parameter</th><th>Reading</th><th>Threshold</th><th>Severity</th></tr></thead>
+            <thead><tr><th>Triggered</th><th>Parameter</th><th>Reading</th><th>Threshold</th><th>Severity</th></tr></thead>
             <tbody>
-              {alerts.length === 0 ? <tr><td colSpan={4}>No active alerts.</td></tr> : alerts.map((alert) => {
+              {alerts.length === 0 ? <tr><td colSpan={5}>No active alerts.</td></tr> : alerts.map((alert) => {
                 const threshold = alert.thresholds;
                 return <tr key={alert.id}>
+                  <td>{formatDateTime(alert.triggered_at)}</td>
                   <td>{threshold?.parameters?.name || "—"}</td>
                   <td className="data-cell">{alert.sensor_readings?.value ?? "—"} {threshold?.parameters?.unit || ""}</td>
                   <td className="data-cell">{threshold?.min_value ?? "—"} – {threshold?.max_value ?? "—"}</td>
