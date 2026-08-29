@@ -56,3 +56,8 @@
 .catchment-pin-popup button:hover {
   background: #0096c7;
 }
+
+.manager-shell .catchment-map-wrap { border-color: #d9e2e8; border-radius: 4px; }
+.manager-shell .catchment-map-hint { background: #1e5f8c; border-radius: 4px; }
+.manager-shell .catchment-pin-popup button { background: #1e5f8c; border-radius: 4px; }
+.manager-shell .catchment-pin-popup button:hover { background: #174b6e; }
