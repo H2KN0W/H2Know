@@ -5,8 +5,8 @@ import L from "leaflet";
 import catchmentData from "../../data/dicklumCatchment.json";
 import "../../styles/manager/CatchmentMap.css";
 
-const BOUNDARY_STYLE = { color: "#ff8c00", weight: 3, fillColor: "#ff8c00", fillOpacity: 0.08 };
-const HOVER_STYLE = { color: "#ff8c00", weight: 4, fillOpacity: 0.2 };
+const BOUNDARY_STYLE = { color: "#14658f", weight: 3, fillColor: "#14658f", fillOpacity: 0.08 };
+const HOVER_STYLE = { color: "#14658f", weight: 4, fillOpacity: 0.16 };
 
 const FitBounds = ({ data }) => {
   const map = useMap();
