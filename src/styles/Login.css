@@ -39,7 +39,7 @@ html, body, #root {
   justify-content: center;
   padding: 24px;
   font-family: "Inter", sans-serif;
-  background: linear-gradient(160deg, #023e5c 0%, var(--color-primary) 45%, var(--color-secondary) 100%);
+  background: #0C4C7C;
 }
 
 .login-card {
@@ -255,7 +255,7 @@ html, body, #root {
   padding: 11px 14px;
   border: none;
   border-radius: var(--radius-md);
-  background: linear-gradient(135deg, var(--color-primary), var(--color-secondary));
+  background: #0C4C7C;
   color: var(--color-white);
   font-size: 0.85rem;
   font-weight: 700;
@@ -265,13 +265,13 @@ html, body, #root {
   align-items: center;
   justify-content: center;
   min-height: 42px;
-  box-shadow: 0 6px 18px rgba(0, 119, 182, 0.25);
+  box-shadow: 0 6px 18px rgba(12, 76, 124, 0.25);
   transition: transform 0.15s ease, box-shadow 0.15s ease, opacity 0.15s ease;
 }
 
 .login-button:hover:not(:disabled) {
   transform: translateY(-1px);
-  box-shadow: 0 8px 22px rgba(0, 119, 182, 0.32);
+  box-shadow: 0 8px 22px rgba(12, 76, 124, 0.32);
 }
 
 .login-button:active:not(:disabled) {
