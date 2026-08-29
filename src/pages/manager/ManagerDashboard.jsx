@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Activity, Droplets, Gauge, Thermometer, Waves } from "lucide-react";
+import { Activity, Droplets, Gauge, ShieldAlert, ShieldCheck, ShieldQuestion, ShieldX, Thermometer, Waves } from "lucide-react";
 import { supabase } from "../../lib/supabase";
 import { useLogPageView } from "../../lib/useLogPageView";
 import ManagerSidebar from "./ManagerSidebar";
@@ -14,6 +14,9 @@ const severityClass = (value) => {
   const severity = (value || "").toLowerCase();
   return severity === "critical" || severity === "danger" ? "badge-failed" : severity === "warning" ? "badge-warning" : "badge-normal";
 };
+const conditionRank = { safe: 0, warning: 1, critical: 2, unknown: 3 };
+const conditionLabel = { safe: "Safe", warning: "Warning", critical: "Critical", unknown: "Unknown" };
+const conditionIcon = { safe: ShieldCheck, warning: ShieldAlert, critical: ShieldX, unknown: ShieldQuestion };
 
 const ManagerDashboard = () => {
   useLogPageView("Viewed Manager Dashboard");
@@ -29,7 +32,7 @@ const ManagerDashboard = () => {
       setLoading(true);
       const [readingResult, alertResult, nodeResult] = await Promise.all([
         supabase.from("sensor_readings").select("id, value, recorded_at, parameters ( name, unit ), nodes ( id, device_label )").order("recorded_at", { ascending: false }).limit(200),
-        supabase.from("alerts").select("id, status, triggered_at, thresholds!inner ( min_value, max_value, severity_label, parameters!inner ( name, unit ) ), sensor_readings ( value )").eq("status", "active").order("triggered_at", { ascending: false }).limit(10),
+        supabase.from("alerts").select("id, status, triggered_at, thresholds!inner ( min_value, max_value, severity_label, parameters!inner ( name, unit ) ), sensor_readings ( id, value )").eq("status", "active").order("triggered_at", { ascending: false }).limit(10),
         supabase.from("nodes").select("id, device_label"),
       ]);
       const firstError = readingResult.error || alertResult.error || nodeResult.error;
@@ -46,6 +49,42 @@ const ManagerDashboard = () => {
   const latestFor = (name) => readings.find((reading) => reading.parameters?.name?.toLowerCase() === name.toLowerCase());
   const nodeLastSync = (node) => readings.find((reading) => reading.nodes?.id === node.id)?.recorded_at;
   const isOnline = (time) => time && checkedAt - new Date(time).getTime() <= 5 * 60 * 1000;
+
+  const riverCondition = useMemo(() => {
+    const latestReadings = PARAMETERS.map((name) => readings.find((reading) => reading.parameters?.name?.toLowerCase() === name.toLowerCase()));
+    const problems = [];
+    let condition = "safe";
+
+    latestReadings.forEach((reading, index) => {
+      const parameter = PARAMETERS[index];
+      if (!reading) {
+        condition = "unknown";
+        problems.push(`No recent ${parameter} reading`);
+        return;
+      }
+
+      const matchingAlert = alerts.find((alert) =>
+        alert.thresholds?.parameters?.name?.toLowerCase() === parameter.toLowerCase()
+        && alert.sensor_readings?.id === reading.id
+      );
+      const severity = matchingAlert?.thresholds?.severity_label?.toLowerCase();
+      const nextCondition = severity === "critical" || severity === "danger" ? "critical" : severity === "warning" ? "warning" : "safe";
+
+      if (conditionRank[nextCondition] > conditionRank[condition] && condition !== "unknown") condition = nextCondition;
+      if (nextCondition !== "safe") problems.push(`${parameter} is ${conditionLabel[nextCondition].toLowerCase()}`);
+    });
+
+    const hasOfflineNode = nodes.some((node) => {
+      const lastSync = readings.find((reading) => reading.nodes?.id === node.id)?.recorded_at;
+      return !lastSync || checkedAt - new Date(lastSync).getTime() > 5 * 60 * 1000;
+    });
+    if (condition !== "unknown" && nodes.length > 0 && hasOfflineNode) {
+      condition = "unknown";
+      problems.push("One or more sensor nodes are offline or stale");
+    }
+
+    return { condition, message: problems[0] || "All latest readings are within their configured limits." };
+  }, [alerts, nodes, readings, checkedAt]);
 
   const recentRows = useMemo(() => {
     const map = new Map();
@@ -65,6 +104,11 @@ const ManagerDashboard = () => {
     {error && <p className="manager-error">{error}</p>}
     {loading ? <p>Loading monitoring data...</p> : <>
       <section className="manager-card-grid">
+        {(() => {
+          const Icon = conditionIcon[riverCondition.condition];
+          const detail = riverCondition.condition === "unknown" ? "Awaiting a complete set of fresh readings" : riverCondition.message;
+          return <article className="manager-stat-card river-condition-card" aria-live="polite"><Icon size={21} /><div><p>River Condition</p><strong>{conditionLabel[riverCondition.condition]}</strong><small>{detail}</small></div></article>;
+        })()}
         {PARAMETERS.map((name) => {
           const reading = latestFor(name); const Icon = icons[name.toLowerCase()] || Activity;
           return <article className="manager-stat-card" key={name}><Icon size={21} /><div><p>{name}</p><strong>{reading ? `${reading.value} ${reading.parameters?.unit || ""}` : "No reading"}</strong><small>{reading ? formatDateTime(reading.recorded_at) : "Awaiting data"}</small></div></article>;
