@@ -8,11 +8,11 @@
   position: sticky;
   top: 0;
   z-index: 40;
-  justify-content: space-between;   /* add this */
+  justify-content: space-between;
 }
 
 .sidebar-topbar-brand {
-  order: 1;                          /* add this */
+  order: 1;
   display: flex;
   align-items: center;
   gap: 8px;
@@ -23,7 +23,7 @@
 }
 
 .sidebar-hamburger {
-  order: 2;                          /* add this */
+  order: 2;
   width: 34px;
   height: 34px;
   display: flex;
@@ -39,16 +39,6 @@
 
 .sidebar-hamburger:hover {
   background: var(--color-bg);
-}
-
-.sidebar-topbar-brand {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-family: var(--font-display);
-  font-weight: 700;
-  font-size: 0.95rem;
-  color: var(--color-text);
 }
 
 .sidebar-topbar-brand img {
@@ -69,7 +59,7 @@
   height: 100vh;
   position: sticky;
   top: 0;
-  background: linear-gradient(165deg, var(--sidebar-bg-start) 0%, var(--color-primary) 55%, var(--color-secondary) 130%);
+  background: #0C4C7C;
   color: var(--sidebar-ink-strong);
   display: flex;
   flex-direction: column;
@@ -182,30 +172,12 @@
   font-weight: 600;
 }
 
-/* Signature: a slim "flowing water" indicator on the active item —
-   a soft animated gradient rather than a flat bar. */
+/* Active state is defined by the page-specific sidebar theme. */
 .sidebar-link.active::before {
-  content: "";
-  position: absolute;
-  left: -12px;
-  top: 4px;
-  bottom: 4px;
-  width: 3px;
-  border-radius: 3px;
-  background: linear-gradient(180deg, var(--color-accent), var(--color-light), var(--color-accent));
-  background-size: 100% 200%;
-  animation: flow 2.6s linear infinite;
-}
-
-@keyframes flow {
-  0% { background-position: 0 0; }
-  100% { background-position: 0 200%; }
+  display: none;
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .sidebar-link.active::before {
-    animation: none;
-  }
   .live-dot::after {
     animation: none;
     display: none;
