@@ -22,7 +22,7 @@ const ManagerSidebar = () => {
         <div className="sidebar-topbar-brand"><img src={H2knowLogo} alt="H2KNOW logo" /><span>H2KNOW</span></div>
       </div>
       {mobileOpen && <div className="sidebar-scrim" onClick={() => setMobileOpen(false)} />}
-      <aside className={`admin-sidebar${mobileOpen ? " is-open" : ""}`}>
+      <aside className={`admin-sidebar manager-sidebar${mobileOpen ? " is-open" : ""}`}>
         <div className="sidebar-brand">
           <img src={H2knowLogo} alt="H2KNOW logo" className="sidebar-logo" />
           <div><p className="sidebar-title">H2KNOW</p><p className="sidebar-subtitle">Manager Portal</p></div>
