@@ -100,3 +100,240 @@
 .readings-table td {
   width: 20%;
 }
+
+/* Flat environmental-monitoring interface, scoped to the manager portal. */
+.manager-shell {
+  --color-primary: #1e5f8c;
+  --color-secondary: #476b80;
+  --color-accent: #476b80;
+  --color-light: #eaf3f8;
+  --color-bg: #f7fafc;
+  --color-text: #173042;
+  --color-text-muted: #5f7280;
+  --border: #d9e2e8;
+  --sidebar-bg-start: #0C4C7C;
+  --sidebar-bg-end: #0C4C7C;
+  --sidebar-active-bg: #ffffff;
+  --sidebar-hover: rgba(255, 255, 255, 0.12);
+}
+
+.manager-shell .manager-main { padding: 32px; gap: 24px; }
+.manager-shell .page-header { gap: 6px; }
+.manager-shell .page-header h1 { font-family: "Inter", Arial, sans-serif; font-size: 1.5rem; font-weight: 700; letter-spacing: -0.02em; }
+.manager-shell .page-header p { font-size: 0.875rem; }
+
+.manager-shell .manager-panel {
+  background: #ffffff;
+  border: 1px solid #d9e2e8;
+  border-radius: 6px;
+  padding: 20px;
+  margin-bottom: 0;
+  box-shadow: none;
+}
+
+.manager-shell .manager-panel h2 { font-family: "Inter", Arial, sans-serif; color: #173042; font-size: 0.95rem; font-weight: 600; margin-bottom: 16px; }
+.manager-shell .manager-panel-heading span { color: #6b7e8b; font-size: 0.75rem; }
+.manager-shell .manager-error { color: #b42318; background: #fdf0ef; border: 1px solid #efc3be; border-radius: 4px; padding: 8px 12px; }
+
+.manager-shell .table-wrap { max-height: 360px; overflow: auto; border-top: 1px solid #d9e2e8; }
+.manager-shell table { font-size: 0.8rem; }
+.manager-shell thead th { position: sticky; top: 0; z-index: 1; background: #f7fafc; color: #5f7280; padding: 10px; font-size: 0.7rem; font-weight: 600; }
+.manager-shell tbody td { padding: 12px 10px; border-bottom-color: #e5ebef; }
+.manager-shell tbody tr:hover { background: #f7fafc; }
+.manager-shell .badge { border-radius: 4px; font-weight: 600; }
+.manager-shell .badge-normal { background: #e8f3ec; color: #277447; }
+.manager-shell .badge-warning { background: #f9ecd9; color: #9a5d00; }
+.manager-shell .badge-failed { background: #fbe9e7; color: #b42318; }
+
+.manager-shell .manager-filters select,
+.manager-shell .manager-filters input,
+.manager-shell .manager-report-form input,
+.manager-shell .manager-report-form select { border-color: #bfcdd5; border-radius: 4px; }
+.manager-shell .manager-filters button,
+.manager-shell .manager-actions button,
+.manager-shell .manager-report-form button { background: #1e5f8c; border: 1px solid #1e5f8c; border-radius: 4px; }
+
+.manager-shell .admin-sidebar { background: #0C4C7C; box-shadow: none; }
+.manager-shell .sidebar-brand, .manager-shell .sidebar-footer { border-color: rgba(255, 255, 255, 0.24); }
+.manager-shell .sidebar-link, .manager-shell .sidebar-logout { border-radius: 4px; }
+.manager-shell .sidebar-link.active { color: #0C4C7C; }
+.manager-shell .sidebar-link.active::before { background: #ffffff; animation: none; }
+
+@media (max-width: 640px) {
+  .manager-shell .manager-main { padding: 20px 16px 32px; }
+}
+
+/* Shared Manager visual system. :has() extends the same presentation to the
+   existing Alerts, Analytics, and Reports shells without changing their DOM. */
+.manager-shell,
+.admin-shell:has(.manager-main) {
+  --color-primary: #14658f;
+  --color-secondary: #0f4e70;
+  --color-accent: #237ba6;
+  --color-light: #e9f4f9;
+  --color-white: #ffffff;
+  --color-bg: #f4f7f9;
+  --color-text: #17364a;
+  --color-text-muted: #617785;
+  --border: #d7e1e7;
+  --sidebar-bg-start: #0C4C7C;
+  --sidebar-bg-end: #0C4C7C;
+  --sidebar-active-bg: #e7f2f7;
+  --sidebar-hover: rgba(255, 255, 255, 0.09);
+}
+
+.manager-shell .manager-main,
+.admin-shell:has(.manager-main) .manager-main {
+  padding: 28px 32px 40px;
+  gap: 20px;
+}
+
+.manager-shell .page-header,
+.admin-shell:has(.manager-main) .page-header {
+  padding-bottom: 16px;
+  border-bottom: 1px solid #dce5ea;
+  gap: 5px;
+}
+
+.manager-shell .page-header h1,
+.admin-shell:has(.manager-main) .page-header h1 {
+  color: #14364a;
+  font-family: var(--font-body, Arial, sans-serif);
+  font-size: 1.45rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.manager-shell .page-header p,
+.admin-shell:has(.manager-main) .page-header p { color: #617785; font-size: 0.86rem; }
+
+.manager-shell .manager-panel,
+.admin-shell:has(.manager-main) .manager-panel {
+  border: 1px solid #d7e1e7;
+  border-radius: 6px;
+  box-shadow: none;
+  padding: 20px;
+}
+
+.manager-shell .manager-panel h2,
+.admin-shell:has(.manager-main) .manager-panel h2 {
+  color: #16384d;
+  font-family: var(--font-body, Arial, sans-serif);
+  font-size: 0.98rem;
+  font-weight: 700;
+  margin-bottom: 16px;
+}
+
+.manager-shell .table-wrap,
+.admin-shell:has(.manager-main) .table-wrap { border: 1px solid #dfe7eb; border-radius: 4px; max-height: 390px; }
+.manager-shell table,
+.admin-shell:has(.manager-main) table { font-size: 0.82rem; }
+.manager-shell thead th,
+.admin-shell:has(.manager-main) thead th { background: #f5f8fa; border-bottom: 1px solid #d7e1e7; color: #536c7b; padding: 11px 12px; font-size: 0.69rem; }
+.manager-shell tbody td,
+.admin-shell:has(.manager-main) tbody td { border-bottom-color: #e3eaee; color: #26495c; padding: 12px; }
+.manager-shell tbody tr:hover,
+.admin-shell:has(.manager-main) tbody tr:hover { background: #f6fafc; }
+
+.manager-shell .manager-filters,
+.admin-shell:has(.manager-main) .manager-filters { gap: 10px; margin-bottom: 18px; }
+.manager-shell .manager-filters label,
+.admin-shell:has(.manager-main) .manager-filters label { color: #4c6575; font-size: 0.8rem; font-weight: 600; }
+.manager-shell .manager-filters select,
+.manager-shell .manager-filters input,
+.manager-shell .manager-report-form input,
+.manager-shell .manager-report-form select,
+.admin-shell:has(.manager-main) .manager-filters select,
+.admin-shell:has(.manager-main) .manager-filters input,
+.admin-shell:has(.manager-main) .manager-report-form input,
+.admin-shell:has(.manager-main) .manager-report-form select { min-height: 36px; border: 1px solid #bdcbd3; border-radius: 4px; color: #26495c; font-size: 0.83rem; }
+.manager-shell .manager-filters button,
+.manager-shell .manager-actions button,
+.manager-shell .manager-report-form button,
+.admin-shell:has(.manager-main) .manager-filters button,
+.admin-shell:has(.manager-main) .manager-actions button,
+.admin-shell:has(.manager-main) .manager-report-form button { min-height: 36px; background: #14658f; border: 1px solid #14658f; border-radius: 4px; font-size: 0.82rem; font-weight: 600; }
+.manager-shell .manager-filters button:hover,
+.manager-shell .manager-actions button:hover,
+.manager-shell .manager-report-form button:hover,
+.admin-shell:has(.manager-main) .manager-filters button:hover,
+.admin-shell:has(.manager-main) .manager-actions button:hover,
+.admin-shell:has(.manager-main) .manager-report-form button:hover { background: #0f5174; border-color: #0f5174; }
+.manager-shell .manager-actions button + button,
+.admin-shell:has(.manager-main) .manager-actions button + button { background: #657983; border-color: #657983; }
+
+.manager-shell .manager-tabs,
+.admin-shell:has(.manager-main) .manager-tabs { gap: 4px; border-bottom-color: #d7e1e7; }
+.manager-shell .manager-tabs button,
+.admin-shell:has(.manager-main) .manager-tabs button { color: #5a7180; font-size: 0.82rem; font-weight: 600; padding: 10px 12px; }
+.manager-shell .manager-tabs button.active,
+.admin-shell:has(.manager-main) .manager-tabs button.active { color: #14658f; border-bottom-color: #14658f; }
+.manager-shell .manager-tabs span,
+.admin-shell:has(.manager-main) .manager-tabs span { background: #e6eff3; border-radius: 4px; color: #426273; padding: 2px 6px; }
+
+.manager-shell .badge,
+.admin-shell:has(.manager-main) .badge { border-radius: 4px; padding: 4px 8px; font-size: 0.7rem; }
+.manager-shell .badge-normal,
+.admin-shell:has(.manager-main) .badge-normal { background: #e7f2f7; color: #14658f; }
+.manager-shell .badge-warning,
+.admin-shell:has(.manager-main) .badge-warning { background: #fff2dc; color: #95620a; }
+.manager-shell .badge-failed,
+.admin-shell:has(.manager-main) .badge-failed { background: #fcebea; color: #b42318; }
+.manager-shell .badge-pending,
+.admin-shell:has(.manager-main) .badge-pending { background: #fff2dc; color: #95620a; }
+
+.manager-shell .um-pagination,
+.admin-shell:has(.manager-main) .um-pagination { margin-top: 16px; }
+.manager-shell .um-pagination button,
+.admin-shell:has(.manager-main) .um-pagination button { border-color: #cbd8de; border-radius: 4px; color: #31566a; }
+
+.manager-shell .admin-sidebar { background: #0C4C7C; }
+.admin-shell:has(.manager-main) .admin-sidebar { background: #0C4C7C; }
+.manager-shell .sidebar-link.active { background: #e7f2f7; color: #0C4C7C; }
+.admin-shell:has(.manager-main) .sidebar-link.active { background: #e7f2f7; color: #0C4C7C; }
+.manager-shell .sidebar-link.active::before { background: #49a1c6; }
+.admin-shell:has(.manager-main) .sidebar-link.active::before { background: #49a1c6; animation: none; }
+.manager-shell .sidebar-link, .manager-shell .sidebar-logout { border-radius: 4px; }
+.admin-shell:has(.manager-main) .sidebar-link, .admin-shell:has(.manager-main) .sidebar-logout { border-radius: 4px; }
+.manager-shell .sidebar-topbar { background: #ffffff; }
+
+.manager-shell .manager-stat-card,
+.manager-shell .manager-node-card,
+.admin-shell:has(.manager-main) .manager-stat-card,
+.admin-shell:has(.manager-main) .manager-node-card { border: 1px solid #d7e1e7; border-radius: 6px; box-shadow: none; }
+.admin-shell:has(.manager-main) .manager-stat-card { min-height: 104px; padding: 16px; }
+.admin-shell:has(.manager-main) .manager-stat-card p { color: #617785; font-size: 0.75rem; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; }
+.admin-shell:has(.manager-main) .manager-stat-card strong { color: #17364a; font-family: var(--font-data); font-size: 1.03rem; }
+.manager-shell .manager-band-row div,
+.admin-shell:has(.manager-main) .manager-band-row div { background: #f5f8fa; border: 1px solid #dfe7eb; border-radius: 4px; padding: 12px; }
+.manager-shell .manager-band-row strong,
+.admin-shell:has(.manager-main) .manager-band-row strong { color: #254b60; font-size: 0.8rem; }
+.manager-shell .manager-band-row span,
+.admin-shell:has(.manager-main) .manager-band-row span { color: #617785; font-size: 0.8rem; }
+.manager-shell .manager-chart,
+.admin-shell:has(.manager-main) .manager-chart { padding: 8px 4px 0; margin-bottom: 16px; }
+.manager-shell .recharts-cartesian-grid-horizontal line,
+.manager-shell .recharts-cartesian-grid-vertical line,
+.admin-shell:has(.manager-main) .recharts-cartesian-grid-horizontal line,
+.admin-shell:has(.manager-main) .recharts-cartesian-grid-vertical line { stroke: #e1e9ed; }
+.manager-shell .recharts-text,
+.admin-shell:has(.manager-main) .recharts-text { fill: #617785; font-size: 11px; }
+.manager-shell .recharts-default-tooltip,
+.admin-shell:has(.manager-main) .recharts-default-tooltip { border: 1px solid #d7e1e7 !important; border-radius: 4px !important; box-shadow: none !important; }
+
+.manager-shell .manager-report-form,
+.admin-shell:has(.manager-main) .manager-report-form { gap: 16px; }
+.manager-shell .manager-report-form label,
+.admin-shell:has(.manager-main) .manager-report-form label { color: #385567; font-size: 0.82rem; }
+.manager-shell .manager-report-form fieldset,
+.admin-shell:has(.manager-main) .manager-report-form fieldset { border-color: #d7e1e7; border-radius: 4px; padding: 12px; }
+.manager-shell .manager-report-form legend,
+.admin-shell:has(.manager-main) .manager-report-form legend { color: #385567; padding: 0 4px; }
+
+.manager-shell .manager-error,
+.admin-shell:has(.manager-main) .manager-error { border-radius: 4px; }
+
+@media (max-width: 900px) {
+  .manager-shell .manager-main,
+  .admin-shell:has(.manager-main) .manager-main { padding: 20px 16px 32px; }
+}
