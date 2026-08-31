@@ -11,13 +11,14 @@
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 0.75rem;
-  margin: 1rem 0;
+  margin: 1.25rem 0;
 }
 
 .manager-band-row div {
-  padding: 0.75rem;
-  border-radius: 7px;
+  padding: 0.85rem 1rem;
+  border-radius: 6px;
   background: #f4f7f8;
+  border: 1px solid #d9e2e8;
 }
 
 .manager-band-row strong,
@@ -25,15 +26,131 @@
   display: block;
 }
 
+.manager-band-row strong {
+  font-size: 0.82rem;
+  color: #173042;
+}
+
 .manager-band-row span {
   margin-top: 0.25rem;
-  font-size: 0.86rem;
-  color: var(--color-text-muted, #667);
+  font-size: 0.84rem;
+  color: #5f7280;
+}
+
+/* ── Small Multiples Grid (All Parameters View) ── */
+.analytics-multi-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+  margin-bottom: 1.25rem;
+}
+
+.analytics-subchart-card {
+  background: #ffffff;
+  border: 1px solid #d9e2e8;
+  border-radius: 6px;
+  padding: 14px 16px 12px;
+  display: flex;
+  flex-direction: column;
+  transition: border-color 0.15s ease;
+}
+
+.analytics-subchart-card:hover {
+  border-color: #bdcbd3;
+}
+
+.analytics-subchart-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 10px;
+  flex-wrap: wrap;
+}
+
+.analytics-subchart-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.analytics-subchart-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.analytics-subchart-title h3 {
+  margin: 0;
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: #173042;
+}
+
+.analytics-subchart-unit {
+  font-size: 0.75rem;
+  color: #5f7280;
+  font-weight: 500;
+}
+
+.analytics-subchart-stats {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 0.72rem;
+  color: #5f7280;
+  flex-wrap: wrap;
+}
+
+.analytics-subchart-stats span strong {
+  color: #173042;
+  font-family: var(--font-data, monospace);
+  font-weight: 600;
+}
+
+.analytics-subchart-body {
+  height: 210px;
+  width: 100%;
+}
+
+.analytics-subchart-empty {
+  height: 210px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #8c9ba5;
+  font-size: 0.8rem;
+  background: #f8fafc;
+  border-radius: 4px;
+  border: 1px dashed #d9e2e8;
+}
+
+/* ── Single Parameter Header & Stats ── */
+.analytics-single-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.analytics-single-header h3 {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #173042;
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 @media (max-width: 1000px) {
   .manager-small-cards {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .analytics-multi-grid {
+    grid-template-columns: 1fr;
   }
 }
 
@@ -41,5 +158,11 @@
   .manager-small-cards,
   .manager-band-row {
     grid-template-columns: 1fr;
+  }
+
+  .analytics-subchart-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
   }
 }
