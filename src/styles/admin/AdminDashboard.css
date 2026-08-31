@@ -99,12 +99,21 @@
   align-items: flex-start;
   justify-content: space-between;
   gap: 12px;
-  transition: box-shadow var(--transition-base), transform var(--transition-base);
+  cursor: pointer;
+  user-select: none;
+  transition: box-shadow var(--transition-base), transform var(--transition-base), border-color var(--transition-fast);
 }
 
 .summary-card:hover {
   box-shadow: 0 4px 8px rgba(10, 46, 61, 0.05), 0 14px 28px rgba(0, 119, 182, 0.1);
   transform: translateY(-1px);
+  border-color: var(--color-accent);
+}
+
+.summary-card:focus-visible {
+  outline: none;
+  border-color: var(--color-accent);
+  box-shadow: 0 0 0 3px rgba(0, 180, 216, 0.25);
 }
 
 .summary-card-body {
