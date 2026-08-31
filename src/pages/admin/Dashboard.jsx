@@ -1,15 +1,15 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "../../lib/supabase";
 import "../../styles/admin/AdminDashboard.css";
 import { useLogPageView } from "../../lib/useLogPageView";
 import Sidebar from "../../components/Sidebar";
-import { Wifi, Clock, AlertTriangle, Database, Users } from "lucide-react";
+import { Wifi, Clock, AlertTriangle, Database, Users, RefreshCw } from "lucide-react";
 
 /**
  * Dashboard — Admin landing page.
  * Displays live KPI summaries, recent threshold breach alerts,
- * and recent user activity logs directly from Supabase.
+ * and recent user activity logs with auto-refresh & Supabase realtime updates.
  */
 
 const formatDateTime = (isoString) => {
@@ -19,6 +19,13 @@ const formatDateTime = (isoString) => {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(
     d.getHours()
   )}:${pad(d.getMinutes())}`;
+};
+
+const formatClockTime = (timestamp) => {
+  if (!timestamp) return "—";
+  const d = new Date(timestamp);
+  const pad = (n) => String(n).padStart(2, "0");
+  return `${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
 };
 
 const formatRelativeTime = (isoString, checkedAt) => {
@@ -68,6 +75,8 @@ const Dashboard = () => {
   const [recentActivity, setRecentActivity] = useState([]);
 
   const [checkedAt, setCheckedAt] = useState(null);
+  const [refreshInterval, setRefreshInterval] = useState(30000); // 30s default
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   useEffect(() => {
     const loadProfile = async () => {
@@ -97,131 +106,192 @@ const Dashboard = () => {
     loadProfile();
   }, [navigate]);
 
-  useEffect(() => {
-    // 1. Fetch Users Count
-    const fetchUsers = async () => {
-      try {
-        const { count, error } = await supabase
-          .from("profiles")
-          .select("id", { count: "exact", head: true });
+  // 1. Fetch Users Count
+  const fetchUsers = useCallback(async () => {
+    try {
+      const { count, error } = await supabase
+        .from("profiles")
+        .select("id", { count: "exact", head: true });
 
-        if (!error && count !== null) {
-          setUsersCount(count);
-        } else {
-          setUsersCount(0);
-        }
-      } catch (err) {
-        console.error("Failed to load users count:", err);
+      if (!error && count !== null) {
+        setUsersCount(count);
+      } else {
         setUsersCount(0);
-      } finally {
-        setLoadingUsers(false);
       }
-    };
-
-    // 2. Fetch Alerts (active count and recent alerts)
-    const fetchAlerts = async () => {
-      try {
-        const { count, error: countErr } = await supabase
-          .from("alerts")
-          .select("id", { count: "exact", head: true })
-          .eq("status", "active");
-
-        if (!countErr && count !== null) {
-          setActiveAlertsCount(count);
-        } else {
-          setActiveAlertsCount(0);
-        }
-
-        const { data: list, error: listErr } = await supabase
-          .from("alerts")
-          .select(
-            `id, message, status, triggered_at,
-             thresholds ( min_value, max_value, severity_label,
-               parameters ( name, unit ) ),
-             sensor_readings ( value, recorded_at, nodes ( device_label ) )`
-          )
-          .order("triggered_at", { ascending: false })
-          .limit(5);
-
-        if (!listErr && list) {
-          setRecentAlerts(list);
-        } else {
-          setRecentAlerts([]);
-        }
-      } catch (err) {
-        console.error("Failed to load alerts:", err);
-        setActiveAlertsCount(0);
-        setRecentAlerts([]);
-      } finally {
-        setLoadingAlerts(false);
-      }
-    };
-
-    // 3. Fetch Sensor Readings & Latest Ping
-    const fetchReadings = async () => {
-      try {
-        const { count, error: countErr } = await supabase
-          .from("sensor_readings")
-          .select("id", { count: "exact", head: true });
-
-        if (!countErr && count !== null) {
-          setTotalReadings(count);
-        } else {
-          setTotalReadings(0);
-        }
-
-        const { data: latestRows, error: pingErr } = await supabase
-          .from("sensor_readings")
-          .select("recorded_at")
-          .order("recorded_at", { ascending: false })
-          .limit(1);
-
-        if (!pingErr && latestRows && latestRows.length > 0 && latestRows[0]?.recorded_at) {
-          setLatestPing(latestRows[0].recorded_at);
-        } else {
-          setLatestPing(null);
-        }
-      } catch (err) {
-        console.error("Failed to load sensor readings:", err);
-        setTotalReadings(0);
-        setLatestPing(null);
-      } finally {
-        setLoadingReadings(false);
-      }
-    };
-
-    // 4. Fetch User Activity Logs
-    const fetchActivity = async () => {
-      try {
-        const { data, error } = await supabase
-          .from("activity_logs")
-          .select("id, full_name, role, activity, status, created_at")
-          .order("created_at", { ascending: false })
-          .limit(5);
-
-        if (!error && data) {
-          setRecentActivity(data);
-        } else {
-          setRecentActivity([]);
-        }
-      } catch (err) {
-        console.error("Failed to load user activity:", err);
-        setRecentActivity([]);
-      } finally {
-        setLoadingActivity(false);
-      }
-    };
-
-    // Execute queries independently so failure in one does not block the others
-    Promise.allSettled([
-      fetchUsers(),
-      fetchAlerts(),
-      fetchReadings(),
-      fetchActivity(),
-    ]).then(() => {
-      setCheckedAt(Date.now());
-    });
+    } catch (err) {
+      console.error("Failed to load users count:", err);
+      setUsersCount(0);
+    } finally {
+      setLoadingUsers(false);
+    }
   }, []);
+
+  // 2. Fetch Alerts (active count and recent alerts)
+  const fetchAlerts = useCallback(async () => {
+    try {
+      const { count, error: countErr } = await supabase
+        .from("alerts")
+        .select("id", { count: "exact", head: true })
+        .eq("status", "active");
+
+      if (!countErr && count !== null) {
+        setActiveAlertsCount(count);
+      } else {
+        setActiveAlertsCount(0);
+      }
+
+      const { data: list, error: listErr } = await supabase
+        .from("alerts")
+        .select(
+          `id, message, status, triggered_at,
+           thresholds ( min_value, max_value, severity_label,
+             parameters ( name, unit ) ),
+           sensor_readings ( value, recorded_at, nodes ( device_label ) )`
+        )
+        .order("triggered_at", { ascending: false })
+        .limit(5);
+
+      if (!listErr && list) {
+        setRecentAlerts(list);
+      } else {
+        setRecentAlerts([]);
+      }
+    } catch (err) {
+      console.error("Failed to load alerts:", err);
+      setActiveAlertsCount(0);
+      setRecentAlerts([]);
+    } finally {
+      setLoadingAlerts(false);
+    }
+  }, []);
+
+  // 3. Fetch Sensor Readings & Latest Ping
+  const fetchReadings = useCallback(async () => {
+    try {
+      const { count, error: countErr } = await supabase
+        .from("sensor_readings")
+        .select("id", { count: "exact", head: true });
+
+      if (!countErr && count !== null) {
+        setTotalReadings(count);
+      } else {
+        setTotalReadings(0);
+      }
+
+      const { data: latestRows, error: pingErr } = await supabase
+        .from("sensor_readings")
+        .select("recorded_at")
+        .order("recorded_at", { ascending: false })
+        .limit(1);
+
+      if (!pingErr && latestRows && latestRows.length > 0 && latestRows[0]?.recorded_at) {
+        setLatestPing(latestRows[0].recorded_at);
+      } else {
+        setLatestPing(null);
+      }
+    } catch (err) {
+      console.error("Failed to load sensor readings:", err);
+      setTotalReadings(0);
+      setLatestPing(null);
+    } finally {
+      setLoadingReadings(false);
+    }
+  }, []);
+
+  // 4. Fetch User Activity Logs
+  const fetchActivity = useCallback(async () => {
+    try {
+      const { data, error } = await supabase
+        .from("activity_logs")
+        .select("id, full_name, role, activity, status, created_at")
+        .order("created_at", { ascending: false })
+        .limit(5);
+
+      if (!error && data) {
+        setRecentActivity(data);
+      } else {
+        setRecentActivity([]);
+      }
+    } catch (err) {
+      console.error("Failed to load user activity:", err);
+      setRecentActivity([]);
+    } finally {
+      setLoadingActivity(false);
+    }
+  }, []);
+
+  const fetchAllData = useCallback(
+    async (manual = false) => {
+      if (manual) setIsRefreshing(true);
+      await Promise.allSettled([
+        fetchUsers(),
+        fetchAlerts(),
+        fetchReadings(),
+        fetchActivity(),
+      ]);
+      setCheckedAt(Date.now());
+      if (manual) setIsRefreshing(false);
+    },
+    [fetchUsers, fetchAlerts, fetchReadings, fetchActivity]
+  );
+
+  // Initial Load
+  useEffect(() => {
+    fetchAllData();
+  }, [fetchAllData]);
+
+  // Supabase Realtime Subscription (postgres_changes)
+  useEffect(() => {
+    const channel = supabase
+      .channel("admin-dashboard-realtime")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "sensor_readings" },
+        () => {
+          fetchReadings();
+          setCheckedAt(Date.now());
+        }
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "alerts" },
+        () => {
+          fetchAlerts();
+          setCheckedAt(Date.now());
+        }
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "activity_logs" },
+        () => {
+          fetchActivity();
+          setCheckedAt(Date.now());
+        }
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "profiles" },
+        () => {
+          fetchUsers();
+          setCheckedAt(Date.now());
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [fetchReadings, fetchAlerts, fetchActivity, fetchUsers]);
+
+  // Interval Polling fallback
+  useEffect(() => {
+    if (refreshInterval <= 0) return;
+    const timer = setInterval(() => {
+      fetchAllData();
+    }, refreshInterval);
+
+    return () => clearInterval(timer);
+  }, [refreshInterval, fetchAllData]);
 
   // Compute Sensor Status Card
   const sensorStatus = (() => {
@@ -327,16 +397,50 @@ const Dashboard = () => {
 
       {/* Main content */}
       <main className="admin-main">
-        <header className="page-header">
-          <h1>Dashboard</h1>
-          <p>
-            Welcome back,{" "}
-            {profile?.full_name
-              ? profile.full_name
-                  .toLowerCase()
-                  .replace(/\b\w/g, (char) => char.toUpperCase())
-              : "Loading..."}
-          </p>
+        <header className="page-header page-header-with-actions">
+          <div>
+            <h1>Dashboard</h1>
+            <p>
+              Welcome back,{" "}
+              {profile?.full_name
+                ? profile.full_name
+                    .toLowerCase()
+                    .replace(/\b\w/g, (char) => char.toUpperCase())
+                : "Loading..."}
+            </p>
+          </div>
+
+          <div className="header-refresh-controls">
+            <div className="header-last-updated">
+              <span className="live-pulse-dot" />
+              <span>Last updated: {checkedAt ? formatClockTime(checkedAt) : "—"}</span>
+            </div>
+
+            <div className="header-refresh-actions">
+              <select
+                value={refreshInterval}
+                onChange={(e) => setRefreshInterval(Number(e.target.value))}
+                className="refresh-interval-select"
+                aria-label="Auto-refresh interval"
+              >
+                <option value={0}>Auto-refresh: Off</option>
+                <option value={30000}>Auto-refresh: 30s</option>
+                <option value={60000}>Auto-refresh: 1m</option>
+                <option value={300000}>Auto-refresh: 5m</option>
+              </select>
+
+              <button
+                type="button"
+                className="header-refresh-btn"
+                onClick={() => fetchAllData(true)}
+                disabled={isRefreshing}
+                title="Refresh now"
+              >
+                <RefreshCw size={14} className={isRefreshing ? "spin-icon" : ""} />
+                <span>Refresh</span>
+              </button>
+            </div>
+          </div>
         </header>
 
         <div className="summary-grid">

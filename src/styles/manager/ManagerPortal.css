@@ -195,6 +195,39 @@
   gap: 5px;
 }
 
+.manager-shell .page-header-with-actions,
+.admin-shell:has(.manager-main) .page-header-with-actions {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.manager-shell .header-last-updated,
+.admin-shell:has(.manager-main) .header-last-updated {
+  border-radius: 4px;
+  background: #ffffff;
+  border-color: #d7e1e7;
+  color: #5f7280;
+}
+
+.manager-shell .refresh-interval-select,
+.manager-shell .header-refresh-btn,
+.admin-shell:has(.manager-main) .refresh-interval-select,
+.admin-shell:has(.manager-main) .header-refresh-btn {
+  border-radius: 4px;
+  border-color: #cbd8de;
+  min-height: 32px;
+}
+
+.manager-shell .header-refresh-btn:hover:not(:disabled),
+.admin-shell:has(.manager-main) .header-refresh-btn:hover:not(:disabled) {
+  background: #f0f6f9;
+  border-color: #14658f;
+}
+
 .manager-shell .page-header h1,
 .admin-shell:has(.manager-main) .page-header h1 {
   color: #14364a;
