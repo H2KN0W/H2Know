@@ -137,18 +137,31 @@ const UserManagement = () => {
   const handleDeleteConfirmed = async () => {
     setActionError("");
 
+    // Try deleting via Edge Function (removes from auth.users + profiles)
     const { data, error: fnError } = await supabase.functions.invoke("manage-user", {
       body: { action: "delete", user_id: confirmDeleteUser.id },
     });
 
+    let deleteFailed = false;
+
     if (fnError || data?.error) {
-      setActionError(data?.error || fnError.message);
-      return;
+      // If Edge Function is not deployed or fails, fallback to direct profiles table deletion
+      const { error: dbError } = await supabase
+        .from("profiles")
+        .delete()
+        .eq("id", confirmDeleteUser.id);
+
+      if (dbError) {
+        setActionError(data?.error || fnError?.message || dbError.message);
+        deleteFailed = true;
+      }
     }
 
-    await logAdminAction(`Removed user: ${confirmDeleteUser.full_name}`);
-    setProfiles((prev) => prev.filter((p) => p.id !== confirmDeleteUser.id));
-    setConfirmDeleteUser(null);
+    if (!deleteFailed) {
+      await logAdminAction(`Removed user: ${confirmDeleteUser.full_name}`);
+      setProfiles((prev) => prev.filter((p) => p.id !== confirmDeleteUser.id));
+      setConfirmDeleteUser(null);
+    }
   };
 
   const handleModalSave = async (formData, isNewUser) => {

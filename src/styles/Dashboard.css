@@ -1,8 +1,8 @@
 :root {
   /* Core palette — clean water, blue/white */
-  --color-primary: #0077b6;
-  --color-secondary: #0096c7;
-  --color-accent: #00b4d8;
+  --color-primary: #0C4C7C;
+  --color-secondary: #0C4C7C;
+  --color-accent: #0C4C7C;
   --color-light: #caf0f8;
   --color-white: #ffffff;
   --color-bg: #f5fbff;
@@ -13,8 +13,8 @@
   /* Sidebar-specific tokens */
   --sidebar-width: 236px;
   --sidebar-rail: 72px;
-  --sidebar-bg-start: #052a3f;
-  --sidebar-bg-end: #0077b6;
+  --sidebar-bg-start: #0C4C7C;
+  --sidebar-bg-end: #0C4C7C;
   --sidebar-ink: rgba(255, 255, 255, 0.72);
   --sidebar-ink-strong: #ffffff;
   --sidebar-ink-faint: rgba(255, 255, 255, 0.42);
