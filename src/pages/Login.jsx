@@ -69,14 +69,21 @@ const Login = () => {
   };
 
   const redirectByRole = async (role) => {
-    if (role === "admin") {
+    const normalizedRole = String(role || "").trim().toLowerCase();
+
+    if (normalizedRole === "admin") {
       navigate("/admin/dashboard", { replace: true });
-    } else if (role === "manager") {
-      navigate("/manager/dashboard", { replace: true });
-    } else {
-      setError("You do not have access to this dashboard.");
-      await supabase.auth.signOut();
+      return;
     }
+
+    if (normalizedRole === "manager") {
+      navigate("/manager/dashboard", { replace: true });
+      return;
+    }
+
+    setError("You do not have access to this dashboard.");
+    await supabase.auth.signOut();
+    navigate("/", { replace: true });
   };
 
   const verifyAccess = async (userId) => {
