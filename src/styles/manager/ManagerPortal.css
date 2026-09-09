@@ -113,7 +113,7 @@
   --border: #d9e2e8;
   --sidebar-bg-start: #0C4C7C;
   --sidebar-bg-end: #0C4C7C;
-  --sidebar-active-bg: #ffffff;
+  --sidebar-active-bg: rgba(255, 255, 255, 0.14);
   --sidebar-hover: rgba(255, 255, 255, 0.12);
 }
 
@@ -156,8 +156,13 @@
 .manager-shell .admin-sidebar { background: #0C4C7C; box-shadow: none; }
 .manager-shell .sidebar-brand, .manager-shell .sidebar-footer { border-color: rgba(255, 255, 255, 0.24); }
 .manager-shell .sidebar-link, .manager-shell .sidebar-logout { border-radius: 4px; }
-.manager-shell .sidebar-link.active { color: #0C4C7C; }
-.manager-shell .sidebar-link.active::before { background: #ffffff; animation: none; }
+.manager-shell .sidebar-link.active,
+.admin-shell:has(.manager-main) .sidebar-link.active {
+  background: rgba(255, 255, 255, 0.14);
+  color: #ffffff;
+}
+.manager-shell .sidebar-link.active::before,
+.admin-shell:has(.manager-main) .sidebar-link.active::before { display: none; }
 
 @media (max-width: 640px) {
   .manager-shell .manager-main { padding: 20px 16px 32px; }
@@ -322,10 +327,13 @@
 
 .manager-shell .admin-sidebar { background: #0C4C7C; }
 .admin-shell:has(.manager-main) .admin-sidebar { background: #0C4C7C; }
-.manager-shell .sidebar-link.active { background: #e7f2f7; color: #0C4C7C; }
-.admin-shell:has(.manager-main) .sidebar-link.active { background: #e7f2f7; color: #0C4C7C; }
-.manager-shell .sidebar-link.active::before { background: #49a1c6; }
-.admin-shell:has(.manager-main) .sidebar-link.active::before { background: #49a1c6; animation: none; }
+.manager-shell .sidebar-link.active,
+.admin-shell:has(.manager-main) .sidebar-link.active {
+  background: rgba(255, 255, 255, 0.14);
+  color: #ffffff;
+}
+.manager-shell .sidebar-link.active::before,
+.admin-shell:has(.manager-main) .sidebar-link.active::before { display: none; }
 .manager-shell .sidebar-link, .manager-shell .sidebar-logout { border-radius: 4px; }
 .admin-shell:has(.manager-main) .sidebar-link, .admin-shell:has(.manager-main) .sidebar-logout { border-radius: 4px; }
 .manager-shell .sidebar-topbar { background: #ffffff; }
