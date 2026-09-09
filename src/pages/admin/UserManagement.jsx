@@ -39,6 +39,8 @@ const UserManagement = () => {
 
   const [modalUser, setModalUser] = useState(null); // profile being edited, or {} for "add"
   const [confirmDeleteUser, setConfirmDeleteUser] = useState(null);
+  const [deleting, setDeleting] = useState(false);
+  const [deleted, setDeleted] = useState(false);
   const [currentAdmin, setCurrentAdmin] = useState(null);
 
   const fetchProfiles = async () => {
@@ -136,6 +138,7 @@ const UserManagement = () => {
 
   const handleDeleteConfirmed = async () => {
     setActionError("");
+    setDeleting(true);
 
     // Try deleting via Edge Function (removes from auth.users + profiles)
     const { data, error: fnError } = await supabase.functions.invoke("manage-user", {
@@ -157,10 +160,17 @@ const UserManagement = () => {
       }
     }
 
+    setDeleting(false);
+
     if (!deleteFailed) {
       await logAdminAction(`Removed user: ${confirmDeleteUser.full_name}`);
       setProfiles((prev) => prev.filter((p) => p.id !== confirmDeleteUser.id));
-      setConfirmDeleteUser(null);
+      setDeleted(true);
+
+      setTimeout(() => {
+        setDeleted(false);
+        setConfirmDeleteUser(null);
+      }, 1100);
     }
   };
 
@@ -388,21 +398,49 @@ const UserManagement = () => {
       )}
 
       {confirmDeleteUser && (
-        <div className="um-modal-overlay" onClick={() => setConfirmDeleteUser(null)}>
+        <div
+          className="um-modal-overlay"
+          onClick={deleting ? undefined : () => setConfirmDeleteUser(null)}
+        >
           <div className="um-modal" onClick={(e) => e.stopPropagation()}>
-            <h2>Remove User</h2>
-            <p>
-              Are you sure you want to remove <strong>{confirmDeleteUser.full_name}</strong>?
-              This action cannot be undone.
-            </p>
-            <div className="um-modal-actions">
-              <button className="um-modal-cancel" onClick={() => setConfirmDeleteUser(null)}>
-                Cancel
-              </button>
-              <button className="um-modal-danger" onClick={handleDeleteConfirmed}>
-                Remove
-              </button>
-            </div>
+            {deleted ? (
+              <div className="um-modal-success">
+                <div className="um-modal-success-check">✓</div>
+                <p>User removed successfully</p>
+              </div>
+            ) : (
+              <>
+                <h2>Remove User</h2>
+                <p>
+                  Are you sure you want to remove <strong>{confirmDeleteUser.full_name}</strong>?
+                  This action cannot be undone.
+                </p>
+                {actionError && <p className="um-action-error">{actionError}</p>}
+                <div className="um-modal-actions">
+                  <button
+                    className="um-modal-cancel"
+                    onClick={() => setConfirmDeleteUser(null)}
+                    disabled={deleting}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    className="um-modal-danger"
+                    onClick={handleDeleteConfirmed}
+                    disabled={deleting}
+                  >
+                    {deleting ? (
+                      <span className="um-modal-save-loading">
+                        <span className="spinner" role="status" aria-label="Removing" />
+                        Removing...
+                      </span>
+                    ) : (
+                      "Remove"
+                    )}
+                  </button>
+                </div>
+              </>
+            )}
           </div>
         </div>
       )}
