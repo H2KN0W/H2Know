@@ -430,7 +430,7 @@ const UserModal = ({ user, onCancel, onSave, onClose }) => {
 
     const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailPattern.test(email)) {
-      setValidationError("Please enter a valid email address (e.g. name@h2know.com).");
+      setValidationError("Please enter a valid email address (e.g. name@gmail.com).");
       return;
     }
 
