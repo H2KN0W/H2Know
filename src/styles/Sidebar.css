@@ -182,30 +182,12 @@
   font-weight: 600;
 }
 
-/* Signature: a slim "flowing water" indicator on the active item —
-   a soft animated gradient rather than a flat bar. */
+/* Remove animated active indicator for a static selected state. */
 .sidebar-link.active::before {
-  content: "";
-  position: absolute;
-  left: -12px;
-  top: 4px;
-  bottom: 4px;
-  width: 3px;
-  border-radius: 3px;
-  background: linear-gradient(180deg, var(--color-accent), var(--color-light), var(--color-accent));
-  background-size: 100% 200%;
-  animation: flow 2.6s linear infinite;
-}
-
-@keyframes flow {
-  0% { background-position: 0 0; }
-  100% { background-position: 0 200%; }
+  content: none;
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .sidebar-link.active::before {
-    animation: none;
-  }
   .live-dot::after {
     animation: none;
     display: none;
