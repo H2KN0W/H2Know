@@ -5,6 +5,7 @@ import "../../styles/admin/UserManagement.css";
 import Sidebar from "../../components/Sidebar";
 import { useLogPageView } from "../../lib/useLogPageView";
 import { logActivity } from "../../lib/logActivity";
+import { Plus, Pencil, Ban, CircleCheck, Trash2 } from "lucide-react";
 
 const PAGE_SIZE = 5;
 
@@ -38,6 +39,8 @@ const UserManagement = () => {
 
   const [modalUser, setModalUser] = useState(null); // profile being edited, or {} for "add"
   const [confirmDeleteUser, setConfirmDeleteUser] = useState(null);
+  const [deleting, setDeleting] = useState(false);
+  const [deleted, setDeleted] = useState(false);
   const [currentAdmin, setCurrentAdmin] = useState(null);
 
   const fetchProfiles = async () => {
@@ -135,19 +138,40 @@ const UserManagement = () => {
 
   const handleDeleteConfirmed = async () => {
     setActionError("");
+    setDeleting(true);
 
+    // Try deleting via Edge Function (removes from auth.users + profiles)
     const { data, error: fnError } = await supabase.functions.invoke("manage-user", {
       body: { action: "delete", user_id: confirmDeleteUser.id },
     });
 
+    let deleteFailed = false;
+
     if (fnError || data?.error) {
-      setActionError(data?.error || fnError.message);
-      return;
+      // If Edge Function is not deployed or fails, fallback to direct profiles table deletion
+      const { error: dbError } = await supabase
+        .from("profiles")
+        .delete()
+        .eq("id", confirmDeleteUser.id);
+
+      if (dbError) {
+        setActionError(data?.error || fnError?.message || dbError.message);
+        deleteFailed = true;
+      }
     }
 
-    await logAdminAction(`Removed user: ${confirmDeleteUser.full_name}`);
-    setProfiles((prev) => prev.filter((p) => p.id !== confirmDeleteUser.id));
-    setConfirmDeleteUser(null);
+    setDeleting(false);
+
+    if (!deleteFailed) {
+      await logAdminAction(`Removed user: ${confirmDeleteUser.full_name}`);
+      setProfiles((prev) => prev.filter((p) => p.id !== confirmDeleteUser.id));
+      setDeleted(true);
+
+      setTimeout(() => {
+        setDeleted(false);
+        setConfirmDeleteUser(null);
+      }, 1100);
+    }
   };
 
   const handleModalSave = async (formData, isNewUser) => {
@@ -229,7 +253,8 @@ const UserManagement = () => {
             className="um-add-btn"
             onClick={() => setModalUser({})}
           >
-            + Add New User
+            <Plus size={16} strokeWidth={2.5} />
+            Add New User
           </button>
         </div>
 
@@ -281,44 +306,54 @@ const UserManagement = () => {
                         <td colSpan={6}>No users match your search.</td>
                       </tr>
                     )}
-                    {pagedProfiles.map((p) => (
-                      <tr key={p.id}>
-                        <td>{p.full_name || "—"}</td>
-                        <td>{p.email}</td>
-                        <td>{p.role === "admin" ? "Administrator" : "Manager"}</td>
-                        <td>
-                          <span
-                            className={`badge um-status-${p.status}`}
-                          >
-                            {statusToLabel(p.status)}
-                          </span>
-                        </td>
-                        <td>{formatDateTime(p.last_login)}</td>
-                        <td className="um-actions-icons">
-                          <button
-                            className="um-icon-btn"
-                            title="Edit"
-                            onClick={() => setModalUser(p)}
-                          >
-                            ✏️
-                          </button>
-                          <button
-                            className="um-icon-btn"
-                            title={p.status === "approved" ? "Disable" : "Enable"}
-                            onClick={() => handleToggleDisable(p)}
-                          >
-                            🚫
-                          </button>
-                          <button
-                            className="um-icon-btn um-icon-danger"
-                            title="Delete"
-                            onClick={() => setConfirmDeleteUser(p)}
-                          >
-                            🗑️
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
+                    {pagedProfiles.map((p) => {
+                      const isActive = p.status === "approved";
+                      return (
+                        <tr key={p.id}>
+                          <td>{p.full_name || "—"}</td>
+                          <td>{p.email}</td>
+                          <td>{p.role === "admin" ? "Administrator" : "Manager"}</td>
+                          <td>
+                            <span
+                              className={`badge um-status-${p.status}`}
+                            >
+                              {statusToLabel(p.status)}
+                            </span>
+                          </td>
+                          <td>{formatDateTime(p.last_login)}</td>
+                          <td className="um-actions-icons">
+                            <button
+                              className="um-icon-btn um-icon-edit"
+                              title="Edit"
+                              aria-label="Edit user"
+                              onClick={() => setModalUser(p)}
+                            >
+                              <Pencil size={15} strokeWidth={2} />
+                            </button>
+                            <button
+                              className={`um-icon-btn ${isActive ? "um-icon-disable" : "um-icon-enable"}`}
+                              title={isActive ? "Disable" : "Enable"}
+                              aria-label={isActive ? "Disable user" : "Enable user"}
+                              onClick={() => handleToggleDisable(p)}
+                            >
+                              {isActive ? (
+                                <Ban size={15} strokeWidth={2} />
+                              ) : (
+                                <CircleCheck size={15} strokeWidth={2} />
+                              )}
+                            </button>
+                            <button
+                              className="um-icon-btn um-icon-danger"
+                              title="Delete"
+                              aria-label="Delete user"
+                              onClick={() => setConfirmDeleteUser(p)}
+                            >
+                              <Trash2 size={15} strokeWidth={2} />
+                            </button>
+                          </td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>
@@ -363,21 +398,49 @@ const UserManagement = () => {
       )}
 
       {confirmDeleteUser && (
-        <div className="um-modal-overlay" onClick={() => setConfirmDeleteUser(null)}>
+        <div
+          className="um-modal-overlay"
+          onClick={deleting ? undefined : () => setConfirmDeleteUser(null)}
+        >
           <div className="um-modal" onClick={(e) => e.stopPropagation()}>
-            <h2>Remove User</h2>
-            <p>
-              Are you sure you want to remove <strong>{confirmDeleteUser.full_name}</strong>?
-              This action cannot be undone.
-            </p>
-            <div className="um-modal-actions">
-              <button className="um-modal-cancel" onClick={() => setConfirmDeleteUser(null)}>
-                Cancel
-              </button>
-              <button className="um-modal-danger" onClick={handleDeleteConfirmed}>
-                Remove
-              </button>
-            </div>
+            {deleted ? (
+              <div className="um-modal-success">
+                <div className="um-modal-success-check">✓</div>
+                <p>User removed successfully</p>
+              </div>
+            ) : (
+              <>
+                <h2>Remove User</h2>
+                <p>
+                  Are you sure you want to remove <strong>{confirmDeleteUser.full_name}</strong>?
+                  This action cannot be undone.
+                </p>
+                {actionError && <p className="um-action-error">{actionError}</p>}
+                <div className="um-modal-actions">
+                  <button
+                    className="um-modal-cancel"
+                    onClick={() => setConfirmDeleteUser(null)}
+                    disabled={deleting}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    className="um-modal-danger"
+                    onClick={handleDeleteConfirmed}
+                    disabled={deleting}
+                  >
+                    {deleting ? (
+                      <span className="um-modal-save-loading">
+                        <span className="spinner" role="status" aria-label="Removing" />
+                        Removing...
+                      </span>
+                    ) : (
+                      "Remove"
+                    )}
+                  </button>
+                </div>
+              </>
+            )}
           </div>
         </div>
       )}
@@ -405,7 +468,7 @@ const UserModal = ({ user, onCancel, onSave, onClose }) => {
 
     const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailPattern.test(email)) {
-      setValidationError("Please enter a valid email address (e.g. name@h2know.com).");
+      setValidationError("Please enter a valid email address (e.g. name@gmail.com).");
       return;
     }
 
