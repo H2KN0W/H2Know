@@ -8,6 +8,10 @@ import AlertHistory from "./pages/admin/AlertHistory";
 import Reports from "./pages/admin/Reports";
 import ProtectedRoute from "./routes/ProtectedRoute";
 import ResetPassword from "./pages/ResetPassword";
+import ManagerDashboard from "./pages/manager/ManagerDashboard";
+import AnalyticsTrends from "./pages/manager/AnalyticsTrends";
+import ManagerAlerts from "./pages/manager/ManagerAlerts";
+import ManagerReports from "./pages/manager/ManagerReports";
 import "./App.css";
 
 function App() {
@@ -16,6 +20,10 @@ function App() {
       <Routes>
         <Route path="/" element={<Login />} />
         <Route path="/reset-password" element={<ResetPassword />} />
+        <Route path="/manager/dashboard" element={<ProtectedRoute requiredRole="manager"><ManagerDashboard /></ProtectedRoute>} />
+        <Route path="/manager/analytics" element={<ProtectedRoute requiredRole="manager"><AnalyticsTrends /></ProtectedRoute>} />
+        <Route path="/manager/alerts" element={<ProtectedRoute requiredRole="manager"><ManagerAlerts /></ProtectedRoute>} />
+        <Route path="/manager/reports" element={<ProtectedRoute requiredRole="manager"><ManagerReports /></ProtectedRoute>} />
         <Route
           path="/admin/dashboard"
           element={

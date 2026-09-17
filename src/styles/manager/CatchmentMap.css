@@ -1,0 +1,63 @@
+.catchment-map-wrap {
+  position: relative;
+  width: 100%;
+  height: 320px;
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+}
+
+.catchment-map {
+  width: 100%;
+  height: 100%;
+  z-index: 1;
+}
+
+.catchment-map-hint {
+  position: absolute;
+  bottom: 10px;
+  left: 10px;
+  background: rgba(10, 46, 61, 0.85);
+  color: #fff;
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 5px 10px;
+  border-radius: 6px;
+  pointer-events: none;
+  z-index: 400;
+}
+
+.leaflet-control-attribution {
+  font-size: 0.65rem;
+}
+
+.catchment-pin-popup {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--font-data, monospace);
+  font-size: 0.78rem;
+}
+
+.catchment-pin-popup button {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: #0077b6;
+  border: none;
+  color: #fff;
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 4px 8px;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+.catchment-pin-popup button:hover {
+  background: #0096c7;
+}
+
+.manager-shell .catchment-map-wrap { border-color: #d9e2e8; border-radius: 4px; }
+.manager-shell .catchment-map-hint { background: #1e5f8c; border-radius: 4px; }
+.manager-shell .catchment-pin-popup button { background: #1e5f8c; border-radius: 4px; }
+.manager-shell .catchment-pin-popup button:hover { background: #174b6e; }

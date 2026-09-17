@@ -1,31 +1,16 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "../../lib/supabase";
-import "../../styles/Dashboard.css";
+import "../../styles/admin/AdminDashboard.css";
 import { useLogPageView } from "../../lib/useLogPageView";
 import Sidebar from "../../components/Sidebar";
-import { Users, UserCheck, AlertTriangle, Hourglass, Search } from "lucide-react";
+import { Wifi, Clock, AlertTriangle, Database, Users, Hourglass, RefreshCw } from "lucide-react";
 
 /**
- * Dashboard — Admin/Manager landing page. Backed by live Supabase data.
- *
- * Schema notes / deliberate simplifications:
- * - `alerts` has no status/resolved_by/resolved_at columns, so there is
- *   no active-vs-resolved split and no review actions — this shows one
- *   combined "Recent Alerts" list ordered by triggered_at.
- * - "Active Alerts" on the summary card counts alerts triggered in the
- *   last 24 hours (a stand-in for "active", since nothing marks an
- *   alert as resolved). Adjust the window or add a status column later
- *   if that's not the right definition.
- * - "Pending Review" counts profiles with status = 'pending' (accounts
- *   awaiting admin approval), matching the User Management page.
- * - System Status only shows Master Node Status (derived from
- *   last_seen_at recency) and Last Data Sync — `nodes` has no
- *   firmware/health columns to back an "Update" or "System Health" row.
+ * Dashboard — Admin landing page.
+ * Displays live KPI summaries, recent threshold breach alerts,
+ * and recent user activity logs with auto-refresh & Supabase realtime updates.
  */
-
-const NODE_ONLINE_WINDOW_MS = 5 * 60 * 1000; // consider a node "online" if seen in the last 5 min
-const ACTIVE_ALERTS_WINDOW_MS = 24 * 60 * 60 * 1000; // "active" = triggered in the last 24h
 
 const formatDateTime = (isoString) => {
   if (!isoString) return "—";
@@ -36,38 +21,64 @@ const formatDateTime = (isoString) => {
   )}:${pad(d.getMinutes())}`;
 };
 
+const formatClockTime = (timestamp) => {
+  if (!timestamp) return "—";
+  const d = new Date(timestamp);
+  const pad = (n) => String(n).padStart(2, "0");
+  return `${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+};
+
+const formatRelativeTime = (isoString, checkedAt) => {
+  if (!isoString) return "No data yet";
+  const date = new Date(isoString);
+  const now = checkedAt ? new Date(checkedAt) : date;
+  const diffSec = Math.floor((now.getTime() - date.getTime()) / 1000);
+
+  if (diffSec < 0 || isNaN(diffSec)) return "Just now";
+  if (diffSec < 60) return `${diffSec}s ago`;
+  const diffMin = Math.floor(diffSec / 60);
+  if (diffMin < 60) return `${diffMin} min${diffMin === 1 ? "" : "s"} ago`;
+  const diffHours = Math.floor(diffMin / 60);
+  if (diffHours < 24) return `${diffHours} hr${diffHours === 1 ? "" : "s"} ago`;
+  const diffDays = Math.floor(diffHours / 24);
+  if (diffDays < 7) return `${diffDays}d ago`;
+  const pad = (n) => String(n).padStart(2, "0");
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+};
+
+const severityBadgeClass = (severity) => {
+  const s = (severity || "").toLowerCase();
+  if (s === "critical" || s === "danger") return "badge-failed";
+  if (s === "warning") return "badge-warning";
+  return "badge-normal";
+};
+
 const Dashboard = () => {
   useLogPageView("Viewed Dashboard");
   const navigate = useNavigate();
 
   const [profile, setProfile] = useState(null);
-  const [search, setSearch] = useState("");
 
-  const [counts, setCounts] = useState({
-    totalUsers: null,
-    activeAccounts: null,
-    pendingReview: null,
-    activeAlerts: null,
-  });
+  // KPI states
+  const [loadingUsers, setLoadingUsers] = useState(true);
+  const [usersCount, setUsersCount] = useState(0);
+  const [pendingReviewCount, setPendingReviewCount] = useState(0);
 
-  const [alerts, setAlerts] = useState([]);
-  const [alertsLoading, setAlertsLoading] = useState(true);
-  const [alertsError, setAlertsError] = useState("");
+  const [loadingAlerts, setLoadingAlerts] = useState(true);
+  const [activeAlertsCount, setActiveAlertsCount] = useState(0);
+  const [recentAlerts, setRecentAlerts] = useState([]);
 
-  const [activity, setActivity] = useState([]);
-  const [activityLoading, setActivityLoading] = useState(true);
-  const [activityError, setActivityError] = useState("");
+  const [loadingReadings, setLoadingReadings] = useState(true);
+  const [totalReadings, setTotalReadings] = useState(0);
+  const [latestPing, setLatestPing] = useState(null);
 
-  const [masterNode, setMasterNode] = useState(null);
-  const [nodeLoading, setNodeLoading] = useState(true);
-  const [nodeError, setNodeError] = useState("");
+  const [loadingActivity, setLoadingActivity] = useState(true);
+  const [recentActivity, setRecentActivity] = useState([]);
 
-  // Tracked in state (rather than calling Date.now() during render) so
-  // the online/offline check below stays a pure function of props/state.
-  // Refreshing every 30s also means the status updates on its own.
-  const [now, setNow] = useState(() => Date.now());
+  const [checkedAt, setCheckedAt] = useState(null);
+  const [refreshInterval, setRefreshInterval] = useState(30000); // 30s default
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
-  // Signed-in profile, for the header greeting.
   useEffect(() => {
     const loadProfile = async () => {
       const {
@@ -96,223 +107,395 @@ const Dashboard = () => {
     loadProfile();
   }, [navigate]);
 
-  // Summary card counts.
-  useEffect(() => {
-    const loadCounts = async () => {
-      const activeAlertsSince = new Date(Date.now() - ACTIVE_ALERTS_WINDOW_MS).toISOString();
-
-      const [totalUsers, activeAccounts, pendingReview, activeAlerts] = await Promise.all([
+  // 1. Fetch Users Count
+  const fetchUsers = useCallback(async () => {
+    try {
+      const [usersResult, pendingResult] = await Promise.all([
         supabase.from("profiles").select("id", { count: "exact", head: true }),
         supabase
           .from("profiles")
           .select("id", { count: "exact", head: true })
-          .eq("status", "approved"),
-        supabase
-          .from("profiles")
-          .select("id", { count: "exact", head: true })
           .eq("status", "pending"),
-        supabase
-          .from("alerts")
-          .select("id", { count: "exact", head: true })
-          .gte("triggered_at", activeAlertsSince),
       ]);
 
-      setCounts({
-        totalUsers: totalUsers.count,
-        activeAccounts: activeAccounts.count,
-        pendingReview: pendingReview.count,
-        activeAlerts: activeAlerts.count,
-      });
-    };
+      if (!usersResult.error && usersResult.count !== null) {
+        setUsersCount(usersResult.count);
+      } else {
+        setUsersCount(0);
+      }
 
-    loadCounts();
+      // PR #15: surface the number of accounts awaiting admin approval.
+      if (!pendingResult.error && pendingResult.count !== null) {
+        setPendingReviewCount(pendingResult.count);
+      } else {
+        setPendingReviewCount(0);
+      }
+    } catch (err) {
+      console.error("Failed to load users count:", err);
+      setUsersCount(0);
+      setPendingReviewCount(0);
+    } finally {
+      setLoadingUsers(false);
+    }
   }, []);
 
-  // Recent alerts, joined with the sensor reading, its parameter, and the threshold that fired.
-  useEffect(() => {
-    const loadAlerts = async () => {
-      setAlertsLoading(true);
-      setAlertsError("");
+  // 2. Fetch Alerts (active count and recent alerts)
+  const fetchAlerts = useCallback(async () => {
+    try {
+      const { count, error: countErr } = await supabase
+        .from("alerts")
+        .select("id", { count: "exact", head: true })
+        .eq("status", "active");
 
-      const { data, error } = await supabase
+      if (!countErr && count !== null) {
+        setActiveAlertsCount(count);
+      } else {
+        setActiveAlertsCount(0);
+      }
+
+      const { data: list, error: listErr } = await supabase
         .from("alerts")
         .select(
-          `
-          id,
-          message,
-          triggered_at,
-          sensor_readings ( value, recorded_at, parameters ( name, unit ) ),
-          thresholds ( severity_label )
-        `
+          `id, message, status, triggered_at,
+           thresholds ( min_value, max_value, severity_label,
+             parameters ( name, unit ) ),
+           sensor_readings ( value, recorded_at, nodes ( device_label ) )`
         )
         .order("triggered_at", { ascending: false })
-        .limit(10);
+        .limit(5);
 
-      if (error) {
-        setAlertsError("Could not load alerts.");
+      if (!listErr && list) {
+        setRecentAlerts(list);
       } else {
-        setAlerts(data);
+        setRecentAlerts([]);
       }
-      setAlertsLoading(false);
-    };
-
-    loadAlerts();
+    } catch (err) {
+      console.error("Failed to load alerts:", err);
+      setActiveAlertsCount(0);
+      setRecentAlerts([]);
+    } finally {
+      setLoadingAlerts(false);
+    }
   }, []);
 
-  // Recent user activity.
-  useEffect(() => {
-    const loadActivity = async () => {
-      setActivityLoading(true);
-      setActivityError("");
+  // 3. Fetch Sensor Readings & Latest Ping
+  const fetchReadings = useCallback(async () => {
+    try {
+      const { count, error: countErr } = await supabase
+        .from("sensor_readings")
+        .select("id", { count: "exact", head: true });
 
+      if (!countErr && count !== null) {
+        setTotalReadings(count);
+      } else {
+        setTotalReadings(0);
+      }
+
+      const { data: latestRows, error: pingErr } = await supabase
+        .from("sensor_readings")
+        .select("recorded_at")
+        .order("recorded_at", { ascending: false })
+        .limit(1);
+
+      if (!pingErr && latestRows && latestRows.length > 0 && latestRows[0]?.recorded_at) {
+        setLatestPing(latestRows[0].recorded_at);
+      } else {
+        setLatestPing(null);
+      }
+    } catch (err) {
+      console.error("Failed to load sensor readings:", err);
+      setTotalReadings(0);
+      setLatestPing(null);
+    } finally {
+      setLoadingReadings(false);
+    }
+  }, []);
+
+  // 4. Fetch User Activity Logs
+  const fetchActivity = useCallback(async () => {
+    try {
       const { data, error } = await supabase
         .from("activity_logs")
-        .select("id, full_name, activity, created_at")
+        .select("id, full_name, role, activity, status, created_at")
         .order("created_at", { ascending: false })
-        .limit(6);
+        .limit(5);
 
-      if (error) {
-        setActivityError("Could not load recent activity.");
+      if (!error && data) {
+        setRecentActivity(data);
       } else {
-        setActivity(data);
+        setRecentActivity([]);
       }
-      setActivityLoading(false);
-    };
-
-    loadActivity();
+    } catch (err) {
+      console.error("Failed to load user activity:", err);
+      setRecentActivity([]);
+    } finally {
+      setLoadingActivity(false);
+    }
   }, []);
 
-  // Master node status.
+  const fetchAllData = useCallback(
+    async (manual = false) => {
+      if (manual) setIsRefreshing(true);
+      await Promise.allSettled([
+        fetchUsers(),
+        fetchAlerts(),
+        fetchReadings(),
+        fetchActivity(),
+      ]);
+      setCheckedAt(Date.now());
+      if (manual) setIsRefreshing(false);
+    },
+    [fetchUsers, fetchAlerts, fetchReadings, fetchActivity]
+  );
+
+  // Initial Load
   useEffect(() => {
-    const loadNode = async () => {
-      setNodeLoading(true);
-      setNodeError("");
+    fetchAllData();
+  }, [fetchAllData]);
 
-      const { data, error } = await supabase
-        .from("nodes")
-        .select("device_label, status, last_seen_at")
-        .eq("node_type", "master")
-        .limit(1)
-        .maybeSingle();
-
-      if (error) {
-        setNodeError("Could not load node status.");
-      } else {
-        setMasterNode(data);
-      }
-      setNodeLoading(false);
-    };
-
-    loadNode();
-  }, []);
-
-  // Keep "now" fresh so isNodeOnline re-evaluates without needing a reload.
+  // Supabase Realtime Subscription (postgres_changes)
   useEffect(() => {
-    const interval = setInterval(() => setNow(Date.now()), 30 * 1000);
-    return () => clearInterval(interval);
-  }, []);
+    const channel = supabase
+      .channel("admin-dashboard-realtime")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "sensor_readings" },
+        () => {
+          fetchReadings();
+          setCheckedAt(Date.now());
+        }
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "alerts" },
+        () => {
+          fetchAlerts();
+          setCheckedAt(Date.now());
+        }
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "activity_logs" },
+        () => {
+          fetchActivity();
+          setCheckedAt(Date.now());
+        }
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "profiles" },
+        () => {
+          fetchUsers();
+          setCheckedAt(Date.now());
+        }
+      )
+      .subscribe();
 
-  const displayName = profile?.full_name
-    ? profile.full_name.toLowerCase().replace(/\b\w/g, (char) => char.toUpperCase())
-    : "Loading...";
-  const displayRole = profile?.role
-    ? profile.role.charAt(0).toUpperCase() + profile.role.slice(1)
-    : "";
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [fetchReadings, fetchAlerts, fetchActivity, fetchUsers]);
+
+  // Interval Polling fallback
+  useEffect(() => {
+    if (refreshInterval <= 0) return;
+    const timer = setInterval(() => {
+      fetchAllData();
+    }, refreshInterval);
+
+    return () => clearInterval(timer);
+  }, [refreshInterval, fetchAllData]);
+
+  // Compute Sensor Status Card
+  const sensorStatus = (() => {
+    if (loadingReadings) {
+      return { value: "Checking...", tone: "neutral", live: false };
+    }
+    if (!latestPing) {
+      return { value: "Awaiting Data", tone: "neutral", live: false };
+    }
+    const pingTime = new Date(latestPing).getTime();
+    const diffMs = checkedAt ? checkedAt - pingTime : 0;
+    const isOnline = diffMs <= 5 * 60 * 1000;
+
+    if (isOnline) {
+      return { value: "Online", tone: "positive", live: true };
+    }
+    return { value: "Offline", tone: "warning", live: false };
+  })();
+
+  // Compute Last Data Received Card
+  const lastDataReceived = (() => {
+    if (loadingReadings) {
+      return { value: "Checking...", tone: "neutral" };
+    }
+    if (!latestPing) {
+      return { value: "No data yet", tone: "neutral" };
+    }
+    return { value: formatRelativeTime(latestPing, checkedAt), tone: "neutral" };
+  })();
+
+  // Compute Active Alerts Card
+  const activeAlertsCard = (() => {
+    if (loadingAlerts) {
+      return { value: "Checking...", tone: "neutral" };
+    }
+    if (activeAlertsCount === 0) {
+      return { value: "0 Active", tone: "positive" };
+    }
+    return {
+      value: `${activeAlertsCount} Active`,
+      tone: "warning",
+    };
+  })();
+
+  // Compute Total Data Records Card
+  const totalReadingsCard = (() => {
+    if (loadingReadings) {
+      return { value: "Loading...", tone: "neutral" };
+    }
+    return { value: (totalReadings ?? 0).toLocaleString(), tone: "neutral" };
+  })();
+
+  // Compute Total Users Card
+  const totalUsersCard = (() => {
+    if (loadingUsers) {
+      return { value: "Loading...", tone: "neutral" };
+    }
+    return { value: (usersCount ?? 0).toLocaleString(), tone: "neutral" };
+  })();
+
+  // Compute Pending Review Card (profiles awaiting admin approval)
+  const pendingReviewCard = (() => {
+    if (loadingUsers) {
+      return { value: "Loading...", tone: "neutral" };
+    }
+    if (pendingReviewCount === 0) {
+      return { value: "0 Pending", tone: "positive" };
+    }
+    return { value: `${pendingReviewCount} Pending`, tone: "warning" };
+  })();
 
   const summaryCards = [
-    { label: "Total Users", value: counts.totalUsers, tone: "neutral", icon: Users },
-    { label: "Active Accounts", value: counts.activeAccounts, tone: "positive", icon: UserCheck },
-    { label: "Active Alerts", value: counts.activeAlerts, tone: "warning", icon: AlertTriangle },
-    { label: "Pending Review", value: counts.pendingReview, tone: "warning", icon: Hourglass },
+    {
+      label: "Sensor Status",
+      value: sensorStatus.value,
+      tone: sensorStatus.tone,
+      icon: Wifi,
+      live: sensorStatus.live,
+      path: "/admin/data-records",
+    },
+    {
+      label: "Last Data Received",
+      value: lastDataReceived.value,
+      tone: lastDataReceived.tone,
+      icon: Clock,
+      path: "/admin/data-records",
+    },
+    {
+      label: "Active Alerts",
+      value: activeAlertsCard.value,
+      tone: activeAlertsCard.tone,
+      icon: AlertTriangle,
+      path: "/admin/alert-history",
+    },
+    {
+      label: "Total Data Records",
+      value: totalReadingsCard.value,
+      tone: totalReadingsCard.tone,
+      icon: Database,
+      path: "/admin/data-records",
+    },
+    {
+      label: "Total Users",
+      value: totalUsersCard.value,
+      tone: totalUsersCard.tone,
+      icon: Users,
+      path: "/admin/user-management",
+    },
+    {
+      label: "Pending Review",
+      value: pendingReviewCard.value,
+      tone: pendingReviewCard.tone,
+      icon: Hourglass,
+      path: "/admin/user-management",
+    },
   ];
-
-  const alertRows = useMemo(
-    () =>
-      alerts.map((a) => {
-        const reading = a.sensor_readings;
-        const parameter = reading?.parameters;
-        return {
-          id: a.id,
-          parameter: parameter?.name ?? "—",
-          reading: reading ? `${reading.value}${parameter?.unit ? ` ${parameter.unit}` : ""}` : "—",
-          severity: a.thresholds?.severity_label ?? null,
-          timestamp: formatDateTime(reading?.recorded_at ?? a.triggered_at),
-        };
-      }),
-    [alerts]
-  );
-
-  const activityRows = useMemo(
-    () =>
-      activity.map((row) => ({
-        id: row.id,
-        user: row.full_name,
-        action: row.activity,
-        timestamp: formatDateTime(row.created_at),
-      })),
-    [activity]
-  );
-
-  // Client-side search across the alerts and activity tables. Matches
-  // on any visible field. Fine at this volume (limit 10 / limit 6);
-  // move to a server-side .ilike() filter if these lists grow.
-  const query = search.trim().toLowerCase();
-  const isFiltering = query.length > 0;
-
-  const filteredAlertRows = useMemo(() => {
-    if (!query) return alertRows;
-    return alertRows.filter((row) =>
-      [row.parameter, row.reading, row.severity, row.timestamp]
-        .filter(Boolean)
-        .some((field) => field.toLowerCase().includes(query))
-    );
-  }, [alertRows, query]);
-
-  const filteredActivityRows = useMemo(() => {
-    if (!query) return activityRows;
-    return activityRows.filter((row) =>
-      [row.user, row.action, row.timestamp]
-        .filter(Boolean)
-        .some((field) => field.toLowerCase().includes(query))
-    );
-  }, [activityRows, query]);
-
-  const isNodeOnline =
-    !!masterNode?.last_seen_at &&
-    now - new Date(masterNode.last_seen_at).getTime() < NODE_ONLINE_WINDOW_MS;
 
   return (
     <div className="admin-shell">
       <Sidebar />
 
+      {/* Main content */}
       <main className="admin-main">
-        <header className="page-header">
-          <h1>Dashboard</h1>
-          <p>
-            Welcome back, {displayName}
-            {displayRole ? ` · ${displayRole}` : ""}
-          </p>
-        </header>
+        <header className="page-header page-header-with-actions">
+          <div>
+            <h1>Dashboard</h1>
+            <p>
+              Welcome back,{" "}
+              {profile?.full_name
+                ? profile.full_name
+                    .toLowerCase()
+                    .replace(/\b\w/g, (char) => char.toUpperCase())
+                : "Loading..."}
+            </p>
+          </div>
 
-        <div className="dashboard-search">
-          <Search size={16} className="dashboard-search-icon" />
-          <input
-            type="text"
-            placeholder="Search alerts or activity..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-          />
-        </div>
+          <div className="header-refresh-controls">
+            <div className="header-last-updated">
+              <span className="live-pulse-dot" />
+              <span>Last updated: {checkedAt ? formatClockTime(checkedAt) : "—"}</span>
+            </div>
+
+            <div className="header-refresh-actions">
+              <select
+                value={refreshInterval}
+                onChange={(e) => setRefreshInterval(Number(e.target.value))}
+                className="refresh-interval-select"
+                aria-label="Auto-refresh interval"
+              >
+                <option value={0}>Auto-refresh: Off</option>
+                <option value={30000}>Auto-refresh: 30s</option>
+                <option value={60000}>Auto-refresh: 1m</option>
+                <option value={300000}>Auto-refresh: 5m</option>
+              </select>
+
+              <button
+                type="button"
+                className="header-refresh-btn"
+                onClick={() => fetchAllData(true)}
+                disabled={isRefreshing}
+                title="Refresh now"
+              >
+                <RefreshCw size={14} className={isRefreshing ? "spin-icon" : ""} />
+                <span>Refresh</span>
+              </button>
+            </div>
+          </div>
+        </header>
 
         <div className="summary-grid">
           {summaryCards.map((card) => {
             const Icon = card.icon;
             return (
-              <div className="summary-card" key={card.label}>
+              <div
+                className="summary-card"
+                key={card.label}
+                role="button"
+                tabIndex={0}
+                onClick={() => navigate(card.path)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    navigate(card.path);
+                  }
+                }}
+              >
                 <div className="summary-card-body">
                   <p className="summary-label">{card.label}</p>
                   <p className={`summary-value tone-${card.tone}`}>
-                    {card.value === null || card.value === undefined ? "—" : card.value}
+                    {card.live && <span className="live-dot" />}
+                    {card.value}
                   </p>
                 </div>
                 <div className="summary-icon">
@@ -325,106 +508,143 @@ const Dashboard = () => {
 
         <div className="panel-grid">
           <section className="panel">
-            <h2>Recent Alerts</h2>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "12px" }}>
+              <h2>Recent Alert History</h2>
+              <button
+                type="button"
+                onClick={() => navigate("/admin/alert-history")}
+                style={{
+                  background: "none",
+                  border: "none",
+                  color: "var(--color-primary)",
+                  fontSize: "0.78rem",
+                  fontWeight: 600,
+                  cursor: "pointer",
+                  padding: 0,
+                }}
+              >
+                View All &rarr;
+              </button>
+            </div>
             <div className="table-wrap">
-              {alertsLoading && <p>Loading alerts...</p>}
-              {alertsError && <p style={{ color: "#d64545" }}>{alertsError}</p>}
-              {!alertsLoading && !alertsError && (
-                <table>
-                  <thead>
+              <table>
+                <thead>
+                  <tr>
+                    <th>Date &amp; Time</th>
+                    <th>Parameter</th>
+                    <th>Reading</th>
+                    <th>Threshold</th>
+                    <th>Alert Level</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {loadingAlerts ? (
                     <tr>
-                      <th>Sensor / Parameter</th>
-                      <th>Reading</th>
-                      <th>Severity</th>
-                      <th>Timestamp</th>
+                      <td colSpan={5} style={{ textAlign: "center", padding: "16px", color: "var(--color-text-muted)" }}>
+                        Loading alert history...
+                      </td>
                     </tr>
-                  </thead>
-                  <tbody>
-                    {filteredAlertRows.length === 0 && (
-                      <tr>
-                        <td colSpan={4}>
-                          {isFiltering ? "No matching alerts." : "No alerts recorded yet."}
-                        </td>
-                      </tr>
-                    )}
-                    {filteredAlertRows.map((row) => (
+                  ) : recentAlerts.length === 0 ? (
+                    <tr>
+                      <td colSpan={5} style={{ textAlign: "center", padding: "16px", color: "var(--color-text-muted)" }}>
+                        No alerts recorded yet.
+                      </td>
+                    </tr>
+                  ) : (
+                    recentAlerts.map((row) => {
+                      const param = row.thresholds?.parameters;
+                      const unit = param?.unit || "";
+                      const min = row.thresholds?.min_value;
+                      const max = row.thresholds?.max_value;
+                      const severity = row.thresholds?.severity_label || "Normal";
+
+                      return (
+                        <tr key={row.id}>
+                          <td>{formatDateTime(row.triggered_at)}</td>
+                          <td>{param?.name || "—"}</td>
+                          <td className="data-cell">
+                            {row.sensor_readings?.value != null ? `${row.sensor_readings.value} ${unit}` : "—"}
+                          </td>
+                          <td className="data-cell">
+                            {min != null && max != null ? `${min} – ${max} ${unit}` : "—"}
+                          </td>
+                          <td>
+                            <span className={`badge ${severityBadgeClass(severity)}`}>
+                              {severity}
+                            </span>
+                          </td>
+                        </tr>
+                      );
+                    })
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </section>
+
+          <section className="panel">
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "12px" }}>
+              <h2>Recent User Activity</h2>
+              <button
+                type="button"
+                onClick={() => navigate("/admin/user-activity-logs")}
+                style={{
+                  background: "none",
+                  border: "none",
+                  color: "var(--color-primary)",
+                  fontSize: "0.78rem",
+                  fontWeight: 600,
+                  cursor: "pointer",
+                  padding: 0,
+                }}
+              >
+                View All &rarr;
+              </button>
+            </div>
+            <div className="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Date &amp; Time</th>
+                    <th>User</th>
+                    <th>Role</th>
+                    <th>Activity</th>
+                    <th>Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {loadingActivity ? (
+                    <tr>
+                      <td colSpan={5} style={{ textAlign: "center", padding: "16px", color: "var(--color-text-muted)" }}>
+                        Loading user activity...
+                      </td>
+                    </tr>
+                  ) : recentActivity.length === 0 ? (
+                    <tr>
+                      <td colSpan={5} style={{ textAlign: "center", padding: "16px", color: "var(--color-text-muted)" }}>
+                        No user activity recorded yet.
+                      </td>
+                    </tr>
+                  ) : (
+                    recentActivity.map((row) => (
                       <tr key={row.id}>
-                        <td>{row.parameter}</td>
-                        <td className="data-cell">{row.reading}</td>
+                        <td>{formatDateTime(row.created_at)}</td>
+                        <td>{row.full_name || "—"}</td>
+                        <td>{row.role || "—"}</td>
+                        <td>{row.activity || "—"}</td>
                         <td>
-                          {row.severity ? (
-                            <span className="badge badge-warning">{row.severity}</span>
-                          ) : (
-                            "—"
-                          )}
-                        </td>
-                        <td className="data-cell">{row.timestamp}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              )}
-            </div>
-          </section>
-
-          <section className="panel">
-            <h2>Recent User Activity</h2>
-            <div className="table-wrap">
-              {activityLoading && <p>Loading activity...</p>}
-              {activityError && <p style={{ color: "#d64545" }}>{activityError}</p>}
-              {!activityLoading && !activityError && (
-                <table>
-                  <thead>
-                    <tr>
-                      <th>User</th>
-                      <th>Action</th>
-                      <th>Timestamp</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {filteredActivityRows.length === 0 && (
-                      <tr>
-                        <td colSpan={3}>
-                          {isFiltering ? "No matching activity." : "No activity recorded yet."}
+                          <span
+                            className={`badge badge-${(row.status || "").toLowerCase()}`}
+                          >
+                            {row.status || "—"}
+                          </span>
                         </td>
                       </tr>
-                    )}
-                    {filteredActivityRows.map((row) => (
-                      <tr key={row.id}>
-                        <td>{row.user}</td>
-                        <td>{row.action}</td>
-                        <td className="data-cell">{row.timestamp}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              )}
+                    ))
+                  )}
+                </tbody>
+              </table>
             </div>
-          </section>
-
-          <section className="panel">
-            <h2>System Status</h2>
-            {nodeLoading && <p>Loading node status...</p>}
-            {nodeError && <p style={{ color: "#d64545" }}>{nodeError}</p>}
-            {!nodeLoading && !nodeError && (
-              <div className="status-list">
-                <div className="status-row status-row-highlight">
-                  <span className="status-label">
-                    Master Node Status{masterNode?.device_label ? ` (${masterNode.device_label})` : ""}
-                  </span>
-                  <span className={`status-value tone-${isNodeOnline ? "positive" : "warning"}`}>
-                    {isNodeOnline && <span className="live-dot" />}
-                    {masterNode ? (isNodeOnline ? "Online" : "Offline") : "No master node"}
-                  </span>
-                </div>
-                <div className="status-row">
-                  <span className="status-label">Last Data Sync</span>
-                  <span className="status-value data-cell">
-                    {formatDateTime(masterNode?.last_seen_at)}
-                  </span>
-                </div>
-              </div>
-            )}
           </section>
         </div>
       </main>

@@ -8,11 +8,11 @@
   position: sticky;
   top: 0;
   z-index: 40;
-  justify-content: space-between;   /* add this */
+  justify-content: space-between;
 }
 
 .sidebar-topbar-brand {
-  order: 1;                          /* add this */
+  order: 1;
   display: flex;
   align-items: center;
   gap: 8px;
@@ -23,7 +23,7 @@
 }
 
 .sidebar-hamburger {
-  order: 2;                          /* add this */
+  order: 2;
   width: 34px;
   height: 34px;
   display: flex;
@@ -39,16 +39,6 @@
 
 .sidebar-hamburger:hover {
   background: var(--color-bg);
-}
-
-.sidebar-topbar-brand {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-family: var(--font-display);
-  font-weight: 700;
-  font-size: 0.95rem;
-  color: var(--color-text);
 }
 
 .sidebar-topbar-brand img {
@@ -182,9 +172,9 @@
   font-weight: 600;
 }
 
-/* Remove animated active indicator for a static selected state. */
+/* Active state is defined by the page-specific sidebar theme. */
 .sidebar-link.active::before {
-  content: none;
+  display: none;
 }
 
 @media (prefers-reduced-motion: reduce) {

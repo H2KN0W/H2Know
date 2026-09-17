@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "../../lib/supabase";
-import "../../styles/Dashboard.css";
-import "../../styles/DataRecords.css";
+import "../../styles/admin/AdminDashboard.css";
+import "../../styles/admin/DataRecords.css";
 import { useLogPageView } from "../../lib/useLogPageView";
 import Sidebar from "../../components/Sidebar";
 
