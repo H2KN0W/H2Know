@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "../lib/supabase";
 import "../styles/Login.css";
-import H2knowLogo from "../assets/img/H2knowlogo.jpg";
+import H2knowLogo from "../assets/img/H2knowLogo.jpg";
 
 const ResetPassword = () => {
   const navigate = useNavigate();
