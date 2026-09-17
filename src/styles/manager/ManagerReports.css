@@ -1,0 +1,46 @@
+.manager-report-form {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+  align-items: end;
+}
+
+.manager-report-form label {
+  display: grid;
+  gap: 0.4rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.manager-report-form fieldset {
+  grid-column: 1 / -1;
+  border: 1px solid #dce3e6;
+  border-radius: 6px;
+}
+
+.manager-report-form legend {
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.manager-checkboxes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.manager-checkboxes label {
+  display: block;
+  font-weight: 400;
+}
+
+.manager-checkboxes input {
+  margin: 0 0.35rem 0 0;
+  padding: 0;
+}
+
+@media (max-width: 640px) {
+  .manager-report-form {
+    grid-template-columns: 1fr;
+  }
+}
