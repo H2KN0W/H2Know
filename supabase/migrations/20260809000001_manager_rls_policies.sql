@@ -11,9 +11,15 @@
 -- A user is treated as a manager when their `profiles` row has role = 'manager'
 -- AND status = 'approved' (mirrors the authorization check in ProtectedRoute.jsx).
 --
+-- Requires PostgreSQL 15+ (uses SECURITY DEFINER and the pg_policies view).
+--
+-- NOTE: PostgreSQL's CREATE POLICY has no "IF NOT EXISTS" option, so each policy
+-- is guarded explicitly by checking pg_policies before creating it. That keeps
+-- this migration safe to re-run without raising "already exists" errors.
+--
 -- The tables (alerts, reports, sensor_readings, parameters, thresholds, nodes,
 -- monitoring_sites, profiles) are created/managed outside this set of migrations
--- (via the app's schema/seed setup), so every policy is guarded by a
+-- (via the app's schema/seed setup), so every policy is also guarded by a
 -- table-existence check to keep this migration safe to apply even before those
 -- tables exist.
 
@@ -32,6 +38,23 @@ as $$
      where n.nspname = 'public'
        and c.relname = p_name
        and c.relkind = 'r'
+  );
+$$;
+
+-- Returns true when a policy with the given name already exists on the table.
+-- Used instead of CREATE POLICY IF NOT EXISTS (which PostgreSQL does not support).
+create or replace function public.__manager_policy_exists(p_schema text, p_table text, p_policy text)
+returns boolean
+language sql
+stable
+set search_path = ''
+as $$
+  select exists (
+    select 1
+      from pg_catalog.pg_policies pol
+     where pol.schemaname = p_schema
+       and pol.tablename = p_table
+       and pol.policyname = p_policy
   );
 $$;
 
@@ -59,13 +82,17 @@ $$;
 do $$
 begin
   if public.__manager_table_exists('alerts') then
-    execute 'create policy if not exists "manager_select_alerts"
-      on public.alerts for select to authenticated
-      using ( public.manager_can_access() )';
+    if not public.__manager_policy_exists('public', 'alerts', 'manager_select_alerts') then
+      execute 'create policy "manager_select_alerts"
+        on public.alerts for select to authenticated
+        using ( public.manager_can_access() )';
+    end if;
 
-    execute 'create policy if not exists "manager_update_alerts"
-      on public.alerts for update to authenticated
-      using ( public.manager_can_access() )';
+    if not public.__manager_policy_exists('public', 'alerts', 'manager_update_alerts') then
+      execute 'create policy "manager_update_alerts"
+        on public.alerts for update to authenticated
+        using ( public.manager_can_access() )';
+    end if;
   end if;
 end $$;
 
@@ -73,13 +100,17 @@ end $$;
 do $$
 begin
   if public.__manager_table_exists('reports') then
-    execute 'create policy if not exists "manager_select_reports"
-      on public.reports for select to authenticated
-      using ( public.manager_can_access() )';
+    if not public.__manager_policy_exists('public', 'reports', 'manager_select_reports') then
+      execute 'create policy "manager_select_reports"
+        on public.reports for select to authenticated
+        using ( public.manager_can_access() )';
+    end if;
 
-    execute 'create policy if not exists "manager_insert_reports"
-      on public.reports for insert to authenticated
-      with check ( public.manager_can_access() )';
+    if not public.__manager_policy_exists('public', 'reports', 'manager_insert_reports') then
+      execute 'create policy "manager_insert_reports"
+        on public.reports for insert to authenticated
+        with check ( public.manager_can_access() )';
+    end if;
   end if;
 end $$;
 
@@ -92,9 +123,10 @@ begin
   foreach t in array
     array['sensor_readings', 'parameters', 'thresholds', 'nodes', 'monitoring_sites']
   loop
-    if public.__manager_table_exists(t) then
+    if public.__manager_table_exists(t)
+       and not public.__manager_policy_exists('public', t, format('manager_select_%s', t)) then
       execute format(
-        'create policy if not exists "manager_select_%s"
+        'create policy "manager_select_%s"
            on public.%I for select to authenticated
            using ( public.manager_can_access() )',
         t, t
@@ -108,8 +140,9 @@ end $$;
 --    predicate is SECURITY DEFINER so it reads profiles even with this policy.
 do $$
 begin
-  if public.__manager_table_exists('profiles') then
-    execute 'create policy if not exists "manager_select_profiles"
+  if public.__manager_table_exists('profiles')
+     and not public.__manager_policy_exists('public', 'profiles', 'manager_select_profiles') then
+    execute 'create policy "manager_select_profiles"
       on public.profiles for select to authenticated
       using ( public.manager_can_access() )';
   end if;
