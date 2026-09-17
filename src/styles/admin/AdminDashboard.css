@@ -1,8 +1,8 @@
 :root {
   /* Core palette — clean water, blue/white */
-  --color-primary: #0077b6;
-  --color-secondary: #0096c7;
-  --color-accent: #00b4d8;
+  --color-primary: #0C4C7C;
+  --color-secondary: #0C4C7C;
+  --color-accent: #0C4C7C;
   --color-light: #caf0f8;
   --color-white: #ffffff;
   --color-bg: #f5fbff;
@@ -13,8 +13,8 @@
   /* Sidebar-specific tokens */
   --sidebar-width: 236px;
   --sidebar-rail: 72px;
-  --sidebar-bg-start: #052a3f;
-  --sidebar-bg-end: #0077b6;
+  --sidebar-bg-start: #0C4C7C;
+  --sidebar-bg-end: #0C4C7C;
   --sidebar-ink: rgba(255, 255, 255, 0.72);
   --sidebar-ink-strong: #ffffff;
   --sidebar-ink-faint: rgba(255, 255, 255, 0.42);
@@ -169,9 +169,49 @@
 }
 
 .page-header p {
+  font-family: var(--font-body);
   font-size: 0.85rem;
   color: var(--color-text-muted);
   margin: 0;
+}
+
+/* Search bar */
+.dashboard-search {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--color-white);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 0 14px;
+  height: 42px;
+  max-width: 480px;
+  box-shadow: 0 1px 2px rgba(10, 46, 61, 0.03);
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.dashboard-search:focus-within {
+  border-color: var(--color-accent);
+  box-shadow: 0 0 0 3px rgba(0, 180, 216, 0.15);
+}
+
+.dashboard-search-icon {
+  color: var(--color-text-muted);
+  flex-shrink: 0;
+}
+
+.dashboard-search input {
+  border: none;
+  outline: none;
+  background: transparent;
+  width: 100%;
+  font-size: 0.85rem;
+  color: var(--color-text);
+  font-family: var(--font-body);
+}
+
+.dashboard-search input::placeholder {
+  color: var(--color-text-muted);
 }
 
 /* Summary cards */
@@ -216,20 +256,20 @@
 }
 
 .summary-label {
-  font-size: 0.72rem;
+  font-size: 0.75rem;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.04em;
-  color: var(--color-text-muted);
+  color: #5f7280;
   margin: 0;
 }
 
 .summary-value {
   font-family: var(--font-data);
-  font-size: 1.15rem;
+  font-size: 1.05rem;
   font-weight: 600;
   margin: 0;
-  color: var(--color-text);
+  color: #173042;
   display: flex;
   align-items: center;
   gap: 7px;
@@ -302,6 +342,21 @@
   margin: 0 0 12px;
 }
 
+.panel,
+.table-wrap,
+.table-actions,
+.table-action-btn,
+.status-list,
+.status-row,
+.status-label,
+.status-value,
+table,
+thead th,
+tbody td,
+.badge {
+  font-family: var(--font-body);
+}
+
 .table-wrap {
   overflow-x: auto;
 }
@@ -316,6 +371,7 @@ thead th {
   text-align: left;
   padding: 8px 10px;
   color: var(--color-text-muted);
+  font-family: var(--font-body);
   font-weight: 600;
   font-size: 0.72rem;
   text-transform: uppercase;
@@ -329,6 +385,7 @@ tbody td {
   border-bottom: 1px solid var(--border);
   color: var(--color-text);
   white-space: nowrap;
+  font-family: var(--font-body);
 }
 
 tbody tr:last-child td {
@@ -352,8 +409,9 @@ td.data-cell {
   display: inline-block;
   padding: 3px 10px;
   border-radius: 999px;
-  font-size: 0.72rem;
+  font-size: 0.7rem;
   font-weight: 600;
+  font-family: var(--font-body);
 }
 
 .badge-warning { background: var(--status-warning-bg); color: var(--status-warning); }
@@ -363,6 +421,78 @@ td.data-cell {
 .badge-pending { background: var(--status-warning-bg); color: var(--status-warning); }
 .badge-approved { background: var(--status-positive-bg); color: var(--status-positive); }
 .badge-rejected { background: var(--status-danger-bg); color: var(--status-danger); }
+
+/* Row-level action buttons (e.g. Active Threshold Alerts) */
+.table-actions {
+  display: flex;
+  gap: 6px;
+  white-space: nowrap;
+}
+
+.table-action-btn {
+  padding: 5px 10px;
+  border-radius: 7px;
+  border: 1px solid var(--border);
+  background: var(--color-white);
+  color: var(--color-text-muted);
+  font-size: 0.72rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background var(--transition-fast), border-color var(--transition-fast), color var(--transition-fast);
+}
+
+.table-action-btn:hover {
+  background: var(--color-light);
+  border-color: var(--color-accent);
+  color: var(--color-primary);
+}
+
+.table-action-btn-danger:hover {
+  background: var(--status-danger-bg);
+  border-color: var(--status-danger);
+  color: var(--status-danger);
+}
+
+/* System Status panel — key/value rows instead of a table */
+.status-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.status-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 2px;
+  border-bottom: 1px solid var(--border);
+}
+
+.status-row:last-child {
+  border-bottom: none;
+}
+
+.status-row-highlight {
+  padding-bottom: 16px;
+  margin-bottom: 2px;
+  border-bottom: 1px solid var(--border);
+}
+
+.status-label {
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: #173042;
+  font-family: var(--font-body);
+}
+
+.status-value {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #6b7e8b;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-family: var(--font-body);
+}
 
 @media (max-width: 900px) {
   .admin-main {

@@ -4,7 +4,7 @@ import { supabase } from "../../lib/supabase";
 import "../../styles/admin/AdminDashboard.css";
 import { useLogPageView } from "../../lib/useLogPageView";
 import Sidebar from "../../components/Sidebar";
-import { Wifi, Clock, AlertTriangle, Database, Users, RefreshCw } from "lucide-react";
+import { Wifi, Clock, AlertTriangle, Database, Users, Hourglass, RefreshCw } from "lucide-react";
 
 /**
  * Dashboard — Admin landing page.
@@ -62,6 +62,7 @@ const Dashboard = () => {
   // KPI states
   const [loadingUsers, setLoadingUsers] = useState(true);
   const [usersCount, setUsersCount] = useState(0);
+  const [pendingReviewCount, setPendingReviewCount] = useState(0);
 
   const [loadingAlerts, setLoadingAlerts] = useState(true);
   const [activeAlertsCount, setActiveAlertsCount] = useState(0);
@@ -109,18 +110,30 @@ const Dashboard = () => {
   // 1. Fetch Users Count
   const fetchUsers = useCallback(async () => {
     try {
-      const { count, error } = await supabase
-        .from("profiles")
-        .select("id", { count: "exact", head: true });
+      const [usersResult, pendingResult] = await Promise.all([
+        supabase.from("profiles").select("id", { count: "exact", head: true }),
+        supabase
+          .from("profiles")
+          .select("id", { count: "exact", head: true })
+          .eq("status", "pending"),
+      ]);
 
-      if (!error && count !== null) {
-        setUsersCount(count);
+      if (!usersResult.error && usersResult.count !== null) {
+        setUsersCount(usersResult.count);
       } else {
         setUsersCount(0);
+      }
+
+      // PR #15: surface the number of accounts awaiting admin approval.
+      if (!pendingResult.error && pendingResult.count !== null) {
+        setPendingReviewCount(pendingResult.count);
+      } else {
+        setPendingReviewCount(0);
       }
     } catch (err) {
       console.error("Failed to load users count:", err);
       setUsersCount(0);
+      setPendingReviewCount(0);
     } finally {
       setLoadingUsers(false);
     }
@@ -352,6 +365,17 @@ const Dashboard = () => {
     return { value: (usersCount ?? 0).toLocaleString(), tone: "neutral" };
   })();
 
+  // Compute Pending Review Card (profiles awaiting admin approval)
+  const pendingReviewCard = (() => {
+    if (loadingUsers) {
+      return { value: "Loading...", tone: "neutral" };
+    }
+    if (pendingReviewCount === 0) {
+      return { value: "0 Pending", tone: "positive" };
+    }
+    return { value: `${pendingReviewCount} Pending`, tone: "warning" };
+  })();
+
   const summaryCards = [
     {
       label: "Sensor Status",
@@ -387,6 +411,13 @@ const Dashboard = () => {
       value: totalUsersCard.value,
       tone: totalUsersCard.tone,
       icon: Users,
+      path: "/admin/user-management",
+    },
+    {
+      label: "Pending Review",
+      value: pendingReviewCard.value,
+      tone: pendingReviewCard.tone,
+      icon: Hourglass,
       path: "/admin/user-management",
     },
   ];

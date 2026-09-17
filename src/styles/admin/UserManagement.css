@@ -23,6 +23,9 @@
 }
 
 .um-add-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
   padding: 10px 18px;
   border: none;
   border-radius: 10px;
@@ -33,6 +36,7 @@
   cursor: pointer;
   white-space: nowrap;
   box-shadow: 0 6px 18px rgba(0, 119, 182, 0.2);
+  transition: transform var(--transition-fast, 150ms ease);
 }
 
 .um-add-btn:hover {
@@ -70,22 +74,69 @@
 }
 
 .um-icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
   border: 1px solid var(--border);
   background: var(--color-white);
+  color: var(--color-text-muted);
   border-radius: 8px;
-  padding: 6px 8px;
+  padding: 0;
   cursor: pointer;
-  font-size: 0.85rem;
   line-height: 1;
-  transition: background 0.15s ease;
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
 }
 
 .um-icon-btn:hover {
   background: var(--color-bg);
+  border-color: var(--color-text-muted);
+  color: var(--color-text);
+}
+
+/* Edit */
+.um-icon-edit {
+  color: var(--color-primary);
+}
+
+.um-icon-edit:hover {
+  background: var(--color-light);
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+}
+
+/* Enable */
+.um-icon-enable {
+  color: var(--status-positive);
+}
+
+.um-icon-enable:hover {
+  background: var(--status-positive-bg);
+  border-color: var(--status-positive);
+  color: var(--status-positive);
+}
+
+/* Disable */
+.um-icon-disable {
+  color: var(--status-warning);
+}
+
+.um-icon-disable:hover {
+  background: var(--status-warning-bg);
+  border-color: var(--status-warning);
+  color: var(--status-warning);
+}
+
+/* Delete */
+.um-icon-danger {
+  color: var(--status-danger);
 }
 
 .um-icon-danger:hover {
-  background: #fdecec;
+  background: var(--status-danger-bg);
+  border-color: var(--status-danger);
+  color: var(--status-danger);
 }
 
 /* Pagination */
@@ -221,19 +272,12 @@
   .um-search {
     max-width: none;
   }
+
+  .um-add-btn {
+    justify-content: center;
+  }
 }
 
-.um-modal-error {
-  background: #fdecec;
-  border: 1px solid #f3b8b8;
-  color: #d64545;
-  padding: 10px 14px;
-  border-radius: 8px;
-  font-size: 0.8rem;
-  margin: 0 0 16px;
-}
-
-/* Polished inline validation error inside modal */
 .um-modal-error {
   display: flex;
   align-items: flex-start;
