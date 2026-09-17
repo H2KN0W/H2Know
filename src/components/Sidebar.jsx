@@ -11,7 +11,7 @@ import {
   X,
 } from "lucide-react";
 import LogoutButton from "./LogoutButton";
-import H2knowLogo from "../assets/img/H2knowlogo.jpg";
+import H2knowLogo from "../assets/img/H2knowLogo.jpg";
 import "../styles/Sidebar.css";
 
 const navSections = [
