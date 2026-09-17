@@ -42,7 +42,7 @@ Required environment variables (used by `src/lib/supabase.js`):
 | Variable | Description |
 |---|---|
 | `VITE_SUPABASE_URL` | Supabase project URL |
-| `VITE_SUPABASE_PUBLISHABLE_KEY` | Supabase anon/publishable key |
+| `VITE_SUPABASE_ANON_KEY` | Supabase anon/publishable key |
 
 ## Scripts
 

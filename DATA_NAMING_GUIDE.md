@@ -133,7 +133,7 @@ Create a `.env.local` file (or `.env`) in your project root with the following v
 ```bash
 # Supabase Configuration
 VITE_SUPABASE_URL=https://your-project-id.supabase.co
-VITE_SUPABASE_PUBLISHABLE_KEY=your-supabase-publishable-key
+VITE_SUPABASE_ANON_KEY=your-supabase-anon-key
 
 # Alternative names (some projects use these)
 REACT_APP_SUPABASE_URL=https://your-project-id.supabase.co
@@ -147,7 +147,7 @@ REACT_APP_SUPABASE_PUBLISHABLE_KEY=your-supabase-publishable-key
 3. Navigate to **Settings** → **API**
 4. Copy:
    - **Project URL** → `VITE_SUPABASE_URL`
-   - **Publishable Key** (anon key) → `VITE_SUPABASE_PUBLISHABLE_KEY`
+   - **Anon Key** (publishable key) → `VITE_SUPABASE_ANON_KEY`
 
 ⚠️ **Security**: Never commit `.env.local` to version control. Add it to `.gitignore`.
 
@@ -159,7 +159,7 @@ The application uses this connection (in `src/lib/supabase.js`):
 import { createClient } from "@supabase/supabase-js";
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey);
 ```
@@ -296,7 +296,7 @@ Always use these exact parameter names in your Arduino code and database setup.
 
 ### Missing Supabase connection
 - Check `.env.local` file exists with correct keys
-- Verify `VITE_SUPABASE_URL` and `VITE_SUPABASE_PUBLISHABLE_KEY` are set
+- Verify `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` are set
 - Restart dev server after changing environment variables
 
 ---

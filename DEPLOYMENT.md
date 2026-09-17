@@ -33,7 +33,7 @@ Required variables (used by `src/lib/supabase.js`):
 | Variable | Example |
 |----------|---------|
 | `VITE_SUPABASE_URL` | `https://your-project-ref.supabase.co` |
-| `VITE_SUPABASE_PUBLISHABLE_KEY` | `eyJ...` (anon/publishable key) |
+| `VITE_SUPABASE_ANON_KEY` | `eyJ...` (anon/publishable key) |
 
 > These are **build-time** variables. Set them on the deploy host / CI secrets;
 > do not commit real values.
@@ -64,7 +64,7 @@ Cloudflare Pages, S3/nginx, etc.).
   - serve `dist/` as the root;
   - route **all** paths back to `index.html` (SPA fallback) so routes such as
     `/admin/dashboard` and `/manager/dashboard` work on refresh;
-  - expose env vars `VITE_SUPABASE_URL` / `VITE_SUPABASE_PUBLISHABLE_KEY` to the
+  - expose env vars `VITE_SUPABASE_URL` / `VITE_SUPABASE_ANON_KEY` to the
     build step.
 
 ---
