@@ -1,10 +1,12 @@
 .catchment-map-wrap {
   position: relative;
   width: 100%;
-  height: 320px;
-  border-radius: 12px;
+  height: 500px;
+  border-radius: 10px;
   overflow: hidden;
-  border: 1px solid var(--border);
+  border: 1px solid #cbd8df;
+  background: #dce8ed;
+  box-shadow: 0 8px 20px rgba(10, 46, 61, 0.12);
 }
 
 .catchment-map {
@@ -15,14 +17,15 @@
 
 .catchment-map-hint {
   position: absolute;
-  bottom: 10px;
-  left: 10px;
-  background: rgba(10, 46, 61, 0.85);
+  bottom: 14px;
+  left: 14px;
+  background: rgba(10, 46, 61, 0.9);
   color: #fff;
   font-size: 0.72rem;
   font-weight: 600;
-  padding: 5px 10px;
-  border-radius: 6px;
+  padding: 7px 11px;
+  border-radius: 5px;
+  box-shadow: 0 2px 8px rgba(10, 46, 61, 0.2);
   pointer-events: none;
   z-index: 400;
 }
@@ -57,7 +60,91 @@
   background: #0096c7;
 }
 
+/* Legend (inside the map) */
+.catchment-legend {
+  position: absolute;
+  right: 14px;
+  bottom: 30px;
+  z-index: 500;
+  background: rgba(255, 255, 255, 0.96);
+  border: 1px solid rgba(203, 216, 223, 0.95);
+  border-radius: 7px;
+  padding: 9px 11px;
+  font-size: 0.68rem;
+  line-height: 1.3;
+  color: #0a2e3d;
+  box-shadow: 0 3px 12px rgba(10, 46, 61, 0.18);
+  pointer-events: none;
+}
+
+.catchment-legend-title {
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  margin-bottom: 6px;
+}
+
+.catchment-legend-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 3px;
+  white-space: nowrap;
+}
+
+.catchment-legend-swatch {
+  width: 12px;
+  height: 12px;
+  border-radius: 2px;
+  flex-shrink: 0;
+  border: 1px solid rgba(0, 0, 0, 0.3);
+}
+
+.catchment-legend-divider {
+  height: 1px;
+  background: #e3eaef;
+  margin: 4px 0;
+}
+
+.catchment-legend-line {
+  width: 12px;
+  height: 0;
+  flex-shrink: 0;
+}
+
+.catchment-legend-line--river {
+  border-top: 2px solid #0891b2;
+  box-shadow: 0 0 0 0.5px rgba(10, 46, 61, 0.7);
+}
+
+.catchment-legend-line--boundary {
+  border-top: 2px solid #000000;
+  box-shadow: 0 0 0 1px #000000;
+}
+
+.catchment-legend-dot {
+  width: 10px;
+  height: 10px;
+  margin: 0 1px;
+  border-radius: 50%;
+  background: #d62828;
+  border: 2px solid #ffffff;
+  box-shadow: 0 0 0 1px #d62828;
+  flex-shrink: 0;
+}
+
 .manager-shell .catchment-map-wrap { border-color: #d9e2e8; border-radius: 4px; }
 .manager-shell .catchment-map-hint { background: #1e5f8c; border-radius: 4px; }
 .manager-shell .catchment-pin-popup button { background: #1e5f8c; border-radius: 4px; }
 .manager-shell .catchment-pin-popup button:hover { background: #174b6e; }
+
+@media (max-width: 640px) {
+  .catchment-map-wrap {
+    height: 400px;
+  }
+
+  .catchment-legend {
+    right: 8px;
+    bottom: 28px;
+    font-size: 0.63rem;
+  }
+}
