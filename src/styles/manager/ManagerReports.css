@@ -12,6 +12,12 @@
   font-weight: 600;
 }
 
+.manager-report-form input,
+.manager-report-form select {
+  width: 100%;
+  box-sizing: border-box;
+}
+
 .manager-report-form fieldset {
   grid-column: 1 / -1;
   border: 1px solid #dce3e6;
@@ -37,10 +43,202 @@
 .manager-checkboxes input {
   margin: 0 0.35rem 0 0;
   padding: 0;
+  width: auto;
 }
 
+.manager-report-form button[type="submit"] {
+  width: 100%;
+}
+
+.manager-success-banner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: #e6f7ee;
+  border: 1px solid #34c77b;
+  color: #0a5c36;
+  padding: 12px 16px;
+  border-radius: 8px;
+  margin-bottom: 16px;
+}
+
+.manager-success-icon {
+  font-weight: 700;
+  font-size: 1.1rem;
+  flex-shrink: 0;
+}
+
+.manager-success-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.manager-success-download {
+  background: #0077b6;
+  color: #fff;
+  padding: 6px 14px;
+  border-radius: 6px;
+  font-weight: 600;
+  text-decoration: none;
+  white-space: nowrap;
+  flex-shrink: 0;
+  text-align: center;
+}
+
+.manager-success-download:hover {
+  background: #0096c7;
+}
+
+.manager-success-dismiss {
+  background: none;
+  border: none;
+  font-size: 1.2rem;
+  line-height: 1;
+  cursor: pointer;
+  color: #0a5c36;
+  padding: 0 4px;
+  flex-shrink: 0;
+}
+
+.badge-ready,
+.badge-pending {
+  display: inline-block;
+  white-space: nowrap;
+}
+
+.badge-ready {
+  background: #e6f7ee;
+  color: #0a5c36;
+  border: 1px solid #34c77b;
+  text-decoration: none;
+  padding: 3px 10px;
+  border-radius: 12px;
+  font-weight: 600;
+  font-size: 0.85rem;
+}
+
+.badge-ready:hover {
+  background: #d0f0e0;
+}
+
+.badge-pending {
+  background: #fdf3d8;
+  color: #8a6d1a;
+  border: 1px solid #eac457;
+  padding: 3px 10px;
+  border-radius: 12px;
+  font-weight: 600;
+  font-size: 0.85rem;
+}
+
+.table-wrap {
+  overflow-x: auto;
+}
+
+.manager-reports-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+/* ---------- Tablet: form drops to 1 column ---------- */
 @media (max-width: 640px) {
   .manager-report-form {
     grid-template-columns: 1fr;
+  }
+
+  .manager-success-banner {
+    flex-wrap: wrap;
+    position: relative;
+    padding: 14px 32px 14px 14px;
+  }
+
+  .manager-success-text {
+    flex: 1 1 100%;
+    order: 1;
+  }
+
+  .manager-success-download {
+    order: 2;
+    width: 100%;
+    padding: 8px 14px;
+  }
+
+  .manager-success-dismiss {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+  }
+}
+
+/* ---------- Phone: table becomes stacked cards ---------- */
+@media (max-width: 720px) {
+  .manager-reports-table thead {
+    display: none;
+  }
+
+  .manager-reports-table,
+  .manager-reports-table tbody,
+  .manager-reports-table tr,
+  .manager-reports-table td {
+    display: block;
+    width: 100%;
+  }
+
+  .manager-reports-table tr {
+    border: 1px solid #dce3e6;
+    border-radius: 8px;
+    padding: 10px 12px;
+    margin-bottom: 12px;
+    background: #fff;
+  }
+
+  .manager-reports-table td {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    padding: 6px 0;
+    border: none;
+    text-align: right;
+  }
+
+  .manager-reports-table td::before {
+    content: attr(data-label);
+    font-weight: 600;
+    font-size: 0.78rem;
+    color: #5b6b73;
+    text-align: left;
+    flex-shrink: 0;
+  }
+
+  .manager-reports-table td[colspan] {
+    text-align: center;
+    justify-content: center;
+  }
+
+  .manager-reports-table td[colspan]::before {
+    content: none;
+  }
+}
+
+@media (max-width: 400px) {
+  .manager-success-banner {
+    font-size: 0.9rem;
+  }
+
+  .badge-ready,
+  .badge-pending {
+    font-size: 0.78rem;
+    padding: 2px 8px;
+  }
+
+  .manager-reports-table td {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
+  }
+
+  .manager-reports-table td::before {
+    text-align: left;
   }
 }
