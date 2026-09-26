@@ -36,68 +36,118 @@
 }
 
 .manager-checkboxes label {
-  display: block;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
   font-weight: 400;
 }
 
-.manager-checkboxes input {
-  margin: 0 0.35rem 0 0;
+.manager-shell .manager-report-form .manager-checkboxes input,
+.admin-shell:has(.manager-main) .manager-report-form .manager-checkboxes input {
+  flex: 0 0 auto;
+  margin: 0;
   padding: 0;
-  width: auto;
+  width: 16px;
+  height: 16px;
 }
 
 .manager-report-form button[type="submit"] {
   width: 100%;
 }
 
-.manager-success-banner {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  background: #e6f7ee;
-  border: 1px solid #34c77b;
-  color: #0a5c36;
-  padding: 12px 16px;
+.manager-report-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1200;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: rgba(19, 39, 51, 0.48);
+  animation: manager-report-fade-in 160ms ease-out;
+}
+
+.manager-report-modal {
+  width: min(100%, 420px);
+  box-sizing: border-box;
+  padding: 30px 28px 24px;
+  border: 1px solid #d7e1e7;
   border-radius: 8px;
-  margin-bottom: 16px;
-}
-
-.manager-success-icon {
-  font-weight: 700;
-  font-size: 1.1rem;
-  flex-shrink: 0;
-}
-
-.manager-success-text {
-  flex: 1;
-  min-width: 0;
-}
-
-.manager-success-download {
-  background: #0077b6;
-  color: #fff;
-  padding: 6px 14px;
-  border-radius: 6px;
-  font-weight: 600;
-  text-decoration: none;
-  white-space: nowrap;
-  flex-shrink: 0;
+  background: #fff;
+  box-shadow: 0 18px 56px rgba(13, 42, 57, 0.22);
   text-align: center;
+  animation: manager-report-modal-enter 180ms ease-out;
 }
 
-.manager-success-download:hover {
-  background: #0096c7;
+.manager-report-modal-icon {
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  margin: 0 auto 16px;
+  border-radius: 50%;
+  font-size: 1.5rem;
+  font-weight: 700;
 }
 
-.manager-success-dismiss {
-  background: none;
-  border: none;
-  font-size: 1.2rem;
-  line-height: 1;
+.manager-report-modal-icon-loading {
+  border: 4px solid #dce8ee;
+  border-top-color: #14658f;
+  animation: manager-report-spin 800ms linear infinite;
+}
+
+.manager-report-modal-icon-success {
+  background: #e6f7ee;
+  color: #16804a;
+}
+
+.manager-report-modal-icon-failed {
+  background: #fcebea;
+  color: #b42318;
+}
+
+.manager-report-modal h2 {
+  margin: 0 0 10px;
+  color: #17364a;
+  font-size: 1.15rem;
+}
+
+.manager-report-modal p {
+  margin: 0;
+  color: #617785;
+  font-size: 0.9rem;
+  line-height: 1.55;
+  overflow-wrap: anywhere;
+}
+
+.manager-report-modal button {
+  min-width: 96px;
+  margin-top: 22px;
+  padding: 9px 18px;
+  border: 1px solid #14658f;
+  border-radius: 4px;
+  background: #14658f;
+  color: #fff;
+  font: inherit;
+  font-weight: 600;
   cursor: pointer;
-  color: #0a5c36;
-  padding: 0 4px;
-  flex-shrink: 0;
+}
+
+.manager-report-modal button:hover {
+  background: #0f4e70;
+}
+
+@keyframes manager-report-spin {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes manager-report-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes manager-report-modal-enter {
+  from { opacity: 0; transform: translateY(8px) scale(0.98); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
 }
 
 .badge-ready,
@@ -146,28 +196,6 @@
     grid-template-columns: 1fr;
   }
 
-  .manager-success-banner {
-    flex-wrap: wrap;
-    position: relative;
-    padding: 14px 32px 14px 14px;
-  }
-
-  .manager-success-text {
-    flex: 1 1 100%;
-    order: 1;
-  }
-
-  .manager-success-download {
-    order: 2;
-    width: 100%;
-    padding: 8px 14px;
-  }
-
-  .manager-success-dismiss {
-    position: absolute;
-    top: 8px;
-    right: 8px;
-  }
 }
 
 /* ---------- Phone: table becomes stacked cards ---------- */
@@ -222,10 +250,6 @@
 }
 
 @media (max-width: 400px) {
-  .manager-success-banner {
-    font-size: 0.9rem;
-  }
-
   .badge-ready,
   .badge-pending {
     font-size: 0.78rem;
