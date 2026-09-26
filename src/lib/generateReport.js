@@ -119,6 +119,6 @@ export const generateReportFile = async ({ form, parameters, reportId }) => {
   if (uploadError) throw uploadError;
 
   const { data: publicUrlData } = supabase.storage.from("reports").getPublicUrl(filePath);
-  return publicUrlData.publicUrl;
+  return { url: publicUrlData.publicUrl, blob: fileBlob };
   
 };
