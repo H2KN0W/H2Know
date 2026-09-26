@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { supabase } from "../../lib/supabase";
 import { useLogPageView } from "../../lib/useLogPageView";
 import { logActivity } from "../../lib/logActivity";
@@ -12,6 +12,18 @@ const ALL_VALUE = "all";
 const formatDateTime = (value) => value ? new Date(value).toLocaleString() : "—";
 const formatDate = (value) => value ? new Date(value).toLocaleDateString() : "—";
 
+const downloadReport = (blob, name, format) => {
+  const fileName = name.trim().replace(/[\\/:*?"<>|]/g, "_") || "water-quality-report";
+  const objectUrl = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = objectUrl;
+  link.download = `${fileName}.${format}`;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  window.setTimeout(() => URL.revokeObjectURL(objectUrl), 1000);
+};
+
 const ManagerReports = () => {
   useLogPageView("Viewed Manager Reports");
   const [parameters, setParameters] = useState([]);
@@ -22,25 +34,28 @@ const ManagerReports = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
-  const [success, setSuccess] = useState(null); // { name, url, format }
+  const [reportModal, setReportModal] = useState(null);
   const [form, setForm] = useState({ name: "", parameterIds: [], startDate: "", endDate: "", format: "pdf" });
 
-  const fetchReports = async () => {
+  const fetchReports = useCallback(async (userId) => {
+    if (!userId) return;
     setLoading(true);
     const from = (page - 1) * PAGE_SIZE;
     const { data, error: fetchError, count } = await supabase
       .from("reports")
-      .select("id, report_name, parameters, format, date_range_start, date_range_end, file_url, created_at, profiles ( full_name )", { count: "exact" })
+      .select("id, report_name, parameters, format, date_range_start, date_range_end, file_url, status, created_at, profiles ( full_name )", { count: "exact" })
+      .eq("generated_by", userId)
       .order("created_at", { ascending: false })
       .range(from, from + PAGE_SIZE - 1);
     if (fetchError) setError("Could not load reports. Apply the manager portal migration before using report metadata.");
     else { setReports(data || []); setTotalCount(count || 0); }
     setLoading(false);
-  };
+  }, [page]);
 
   // fetchReports is reused after a report submission.
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  useEffect(() => { fetchReports(); }, [page]);
+  useEffect(() => {
+    if (currentUser?.id) fetchReports(currentUser.id);
+  }, [currentUser?.id, fetchReports]);
 
   useEffect(() => {
     Promise.all([
@@ -62,13 +77,6 @@ const ManagerReports = () => {
     });
   }, []);
 
-  // Auto-dismiss the success banner after a few seconds so it doesn't linger forever.
-  useEffect(() => {
-    if (!success) return;
-    const timer = setTimeout(() => setSuccess(null), 8000);
-    return () => clearTimeout(timer);
-  }, [success]);
-
   const toggleParameter = (id) => setForm((current) => ({
     ...current,
     parameterIds: current.parameterIds.includes(id)
@@ -79,7 +87,6 @@ const ManagerReports = () => {
   const submit = async (event) => {
     event.preventDefault();
     setError("");
-    setSuccess(null);
 
     if (!currentUser) { setError("Your profile hasn't finished loading yet. Please wait a moment and try again."); return; }
     if (!form.name.trim()) { setError("Enter a report name."); return; }
@@ -88,6 +95,7 @@ const ManagerReports = () => {
     if (form.startDate > form.endDate) { setError("Start date must be before end date."); return; }
 
     setSaving(true);
+    setReportModal({ status: "loading", name: form.name, format: form.format });
     const parameterNames = form.parameterIds.includes(ALL_VALUE)
       ? ["All Parameters"]
       : parameters.filter((item) => form.parameterIds.includes(item.id)).map((item) => item.name);
@@ -106,27 +114,54 @@ const ManagerReports = () => {
       .select()
       .single();
 
-    if (insertError) { setError(insertError.message); setSaving(false); return; }
+    if (insertError) {
+      setReportModal({ status: "failed", name: form.name, message: insertError.message });
+      setSaving(false);
+      return;
+    }
 
+    let generationSucceeded = false;
     try {
-      const fileUrl = await generateReportFile({ form, parameters, reportId: inserted.id });
-      await supabase.from("reports").update({ file_url: fileUrl }).eq("id", inserted.id);
-      await logActivity({
-        user_id: currentUser.id,
-        full_name: currentUser.full_name,
-        role: currentUser.role,
-        activity: `Requested ${form.format.toUpperCase()} report: ${form.name}`,
-        status: "Success"
-      });
-      setSuccess({ name: form.name, url: fileUrl, format: form.format });
+      const { url: fileUrl, blob } = await generateReportFile({ form, parameters, reportId: inserted.id });
+      const { error: updateError } = await supabase
+        .from("reports")
+        .update({ file_url: fileUrl, status: "success" })
+        .eq("id", inserted.id);
+      if (updateError) throw updateError;
+
+      downloadReport(blob, form.name, form.format);
+      setReportModal({ status: "success", name: form.name, format: form.format });
+      generationSucceeded = true;
     } catch (genError) {
       console.error("Report generation failed:", genError);
-      setError("Report was requested but generation failed: " + genError.message);
+      await supabase
+        .from("reports")
+        .update({ status: "failed" })
+        .eq("id", inserted.id);
+      setReportModal({
+        status: "failed",
+        name: form.name,
+        message: "Report generation failed: " + genError.message
+      });
+    }
+
+    if (generationSucceeded) {
+      try {
+        await logActivity({
+          user_id: currentUser.id,
+          full_name: currentUser.full_name,
+          role: currentUser.role,
+          activity: `Requested ${form.format.toUpperCase()} report: ${form.name}`,
+          status: "Success"
+        });
+      } catch (activityError) {
+        console.error("Failed to log report activity:", activityError);
+      }
     }
 
     setForm({ name: "", parameterIds: [], startDate: "", endDate: "", format: "pdf" });
     setPage(1);
-    await fetchReports();
+    await fetchReports(currentUser.id);
     setSaving(false);
   };
 
@@ -140,32 +175,6 @@ const ManagerReports = () => {
           <h1>Reports</h1>
           <p>Request water-quality summaries and download completed reports</p>
         </header>
-
-        {success && (
-          <div className="manager-success-banner" role="status">
-            <span className="manager-success-icon" aria-hidden="true">✓</span>
-            <div className="manager-success-text">
-              <strong>“{success.name}” is ready.</strong>
-              <span> Your {success.format.toUpperCase()} report has finished generating.</span>
-            </div>
-            <a
-              className="manager-success-download"
-              href={success.url}
-              target="_blank"
-              rel="noreferrer"
-            >
-              Download
-            </a>
-            <button
-              type="button"
-              className="manager-success-dismiss"
-              onClick={() => setSuccess(null)}
-              aria-label="Dismiss"
-            >
-              ×
-            </button>
-          </div>
-        )}
 
         <section className="manager-panel">
           <h2>Generate New Report</h2>
@@ -233,9 +242,9 @@ const ManagerReports = () => {
                         <td data-label="Parameters">{report.parameters?.join(", ") || "All parameters"}</td>
                         <td data-label="Format">{report.format?.toUpperCase() || "PDF"}</td>
                         <td data-label="Status">
-                          {report.file_url
-                            ? <a className="badge badge-ready" href={report.file_url} target="_blank" rel="noreferrer">Ready — Download</a>
-                            : <span className="badge badge-pending">Generating…</span>}
+                          {report.status === "success"
+                            ? <span className="badge badge-ready">✓ Success</span>
+                            : <span className="badge badge-failed">× Failed</span>}
                         </td>
                       </tr>
                     ))}
@@ -253,6 +262,42 @@ const ManagerReports = () => {
           )}
         </section>
       </main>
+
+      {reportModal && (
+        <div className="manager-report-modal-backdrop">
+          <section
+            className={`manager-report-modal manager-report-modal-${reportModal.status}`}
+            role="dialog"
+            aria-modal="true"
+            aria-live="polite"
+            aria-labelledby="report-modal-title"
+            aria-busy={reportModal.status === "loading"}
+          >
+            <span className={`manager-report-modal-icon manager-report-modal-icon-${reportModal.status}`} aria-hidden="true">
+              {reportModal.status === "loading" ? "" : reportModal.status === "success" ? "✓" : "×"}
+            </span>
+            <h2 id="report-modal-title">
+              {reportModal.status === "loading"
+                ? "Generating report"
+                : reportModal.status === "success"
+                ? "Report generated successfully"
+                : "Report generation failed"}
+            </h2>
+            <p>
+              {reportModal.status === "loading"
+                ? `Creating ${reportModal.format.toUpperCase()} report “${reportModal.name}”…`
+                : reportModal.status === "success"
+                ? `“${reportModal.name}” was generated successfully as a ${reportModal.format.toUpperCase()} report.`
+                : reportModal.message}
+            </p>
+            {reportModal.status !== "loading" && (
+              <button type="button" onClick={() => setReportModal(null)}>
+                Done
+              </button>
+            )}
+          </section>
+        </div>
+      )}
     </div>
   );
 };
