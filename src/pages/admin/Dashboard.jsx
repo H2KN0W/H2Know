@@ -499,7 +499,7 @@ const Dashboard = () => {
                   </p>
                 </div>
                 <div className="summary-icon">
-                  <Icon size={17} strokeWidth={2} />
+                  <Icon size={20} strokeWidth={1.8} />
                 </div>
               </div>
             );
