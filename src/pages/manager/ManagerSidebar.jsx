@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { NavLink } from "react-router-dom";
-import { BarChart3, Bell, LayoutDashboard, FileText, Menu, X } from "lucide-react";
+import { BarChart3, Bell, LayoutDashboard, FileText, Lightbulb, Menu, X } from "lucide-react";
 import LogoutButton from "../../components/LogoutButton";
 import H2knowLogo from "../../assets/img/H2knowLogo.jpg";
 import "../../styles/Sidebar.css";
@@ -8,6 +8,7 @@ import "../../styles/Sidebar.css";
 const items = [
   { label: "Dashboard", path: "/manager/dashboard", icon: LayoutDashboard },
   { label: "Analytics & Trends", path: "/manager/analytics", icon: BarChart3 },
+  { label: "Insights", path: "/manager/insights", icon: Lightbulb },
   { label: "Alerts", path: "/manager/alerts", icon: Bell },
   { label: "Reports", path: "/manager/reports", icon: FileText },
 ];

@@ -409,6 +409,20 @@ html, body, #root {
   color: var(--color-primary);
 }
 
+.password-match {
+  font-size: 0.72rem;
+  font-weight: 600;
+  margin-top: 2px;
+}
+
+.password-match-success {
+  color: #16834a;
+}
+
+.password-match-error {
+  color: var(--color-error);
+}
+
 @keyframes spin {
   to { transform: rotate(360deg); }
 }

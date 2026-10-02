@@ -36,7 +36,7 @@
 
   /* Data typography — used for sensor readings / numeric values */
   --font-data: ui-monospace, "SFMono-Regular", "JetBrains Mono", Menlo, Consolas, monospace;
-  --font-display: "Space Grotesk", sans-serif;
+  --font-display: var(--font-body);
   --font-body: "Inter", sans-serif;
 }
 
@@ -251,23 +251,23 @@
 .summary-card-body {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 8px;
   min-width: 0;
 }
 
 .summary-label {
-  font-size: 0.75rem;
+  font-family: var(--font-body);
+  font-size: 0.82rem;
   font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
   color: #5f7280;
   margin: 0;
 }
 
 .summary-value {
-  font-family: var(--font-data);
-  font-size: 1.05rem;
-  font-weight: 600;
+  font-family: var(--font-body);
+  font-size: 1.08rem;
+  font-weight: 700;
+  line-height: 1.25;
   margin: 0;
   color: #173042;
   display: flex;
@@ -277,14 +277,19 @@
 
 .summary-icon {
   flex-shrink: 0;
-  width: 34px;
-  height: 34px;
-  border-radius: 9px;
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
   display: flex;
   align-items: center;
   justify-content: center;
   background: var(--color-light);
   color: var(--color-primary);
+}
+
+.summary-icon svg {
+  width: 20px;
+  height: 20px;
 }
 
 .tone-positive { color: var(--status-positive); }
@@ -522,8 +527,5 @@ td.data-cell {
 @media (max-width: 480px) {
   .summary-card {
     padding: 14px 16px;
-  }
-  .summary-value {
-    font-size: 1.05rem;
   }
 }

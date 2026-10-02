@@ -193,7 +193,7 @@
 }
 
 .um-modal h2 {
-  font-family: "Space Grotesk", sans-serif;
+  font-family: var(--font-body);
   font-size: 1.15rem;
   margin: 0 0 18px;
   color: var(--color-text);

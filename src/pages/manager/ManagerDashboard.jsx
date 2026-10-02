@@ -60,8 +60,33 @@ const ManagerDashboard = () => {
   const [nodes, setNodes] = useState([]);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
+  const [accountName, setAccountName] = useState("Loading...");
   const [checkedAt, setCheckedAt] = useState(null);
   const [refreshInterval, setRefreshInterval] = useState(30000); // 30s default
+
+  useEffect(() => {
+    const loadAccountName = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        setAccountName("there");
+        return;
+      }
+
+      const { data } = await supabase
+        .from("profiles")
+        .select("full_name")
+        .eq("id", user.id)
+        .maybeSingle();
+      const name =
+        data?.full_name ||
+        user.user_metadata?.full_name ||
+        user.email?.split("@")[0] ||
+        "there";
+      setAccountName(name);
+    };
+
+    loadAccountName();
+  }, []);
 
   const load = useCallback(async (manual = false) => {
     if (manual) setLoading(true);
@@ -240,7 +265,7 @@ const ManagerDashboard = () => {
         <header className="page-header page-header-with-actions">
           <div>
             <h1>Monitoring Dashboard</h1>
-            <p>Current water-quality readings and node health</p>
+            <p>Welcome back, {accountName}</p>
           </div>
 
           <div className="header-refresh-controls">

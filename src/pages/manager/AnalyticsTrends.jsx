@@ -126,7 +126,7 @@ const AnalyticsTrends = () => {
       if (!isAll) thresholdQuery = thresholdQuery.eq("parameter_id", parameterId);
 
       const [readingResult, thresholdResult] = await Promise.all([
-        query.order("recorded_at", { ascending: true }).limit(5000),
+        query.order("recorded_at", { ascending: false }).limit(5000),
         thresholdQuery,
       ]);
 
@@ -186,23 +186,24 @@ const AnalyticsTrends = () => {
   const selected = parameters.find((item) => item.id === parameterId);
   const totalPages = Math.max(1, Math.ceil(readings.length / PAGE_SIZE));
   const pageRows = readings.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+  const chronologicalReadings = useMemo(() => readings.slice().reverse(), [readings]);
 
   // Single chart data
   const singleChartRows = useMemo(() => {
     if (isAll) return [];
-    return readings.map((item) => ({
+    return chronologicalReadings.map((item) => ({
       time: formatChartTime(item.recorded_at),
       fullTime: formatDateTime(item.recorded_at),
       value: Number(item.value),
     }));
-  }, [readings, isAll]);
+  }, [chronologicalReadings, isAll]);
 
   // Small multiples subchart data grouped by parameter
   const subchartData = useMemo(() => {
     if (!isAll) return {};
     const data = {};
     parameters.forEach((param) => {
-      const paramReadings = readings
+      const paramReadings = chronologicalReadings
         .filter(
           (r) =>
             r.parameter_id === param.id ||
@@ -216,7 +217,7 @@ const AnalyticsTrends = () => {
       data[param.name] = paramReadings;
     });
     return data;
-  }, [parameters, readings, isAll]);
+  }, [parameters, chronologicalReadings, isAll]);
 
   return (
     <div className="admin-shell">
