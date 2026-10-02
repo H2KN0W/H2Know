@@ -30,7 +30,21 @@ const Login = () => {
   const [currentUserRole, setCurrentUserRole] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [settingPassword, setSettingPassword] = useState(false);
+
+  const passwordStrength = (() => {
+    let score = 0;
+    if (newPassword.length >= 8) score++;
+    if (newPassword.length >= 12) score++;
+    if (/[A-Z]/.test(newPassword)) score++;
+    if (/[0-9]/.test(newPassword)) score++;
+    if (/[^A-Za-z0-9]/.test(newPassword)) score++;
+    return score;
+  })();
+
+  const strengthLabel = passwordStrength <= 1 ? "Weak" : passwordStrength <= 3 ? "Medium" : "Strong";
 
   const getFriendlyErrorMessage = (err) => {
     const message = err?.message || "";
@@ -296,29 +310,61 @@ const Login = () => {
             {error && <div className="form-error" role="alert">{error}</div>}
             <div className="form-field">
               <label htmlFor="new-password">Create password</label>
-              <input
-                id="new-password"
-                type="password"
-                autoComplete="new-password"
-                minLength={6}
-                required
-                value={newPassword}
-                onChange={(event) => setNewPassword(event.target.value)}
-                disabled={settingPassword}
-              />
+              <div className="password-wrapper">
+                <input
+                  id="new-password"
+                  type={showNewPassword ? "text" : "password"}
+                  autoComplete="new-password"
+                  minLength={6}
+                  required
+                  value={newPassword}
+                  onChange={(event) => setNewPassword(event.target.value)}
+                  disabled={settingPassword}
+                />
+                <button type="button" className="toggle-visibility" onClick={() => setShowNewPassword((visible) => !visible)} disabled={settingPassword} aria-label={showNewPassword ? "Hide password" : "Show password"}>
+                  {showNewPassword ? (
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M3 3l18 18M10.6 10.6a2 2 0 002.8 2.8M9.5 5.3A10.4 10.4 0 0112 5c5 0 9 4 10 7-.4 1.1-1.1 2.3-2.1 3.4M6.2 6.6C4.3 8 3 9.9 2 12c1 3 5 7 10 7 1.4 0 2.7-.3 3.9-.8" strokeLinecap="round" strokeLinejoin="round" /></svg>
+                  ) : (
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7-10-7-10-7z" strokeLinecap="round" strokeLinejoin="round" /><circle cx="12" cy="12" r="3" /></svg>
+                  )}
+                </button>
+              </div>
+              {newPassword && (
+                <div className="strength-meter" aria-live="polite">
+                  <div className="strength-bar-track" aria-label={`Password strength: ${strengthLabel}`}>
+                    <div className={`strength-bar-fill strength-${passwordStrength}`} style={{ width: `${(passwordStrength / 5) * 100}%` }} />
+                  </div>
+                  <span className={`strength-label strength-text-${passwordStrength}`}>{strengthLabel}</span>
+                </div>
+              )}
             </div>
             <div className="form-field">
               <label htmlFor="confirm-password">Confirm password</label>
-              <input
-                id="confirm-password"
-                type="password"
-                autoComplete="new-password"
-                minLength={6}
-                required
-                value={confirmPassword}
-                onChange={(event) => setConfirmPassword(event.target.value)}
-                disabled={settingPassword}
-              />
+              <div className="password-wrapper">
+                <input
+                  id="confirm-password"
+                  type={showConfirmPassword ? "text" : "password"}
+                  autoComplete="new-password"
+                  minLength={6}
+                  required
+                  value={confirmPassword}
+                  onChange={(event) => setConfirmPassword(event.target.value)}
+                  disabled={settingPassword}
+                  aria-describedby={confirmPassword ? "password-match-status" : undefined}
+                />
+                <button type="button" className="toggle-visibility" onClick={() => setShowConfirmPassword((visible) => !visible)} disabled={settingPassword} aria-label={showConfirmPassword ? "Hide password" : "Show password"}>
+                  {showConfirmPassword ? (
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M3 3l18 18M10.6 10.6a2 2 0 002.8 2.8M9.5 5.3A10.4 10.4 0 0112 5c5 0 9 4 10 7-.4 1.1-1.1 2.3-2.1 3.4M6.2 6.6C4.3 8 3 9.9 2 12c1 3 5 7 10 7 1.4 0 2.7-.3 3.9-.8" strokeLinecap="round" strokeLinejoin="round" /></svg>
+                  ) : (
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7-10-7-10-7z" strokeLinecap="round" strokeLinejoin="round" /><circle cx="12" cy="12" r="3" /></svg>
+                  )}
+                </button>
+              </div>
+              {confirmPassword && (
+                <span id="password-match-status" className={`password-match ${newPassword === confirmPassword ? "password-match-success" : "password-match-error"}`} role="status">
+                  {newPassword === confirmPassword ? "Passwords match" : "Passwords do not match"}
+                </span>
+              )}
             </div>
             <button type="submit" className="login-button" disabled={settingPassword}>
               {settingPassword ? "Saving password..." : "Save password and continue"}
