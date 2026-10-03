@@ -225,6 +225,42 @@
   color: var(--sidebar-ink-strong, #fff);
 }
 
+/* ── Hover Tooltips for Desktop Rail ────────────────────────────── */
+@media (min-width: 1025px) {
+  .sidebar-link[data-tooltip],
+  .sidebar-logout[data-tooltip] {
+    position: relative;
+  }
+
+  .sidebar-link[data-tooltip]::after,
+  .sidebar-logout[data-tooltip]::after {
+    content: attr(data-tooltip);
+    position: absolute;
+    left: calc(100% + 14px);
+    top: 50%;
+    transform: translateY(-50%) translateX(-4px);
+    background: #062840;
+    color: #ffffff;
+    font-size: 0.76rem;
+    font-weight: 600;
+    padding: 6px 12px;
+    border-radius: 8px;
+    white-space: nowrap;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 160ms cubic-bezier(0.4, 0, 0.2, 1), transform 160ms cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 4px 16px rgba(0, 20, 35, 0.35);
+    z-index: 100;
+    border: 1px solid rgba(255,255,255,0.12);
+  }
+
+  .sidebar-link[data-tooltip]:hover::after,
+  .sidebar-logout[data-tooltip]:hover::after {
+    opacity: 1;
+    transform: translateY(-50%) translateX(0);
+  }
+}
+
 /* ── Logout overlay ─────────────────────────────────────────────── */
 .logout-overlay {
   position: fixed;

@@ -30,7 +30,7 @@ const ManagerSidebar = () => {
           <button type="button" className="sidebar-close" onClick={() => setMobileOpen(false)} aria-label="Close navigation"><X size={17} /></button>
         </div>
         <nav className="sidebar-nav"><div className="sidebar-section"><p className="sidebar-nav-label">Monitoring</p>
-          {items.map(({ label, path, icon: Icon }) => <NavLink key={path} to={path} className={({ isActive }) => isActive ? "sidebar-link active" : "sidebar-link"} onClick={() => setMobileOpen(false)}><Icon size={17} strokeWidth={2} className="sidebar-link-icon" /><span>{label}</span></NavLink>)}
+          {items.map(({ label, path, icon: Icon }) => <NavLink key={path} to={path} title={label} data-tooltip={label} className={({ isActive }) => isActive ? "sidebar-link active" : "sidebar-link"} onClick={() => setMobileOpen(false)}><Icon size={17} strokeWidth={2} className="sidebar-link-icon" /><span>{label}</span></NavLink>)}
         </div></nav>
         <div className="sidebar-footer"><LogoutButton /></div>
       </aside>
