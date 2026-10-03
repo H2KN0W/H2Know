@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { createPortal } from "react-dom";
 import { supabase } from "../lib/supabase";
 import { logActivity } from "../lib/logActivity";
 
@@ -59,12 +60,15 @@ const LogoutButton = () => {
       </button>
 
       {loggingOut && (
-        <div className="logout-overlay">
-          <div className="logout-overlay-box">
-            <span className="spinner spinner-dark" role="status" aria-label="Logging out" />
-            <p>Logging out...</p>
-          </div>
-        </div>
+        createPortal(
+          <div className="logout-overlay">
+            <div className="logout-overlay-box">
+              <span className="spinner spinner-dark" role="status" aria-label="Logging out" />
+              <p>Logging out...</p>
+            </div>
+          </div>,
+          document.body,
+        )
       )}
     </>
   );

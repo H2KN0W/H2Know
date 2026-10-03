@@ -156,10 +156,22 @@ begin
   if exists (
     select 1 from pg_catalog.pg_publication p where p.pubname = 'supabase_realtime'
   ) then
-    if public.__manager_table_exists('sensor_readings') then
+    if public.__manager_table_exists('sensor_readings')
+       and not exists (
+         select 1 from pg_catalog.pg_publication_tables
+         where pubname = 'supabase_realtime'
+           and schemaname = 'public'
+           and tablename = 'sensor_readings'
+       ) then
       execute 'alter publication supabase_realtime add table public.sensor_readings';
     end if;
-    if public.__manager_table_exists('alerts') then
+    if public.__manager_table_exists('alerts')
+       and not exists (
+         select 1 from pg_catalog.pg_publication_tables
+         where pubname = 'supabase_realtime'
+           and schemaname = 'public'
+           and tablename = 'alerts'
+       ) then
       execute 'alter publication supabase_realtime add table public.alerts';
     end if;
   end if;

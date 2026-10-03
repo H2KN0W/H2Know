@@ -12,6 +12,7 @@ import ManagerDashboard from "./pages/manager/ManagerDashboard";
 import AnalyticsTrends from "./pages/manager/AnalyticsTrends";
 import ManagerAlerts from "./pages/manager/ManagerAlerts";
 import ManagerReports from "./pages/manager/ManagerReports";
+import Insights from "./pages/manager/Insights";
 import "./App.css";
 
 function App() {
@@ -22,6 +23,7 @@ function App() {
         <Route path="/reset-password" element={<ResetPassword />} />
         <Route path="/manager/dashboard" element={<ProtectedRoute requiredRole="manager"><ManagerDashboard /></ProtectedRoute>} />
         <Route path="/manager/analytics" element={<ProtectedRoute requiredRole="manager"><AnalyticsTrends /></ProtectedRoute>} />
+        <Route path="/manager/insights" element={<ProtectedRoute requiredRole="manager"><Insights /></ProtectedRoute>} />
         <Route path="/manager/alerts" element={<ProtectedRoute requiredRole="manager"><ManagerAlerts /></ProtectedRoute>} />
         <Route path="/manager/reports" element={<ProtectedRoute requiredRole="manager"><ManagerReports /></ProtectedRoute>} />
         <Route
