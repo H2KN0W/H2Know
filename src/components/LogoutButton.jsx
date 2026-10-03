@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { createPortal } from "react-dom";
+import { LogOut } from "lucide-react";
 import { supabase } from "../lib/supabase";
 import { logActivity } from "../lib/logActivity";
 
@@ -52,11 +53,15 @@ const LogoutButton = () => {
   return (
     <>
       <button
+        type="button"
         className="sidebar-logout"
         onClick={handleLogout}
         disabled={loggingOut}
+        title="Logout"
+        data-tooltip="Logout"
       >
-        {loggingOut ? "Logging out..." : "Logout"}
+        <LogOut size={18} className="sidebar-logout-icon" />
+        <span className="sidebar-logout-text">{loggingOut ? "Logging out..." : "Logout"}</span>
       </button>
 
       {loggingOut && (

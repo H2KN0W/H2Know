@@ -214,15 +214,26 @@
   transition: background var(--transition-fast, 150ms ease),
               border-color var(--transition-fast, 150ms ease),
               color var(--transition-fast, 150ms ease);
-  overflow: hidden;
-  white-space: nowrap;
-  text-indent: -999px; /* visually hide text, keep it for a11y */
+}
+
+.sidebar-logout-text {
+  display: none;
+}
+
+.sidebar-logout-icon {
+  opacity: 0.8;
+  flex-shrink: 0;
+  transition: opacity var(--transition-fast, 150ms ease);
 }
 
 .sidebar-logout:hover {
   background: rgba(255,255,255,0.12);
   border-color: rgba(255,255,255,0.40);
   color: var(--sidebar-ink-strong, #fff);
+}
+
+.sidebar-logout:hover .sidebar-logout-icon {
+  opacity: 1;
 }
 
 /* ── Hover Tooltips for Desktop Rail ────────────────────────────── */
@@ -417,10 +428,15 @@
     height: auto;
     padding: 10px 12px;
     border-radius: 10px;
-    text-indent: 0;
     justify-content: flex-start;
     gap: 10px;
     font-size: 0.84rem;
+  }
+
+  .sidebar-logout-text {
+    display: inline;
+    font-size: 0.84rem;
+    font-weight: 500;
   }
 
   .sidebar-scrim {
