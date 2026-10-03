@@ -1,31 +1,38 @@
+/* ═══════════════════════════════════════════════════════════════
+   ActivityLogs.css — Bento SaaS Restyle
+═══════════════════════════════════════════════════════════════ */
+
 .activity-filter-bar {
   display: flex;
   flex-wrap: wrap;
-  align-items: end;
+  align-items: flex-end;
   gap: 12px;
-  margin-bottom: 16px;
-  padding: 12px 14px;
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  background: #f5f8fa;
+  margin-bottom: 18px;
+  padding: 16px 18px;
+  background: #fff;
+  border: 1px solid rgba(0,119,182,0.09);
+  border-radius: 18px;
+  box-shadow: 0 1px 3px rgba(10,46,61,0.04);
 }
 
 .activity-filter-control {
   width: 100%;
   min-height: 38px;
-  padding: 8px 11px;
-  border: 1px solid #bdcbd3;
-  border-radius: 4px;
-  background: #fff;
-  color: var(--color-text);
+  padding: 8px 14px;
+  border: 1px solid rgba(0,119,182,0.18);
+  border-radius: 999px;
+  background: var(--color-bg,#f2f7fb);
+  color: var(--color-text,#0a2e3d);
   font: inherit;
-  font-size: 0.84rem;
+  font-size: 0.82rem;
+  outline: none;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
 
 .activity-filter-control:focus-visible,
 .activity-filter-clear:focus-visible {
-  outline: 2px solid #14658f;
-  outline-offset: 2px;
+  border-color: var(--color-accent,#00b4d8);
+  box-shadow: 0 0 0 3px rgba(0,180,216,0.15);
 }
 
 .activity-filter-field,
@@ -35,36 +42,35 @@
   flex-direction: column;
   gap: 5px;
   min-width: 130px;
-  color: var(--color-text-muted);
-  font-size: 0.75rem;
+  color: var(--color-text-muted,#5b7c88);
+  font-size: 0.71rem;
   font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
 }
 
-.activity-filter-search {
-  flex-basis: 190px;
-}
+.activity-filter-search { flex-basis: 190px; }
 
-.activity-filter-date .activity-filter-control {
-  min-width: 140px;
-}
+.activity-filter-date .activity-filter-control { min-width: 140px; }
 
 .activity-filter-clear {
   min-height: 38px;
-  padding: 8px 14px;
-  border: 1px solid var(--border);
-  border-radius: 4px;
+  padding: 8px 16px;
+  border: 1px solid rgba(0,119,182,0.18);
+  border-radius: 999px;
   background: #fff;
-  color: var(--color-text-muted);
+  color: var(--color-text-muted,#5b7c88);
   font: inherit;
-  font-size: 0.82rem;
+  font-size: 0.80rem;
+  font-weight: 600;
   cursor: pointer;
   white-space: nowrap;
-  transition: background 150ms ease, color 150ms ease;
+  transition: background 0.15s ease, color 0.15s ease;
 }
 
 .activity-filter-clear:hover {
-  background: var(--color-bg);
-  color: var(--color-text);
+  background: rgba(0,119,182,0.06);
+  color: var(--color-primary,#0C4C7C);
 }
 
 @media (max-width: 600px) {
@@ -72,10 +78,7 @@
     align-items: stretch;
     flex-direction: column;
   }
-
   .activity-filter-field,
   .activity-filter-date,
-  .activity-filter-clear {
-    width: 100%;
-  }
+  .activity-filter-clear { width: 100%; }
 }

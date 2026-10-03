@@ -1,168 +1,208 @@
+/* ═══════════════════════════════════════════════════════════════
+   ManagerDashboard.css — Bento SaaS Restyle
+   All class names preserved. Visual upgrade only.
+═══════════════════════════════════════════════════════════════ */
+
+/* ── Stat card grid ──────────────────────────────────────────────── */
 .manager-card-grid {
   display: grid;
   grid-template-columns: repeat(5, minmax(0, 1fr));
-  gap: 1rem;
-  margin-bottom: 1.25rem;
+  gap: 16px;
+  margin-bottom: 0;
 }
 
-.manager-stat-card,
-.manager-node-card {
-  background: var(--color-surface, #fff);
-  border: 1px solid var(--color-border, #e6e9ed);
-  border-radius: 10px;
-  padding: 1rem;
+/* ── Stat cards ─────────────────────────────────────────────────── */
+.manager-stat-card {
+  background: #ffffff;
+  border: 1px solid rgba(0,119,182,0.08);
+  border-radius: 24px;
+  padding: 20px;
   display: flex;
-  gap: 0.8rem;
+  gap: 14px;
   align-items: flex-start;
-  box-shadow: 0 2px 8px rgba(28, 58, 69, 0.04);
+  box-shadow: 0 1px 3px rgba(10,46,61,0.04),
+              0 8px 24px rgba(0,119,182,0.07);
+  transition: box-shadow 220ms ease, transform 220ms ease;
+  min-height: 112px;
 }
 
+.manager-stat-card:hover {
+  box-shadow: 0 4px 8px rgba(10,46,61,0.06),
+              0 16px 36px rgba(0,119,182,0.12);
+  transform: translateY(-2px);
+}
+
+/* Icon chip */
 .manager-stat-card svg {
-  color: #1d7a8c;
-  margin-top: 0.2rem;
+  color: #0C4C7C;
+  margin-top: 2px;
+  stroke-width: 1.8;
+  flex-shrink: 0;
+  opacity: 0.85;
 }
 
 .manager-stat-card p {
-  color: var(--color-text-muted, #667);
-  font-size: 0.82rem;
-  margin: 0 0 0.25rem;
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #7a96a4;
+  margin: 0 0 6px;
 }
 
 .manager-stat-card strong {
   display: block;
-  font-size: 1.08rem;
+  font-family: "Poppins","Inter",sans-serif;
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: #0a2e3d;
+  line-height: 1.25;
 }
 
 .manager-stat-card small {
-  color: var(--color-text-muted, #667);
   display: block;
-  margin-top: 0.3rem;
+  color: #7a96a4;
+  font-size: 0.72rem;
+  margin-top: 5px;
+  line-height: 1.4;
 }
 
+/* ── River condition hero card ───────────────────────────────────── */
+.river-condition-card {
+  background: linear-gradient(135deg,#0C4C7C 0%,#0d6eaf 55%,#1a8abf 100%) !important;
+  border: none !important;
+  box-shadow: 0 8px 32px rgba(12,76,124,0.28) !important;
+  color: #fff;
+}
+
+.river-condition-card svg         { color: rgba(255,255,255,0.90); }
+.river-condition-card p           { color: rgba(255,255,255,0.70); }
+.river-condition-card strong      { color: #ffffff; }
+.river-condition-card small       { color: rgba(255,255,255,0.65); }
+
+/* Condition-specific overrides on the hero card text color */
+.river-condition-safe strong     { color: #a7f3c4; }
+.river-condition-warning strong  { color: #fde68a; }
+.river-condition-critical strong { color: #fca5a5; }
+.river-condition-unknown strong  { color: rgba(255,255,255,0.75); }
+
+.river-condition-safe svg        { color: #a7f3c4; }
+.river-condition-warning svg     { color: #fde68a; }
+.river-condition-critical svg    { color: #fca5a5; }
+.river-condition-unknown svg     { color: rgba(255,255,255,0.65); }
+
+/* ── Node grid ───────────────────────────────────────────────────── */
 .manager-node-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 0.8rem;
+  gap: 12px;
 }
 
 .manager-node-card {
+  background: #ffffff;
+  border: 1px solid rgba(0,119,182,0.08);
+  border-radius: 18px;
+  padding: 14px 16px;
+  display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: 12px;
+  box-shadow: 0 1px 3px rgba(10,46,61,0.04);
+  transition: box-shadow 180ms ease;
+}
+
+.manager-node-card:hover {
+  box-shadow: 0 4px 14px rgba(0,119,182,0.10);
+}
+
+.manager-node-card strong {
+  color: #0a2e3d;
+  font-size: 0.86rem;
+  font-weight: 600;
 }
 
 .manager-node-card p {
-  margin: 0.3rem 0 0;
-  color: var(--color-text-muted, #667);
-  font-size: 0.82rem;
+  margin: 3px 0 0;
+  color: #7a96a4;
+  font-size: 0.74rem;
 }
 
 .manager-state {
   border-radius: 999px;
-  padding: 0.25rem 0.55rem;
-  font-size: 0.75rem;
+  padding: 3px 11px;
+  font-size: 0.71rem;
   font-weight: 700;
+  white-space: nowrap;
 }
 
-.manager-state.online {
-  color: #197347;
-  background: #def7e9;
+.manager-state.online  { background: #e3f7ea; color: #1a9e5c; }
+.manager-state.offline { background: #fff2d9; color: #b3760a; }
+
+/* ── Scoped overrides inside manager-shell ───────────────────────── */
+.manager-shell .manager-card-grid,
+.admin-shell:has(.manager-main) .manager-card-grid {
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 16px;
+  margin-bottom: 0;
 }
 
-.manager-state.offline {
-  color: #a34b12;
-  background: #fff0dc;
+.manager-shell .manager-stat-card,
+.admin-shell:has(.manager-main) .manager-stat-card,
+.manager-shell .manager-node-card,
+.admin-shell:has(.manager-main) .manager-node-card {
+  border-radius: 24px;
+  border: 1px solid rgba(0,119,182,0.08);
 }
 
-@media (max-width: 1000px) {
-  .manager-card-grid {
+.manager-shell .river-condition-card,
+.admin-shell:has(.manager-main) .river-condition-card {
+  border-radius: 24px !important;
+}
+
+.manager-shell .manager-stat-card svg,
+.admin-shell:has(.manager-main) .manager-stat-card svg { color: #0C4C7C; }
+
+.manager-shell .manager-stat-card p,
+.admin-shell:has(.manager-main) .manager-stat-card p { color: #7a96a4; }
+
+.manager-shell .manager-stat-card strong,
+.admin-shell:has(.manager-main) .manager-stat-card strong {
+  color: #0a2e3d;
+  font-family: "Poppins","Inter",sans-serif;
+  font-size: 1.1rem;
+}
+
+.manager-shell .manager-node-grid,
+.admin-shell:has(.manager-main) .manager-node-grid { grid-template-columns: 1fr; gap: 10px; }
+
+.manager-shell .manager-node-card,
+.admin-shell:has(.manager-main) .manager-node-card { padding: 13px 16px; border-radius: 16px; }
+
+.manager-shell .manager-state,
+.admin-shell:has(.manager-main) .manager-state { border-radius: 999px; }
+
+/* ── Responsive ──────────────────────────────────────────────────── */
+@media (max-width: 1200px) {
+  .manager-card-grid,
+  .manager-shell .manager-card-grid,
+  .admin-shell:has(.manager-main) .manager-card-grid {
     grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 800px) {
+  .manager-card-grid,
+  .manager-shell .manager-card-grid,
+  .admin-shell:has(.manager-main) .manager-card-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
 @media (max-width: 640px) {
   .manager-card-grid,
-  .manager-node-grid {
+  .manager-node-grid,
+  .manager-shell .manager-card-grid,
+  .admin-shell:has(.manager-main) .manager-card-grid {
     grid-template-columns: 1fr;
   }
-}
-
-/* Deliberate, utility-focused dashboard treatment. */
-.manager-shell .manager-card-grid {
-  grid-template-columns: repeat(5, minmax(0, 1fr));
-  gap: 16px;
-  margin-bottom: 24px;
-}
-
-.manager-shell .manager-stat-card,
-.manager-shell .manager-node-card {
-  background: #ffffff;
-  border: 1px solid #d9e2e8;
-  border-radius: 6px;
-  box-shadow: none;
-}
-
-.manager-shell .manager-stat-card {
-  min-height: 118px;
-  padding: 16px;
-  gap: 12px;
-}
-
-.manager-shell .manager-stat-card svg {
-  color: #1e5f8c;
-  margin-top: 2px;
-  stroke-width: 1.8;
-}
-
-.manager-shell .manager-stat-card p {
-  margin: 0 0 6px;
-  color: #5f7280;
-  font-size: 0.75rem;
-  font-weight: 600;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-}
-
-.manager-shell .manager-stat-card strong {
-  color: #173042;
-  font-family: var(--font-data);
-  font-size: 1.05rem;
-  font-weight: 600;
-  line-height: 1.3;
-}
-
-.manager-shell .river-condition-card strong { color: #1e5f8c; }
-.manager-shell .river-condition-safe svg,
-.manager-shell .river-condition-safe strong { color: #277447; }
-.manager-shell .river-condition-warning svg,
-.manager-shell .river-condition-warning strong { color: #9a5d00; }
-.manager-shell .river-condition-critical svg,
-.manager-shell .river-condition-critical strong { color: #b42318; }
-.manager-shell .river-condition-unknown svg,
-.manager-shell .river-condition-unknown strong { color: #476b80; }
-
-.manager-shell .manager-stat-card small {
-  margin-top: 7px;
-  color: #6b7e8b;
-  font-size: 0.75rem;
-  line-height: 1.4;
-}
-
-.manager-shell .manager-node-grid { grid-template-columns: 1fr; gap: 8px; }
-.manager-shell .manager-node-card { padding: 12px; gap: 12px; }
-.manager-shell .manager-node-card strong { color: #173042; font-size: 0.88rem; font-weight: 600; }
-.manager-shell .manager-node-card p { margin-top: 4px; color: #6b7e8b; font-size: 0.75rem; }
-.manager-shell .manager-state { border-radius: 4px; padding: 4px 8px; font-size: 0.7rem; font-weight: 600; }
-.manager-shell .manager-state.online { background: #e8f3ec; color: #277447; }
-.manager-shell .manager-state.offline { background: #f9ecd9; color: #9a5d00; }
-
-@media (max-width: 1200px) {
-  .manager-shell .manager-card-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-}
-
-@media (max-width: 720px) {
-  .manager-shell .manager-card-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-}
-
-@media (max-width: 480px) {
-  .manager-shell .manager-card-grid { grid-template-columns: 1fr; }
 }
