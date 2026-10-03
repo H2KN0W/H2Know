@@ -95,38 +95,41 @@ const ManagerDashboard = () => {
   }, []);
 
   const load = useCallback(async (manual = false) => {
-    if (manual) setLoading(true);
-    const [readingResult, alertResult, nodeResult] = await Promise.all([
-      supabase
-        .from("sensor_readings")
-        .select(
-          "id, value, recorded_at, parameters ( name, unit ), nodes ( id, device_label )"
-        )
-        .order("recorded_at", { ascending: false })
-        .limit(200),
-      supabase
-        .from("alerts")
-        .select(
-          "id, status, triggered_at, thresholds!inner ( min_value, max_value, severity_label, parameters!inner ( name, unit ) ), sensor_readings ( id, value )"
-        )
-        .eq("status", "active")
-        .order("triggered_at", { ascending: false })
-        .limit(10),
-      supabase.from("nodes").select("id, device_label"),
-    ]);
+    setLoading(true);
+    try {
+      const [readingResult, alertResult, nodeResult] = await Promise.all([
+        supabase
+          .from("sensor_readings")
+          .select(
+            "id, value, recorded_at, parameters ( name, unit ), nodes ( id, device_label )"
+          )
+          .order("recorded_at", { ascending: false })
+          .limit(200),
+        supabase
+          .from("alerts")
+          .select(
+            "id, status, triggered_at, thresholds!inner ( min_value, max_value, severity_label, parameters!inner ( name, unit ) ), sensor_readings ( id, value )"
+          )
+          .eq("status", "active")
+          .order("triggered_at", { ascending: false })
+          .limit(10),
+        supabase.from("nodes").select("id, device_label"),
+      ]);
 
-    const firstError =
-      readingResult.error || alertResult.error || nodeResult.error;
-    if (firstError) {
-      setError(
-        "Could not load live monitoring data. Ensure the manager RLS policies and manager migration have been applied."
-      );
+      const firstError =
+        readingResult.error || alertResult.error || nodeResult.error;
+      if (firstError) {
+        setError(
+          "Could not load live monitoring data. Ensure the manager RLS policies and manager migration have been applied."
+        );
+      }
+      setReadings(readingResult.data || []);
+      setAlerts(alertResult.data || []);
+      setNodes(nodeResult.data || []);
+      setCheckedAt(Date.now());
+    } finally {
+      setLoading(false);
     }
-    setReadings(readingResult.data || []);
-    setAlerts(alertResult.data || []);
-    setNodes(nodeResult.data || []);
-    setCheckedAt(Date.now());
-    setLoading(false);
   }, []);
 
   // Initial load

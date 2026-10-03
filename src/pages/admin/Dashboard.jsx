@@ -241,15 +241,18 @@ const Dashboard = () => {
 
   const fetchAllData = useCallback(
     async (manual = false) => {
-      if (manual) setIsRefreshing(true);
-      await Promise.allSettled([
-        fetchUsers(),
-        fetchAlerts(),
-        fetchReadings(),
-        fetchActivity(),
-      ]);
-      setCheckedAt(Date.now());
-      if (manual) setIsRefreshing(false);
+      setIsRefreshing(true);
+      try {
+        await Promise.allSettled([
+          fetchUsers(),
+          fetchAlerts(),
+          fetchReadings(),
+          fetchActivity(),
+        ]);
+        setCheckedAt(Date.now());
+      } finally {
+        setIsRefreshing(false);
+      }
     },
     [fetchUsers, fetchAlerts, fetchReadings, fetchActivity]
   );
