@@ -26,8 +26,14 @@ const formatDateTime = (value) => (value ? new Date(value).toLocaleString() : "â
 const formatClockTime = (timestamp) => {
   if (!timestamp) return "â€”";
   const d = new Date(timestamp);
-  const pad = (n) => String(n).padStart(2, "0");
-  return `${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+  let hours = d.getHours();
+  const minutes = String(d.getMinutes()).padStart(2, "0");
+  const seconds = String(d.getSeconds()).padStart(2, "0");
+  const ampm = hours >= 12 ? "PM" : "AM";
+  hours = hours % 12;
+  hours = hours ? hours : 12;
+  const strHours = String(hours).padStart(2, "0");
+  return `${strHours}:${minutes}:${seconds} ${ampm}`;
 };
 
 const severityClass = (value) => {
