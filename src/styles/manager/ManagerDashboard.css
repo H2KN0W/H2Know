@@ -72,24 +72,24 @@
   background: linear-gradient(135deg,#0C4C7C 0%,#0d6eaf 55%,#1a8abf 100%) !important;
   border: none !important;
   box-shadow: 0 8px 32px rgba(12,76,124,0.28) !important;
-  color: #fff;
+  color: #ffffff !important;
 }
 
-.river-condition-card svg         { color: rgba(255,255,255,0.90); }
-.river-condition-card p           { color: rgba(255,255,255,0.70); }
-.river-condition-card strong      { color: #ffffff; }
-.river-condition-card small       { color: rgba(255,255,255,0.65); }
+.river-condition-card svg         { color: #ffffff !important; opacity: 1 !important; filter: drop-shadow(0 1px 2px rgba(0,0,0,0.2)); }
+.river-condition-card p           { color: #ffffff !important; opacity: 1 !important; font-weight: 600; letter-spacing: 0.05em; }
+.river-condition-card strong      { color: #ffffff !important; opacity: 1 !important; font-weight: 800; font-size: 1.25rem; }
+.river-condition-card small       { color: #ffffff !important; opacity: 1 !important; font-weight: 500; }
 
 /* Condition-specific overrides on the hero card text color */
-.river-condition-safe strong     { color: #a7f3c4; }
-.river-condition-warning strong  { color: #fde68a; }
-.river-condition-critical strong { color: #fca5a5; }
-.river-condition-unknown strong  { color: rgba(255,255,255,0.75); }
+.river-condition-safe strong     { color: #bbf7d0 !important; }
+.river-condition-warning strong  { color: #fef08a !important; }
+.river-condition-critical strong { color: #fecaca !important; }
+.river-condition-unknown strong  { color: #ffffff !important; }
 
-.river-condition-safe svg        { color: #a7f3c4; }
-.river-condition-warning svg     { color: #fde68a; }
-.river-condition-critical svg    { color: #fca5a5; }
-.river-condition-unknown svg     { color: rgba(255,255,255,0.65); }
+.river-condition-safe svg        { color: #bbf7d0 !important; }
+.river-condition-warning svg     { color: #fef08a !important; }
+.river-condition-critical svg    { color: #fecaca !important; }
+.river-condition-unknown svg     { color: #ffffff !important; }
 
 /* ── Node grid ───────────────────────────────────────────────────── */
 .manager-node-grid {
