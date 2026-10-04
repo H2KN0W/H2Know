@@ -15,6 +15,7 @@ import { supabase } from "../../lib/supabase";
 import { useLogPageView } from "../../lib/useLogPageView";
 import ManagerSidebar from "./ManagerSidebar";
 import CatchmentMap from "./CatchmentMap";
+import SensorHealthGauge from "../../components/SensorStatusPanel";
 import "../../styles/manager/ManagerPortal.css";
 import "../../styles/manager/ManagerDashboard.css";
 
@@ -364,34 +365,28 @@ const ManagerDashboard = () => {
             <section className="manager-two-column">
               <article className="manager-panel">
                 <h2>Catchment Map</h2>
-                <CatchmentMap />
+                <CatchmentMap readings={readings} nodes={nodes} checkedAt={checkedAt} />
               </article>
               <article className="manager-panel">
                 <div className="manager-panel-heading">
                   <h2>Sensor Status</h2>
                   <span>Online if synced in the last 5 minutes</span>
                 </div>
-                <div className="manager-node-grid">
-                  {nodes.length === 0 && <p>No monitoring nodes found.</p>}
-                  {nodes.map((node) => {
-                    const sync = nodeLastSync(node);
-                    return (
-                      <article className="manager-node-card" key={node.id}>
-                        <div>
-                          <strong>{node.device_label || "Unnamed node"}</strong>
-                          <p>Last sync: {formatDateTime(sync)}</p>
-                        </div>
-                        <span
-                          className={`manager-state ${
-                            isOnline(sync) ? "online" : "offline"
-                          }`}
-                        >
-                          {isOnline(sync) ? "Online" : "Offline"}
-                        </span>
-                      </article>
-                    );
-                  })}
-                </div>
+                {nodes.length === 0 ? (
+                  <p style={{ color: "var(--color-text-muted)", fontSize: "0.84rem" }}>
+                    No monitoring nodes found.
+                  </p>
+                ) : (
+                  nodes.map((node) => (
+                    <SensorHealthGauge
+                      key={node.id}
+                      node={node}
+                      readings={readings}
+                      alerts={alerts}
+                      checkedAt={checkedAt}
+                    />
+                  ))
+                )}
               </article>
             </section>
 
