@@ -86,6 +86,8 @@ const Sidebar = () => {
                 <NavLink
                   key={path}
                   to={path}
+                  title={label}
+                  data-tooltip={label}
                   className={({ isActive }) =>
                     isActive ? "sidebar-link active" : "sidebar-link"
                   }

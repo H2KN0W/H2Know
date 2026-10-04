@@ -17,14 +17,13 @@ const BOUNDARY_STYLE = { color: "#000000", weight: 1.5, fillColor: "#000000", fi
 const HOVER_STYLE = { color: "#000000", weight: 2.5, fillOpacity: 0.16 };
 
 const RIVER_STYLE = { color: "#0891b2", weight: 1.5, opacity: 1, interactive: false };
-const SENSOR_STYLE = {
-  radius: 8,
-  color: "#ffffff",
-  weight: 3,
-  fillColor: "#d62828",
-  fillOpacity: 1,
-  interactive: false,
-};
+
+const sensorIcon = L.divIcon({
+  className: "sensor-marker-icon",
+  html: `<div class="sensor-marker-dot" title="Click to view sensor details"></div>`,
+  iconSize: [20, 20],
+  iconAnchor: [10, 10],
+});
 
 // Legend / fill colors for the `landuse` attribute values in landCover.geojson
 const LAND_USE_CLASSES = [
@@ -76,12 +75,12 @@ const CoordPopupContent = ({ latlng }) => {
       setCopied(true);
       setTimeout(() => setCopied(false), 1500);
     } catch {
-      // clipboard blocked (e.g. non-HTTPS) — fail silently, coords are still shown
+      setCopied(false);
     }
   };
 
   return (
-    <div className="catchment-pin-popup">
+    <div className="coord-popup">
       <span>{text}</span>
       <button type="button" onClick={handleCopy} title="Copy coordinates" aria-label="Copy coordinates">
         {copied ? <Check size={13} /> : <Copy size={13} />}
@@ -97,24 +96,9 @@ const MapLegend = () => (
     {LAND_USE_CLASSES.map((c) => (
       <div className="catchment-legend-row" key={c.value}>
         <span className="catchment-legend-swatch" style={{ background: c.color }} />
-        <span>{c.value} — {c.label}</span>
+        <span className="catchment-legend-label">{c.label}</span>
       </div>
     ))}
-
-    <div className="catchment-legend-divider" />
-
-    <div className="catchment-legend-row">
-      <span className="catchment-legend-line catchment-legend-line--river" />
-      <span>River Network</span>
-    </div>
-    <div className="catchment-legend-row">
-      <span className="catchment-legend-line catchment-legend-line--boundary" />
-      <span>Catchment Boundary</span>
-    </div>
-    <div className="catchment-legend-row">
-      <span className="catchment-legend-dot" />
-      <span>Sensor Location</span>
-    </div>
   </div>
 );
 
@@ -142,7 +126,7 @@ const CatchmentMap = () => {
         <GeoJSON data={riversData} style={RIVER_STYLE} />
         <GeoJSON
           data={sensorData}
-          pointToLayer={(feature, latlng) => L.circleMarker(latlng, SENSOR_STYLE)}
+          pointToLayer={(feature, latlng) => L.marker(latlng, { icon: sensorIcon })}
         />
         <FitBounds data={boundaryData} />
         <ClickToPin onPick={setPin} />

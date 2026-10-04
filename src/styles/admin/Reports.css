@@ -1,37 +1,46 @@
+/* ═══════════════════════════════════════════════════════════════
+   Reports.css (Admin) — Bento SaaS Restyle
+═══════════════════════════════════════════════════════════════ */
+
 .reports-filter-bar {
   display: flex;
   align-items: center;
   flex-wrap: wrap;
   gap: 12px;
-  margin-bottom: 16px;
-  padding: 12px 14px;
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  background: #f5f8fa;
+  margin-bottom: 18px;
+  padding: 14px 18px;
+  background: #fff;
+  border: 1px solid rgba(0,119,182,0.09);
+  border-radius: 18px;
+  box-shadow: 0 1px 3px rgba(10,46,61,0.04);
 }
 
 .reports-filter-bar label {
-  color: var(--color-text-muted);
-  font-size: 0.8rem;
+  color: var(--color-text-muted,#5b7c88);
+  font-size: 0.78rem;
   font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
 }
 
 .reports-filter-bar select {
-  width: min(100%, 280px);
+  width: min(100%,280px);
   min-height: 38px;
-  padding: 8px 34px 8px 11px;
-  border: 1px solid #bdcbd3;
-  border-radius: 4px;
-  background: #fff;
-  color: var(--color-text);
+  padding: 8px 14px;
+  border: 1px solid rgba(0,119,182,0.18);
+  border-radius: 999px;
+  background: var(--color-bg,#f2f7fb);
+  color: var(--color-text,#0a2e3d);
   font: inherit;
-  font-size: 0.84rem;
+  font-size: 0.82rem;
   cursor: pointer;
+  outline: none;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
 
 .reports-filter-bar select:focus-visible {
-  outline: 2px solid #14658f;
-  outline-offset: 2px;
+  border-color: var(--color-accent,#00b4d8);
+  box-shadow: 0 0 0 3px rgba(0,180,216,0.15);
 }
 
 @media (max-width: 600px) {
@@ -39,8 +48,5 @@
     align-items: stretch;
     flex-direction: column;
   }
-
-  .reports-filter-bar select {
-    width: 100%;
-  }
+  .reports-filter-bar select { width: 100%; }
 }

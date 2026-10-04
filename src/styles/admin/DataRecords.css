@@ -1,54 +1,69 @@
-/* Data Records — filter bar */
+/* ═══════════════════════════════════════════════════════════════
+   DataRecords.css — Bento SaaS Restyle
+═══════════════════════════════════════════════════════════════ */
+
 .dr-filter-bar {
   display: flex;
   flex-wrap: wrap;
-  align-items: end;
+  align-items: flex-end;
   gap: 12px;
-  margin-bottom: 16px;
+  margin-bottom: 18px;
+  padding: 16px 18px;
+  background: #fff;
+  border: 1px solid rgba(0,119,182,0.09);
+  border-radius: 18px;
+  box-shadow: 0 1px 3px rgba(10,46,61,0.04);
 }
 
 .dr-filter-select,
 .dr-filter-input {
-  padding: 9px 12px;
-  border: 1px solid #d6e9f2;
-  border-radius: 8px;
-  background: var(--color-white);
+  padding: 8px 14px;
+  border: 1px solid rgba(0,119,182,0.18);
+  border-radius: 999px;
+  background: var(--color-bg,#f2f7fb);
   font-size: 0.82rem;
-  color: var(--color-text);
+  color: var(--color-text,#0a2e3d);
+  font-family: inherit;
+  outline: none;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  min-height: 38px;
 }
 
 .dr-filter-select:focus-visible,
 .dr-filter-input:focus-visible {
-  outline: none;
-  border-color: var(--color-accent);
-  box-shadow: 0 0 0 3px rgba(0, 180, 216, 0.2);
+  border-color: var(--color-accent,#00b4d8);
+  box-shadow: 0 0 0 3px rgba(0,180,216,0.15);
 }
 
 .dr-filter-date-label {
   display: flex;
   flex-direction: column;
   gap: 4px;
-  font-size: 0.72rem;
+  font-size: 0.71rem;
   font-weight: 600;
-  color: var(--color-text-muted);
+  color: var(--color-text-muted,#5b7c88);
   text-transform: uppercase;
-  letter-spacing: 0.03em;
+  letter-spacing: 0.04em;
 }
 
 .dr-filter-clear-btn {
-  padding: 9px 14px;
-  border: 1px solid var(--border);
-  background: var(--color-white);
-  border-radius: 8px;
+  padding: 8px 16px;
+  border: 1px solid rgba(0,119,182,0.18);
+  background: #fff;
+  border-radius: 999px;
   cursor: pointer;
-  font-size: 0.82rem;
-  color: var(--color-text-muted);
+  font-size: 0.80rem;
+  font-weight: 600;
+  color: var(--color-text-muted,#5b7c88);
   white-space: nowrap;
+  transition: background 0.15s ease, color 0.15s ease;
+  min-height: 38px;
+  font-family: inherit;
 }
 
 .dr-filter-clear-btn:hover {
-  background: var(--color-bg);
-  color: var(--color-text);
+  background: rgba(0,119,182,0.06);
+  color: var(--color-primary,#0C4C7C);
 }
 
 @media (max-width: 600px) {
