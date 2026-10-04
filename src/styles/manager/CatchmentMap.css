@@ -1,4 +1,4 @@
-﻿/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
    CatchmentMap.css â€” Bento SaaS Restyle
    All class names preserved. Upgrades radius, shadow, and
    control styling to match the bento aesthetic.
@@ -181,6 +181,197 @@
 .sensor-marker-dot:hover {
   transform: scale(1.3);
   box-shadow: 0 4px 14px rgba(214,40,40,0.8), 0 0 0 4px rgba(214,40,40,0.25);
+}
+
+/* ── Sensor Map Popup card (native Leaflet bindPopup) ────────────── */
+/* Wrapper override — strip Leaflet's default padding */
+.sensor-popup-wrapper .leaflet-popup-content {
+  margin: 0;
+  padding: 0;
+}
+
+.sensor-map-popup {
+  width: 260px;
+  font-family: "Inter", sans-serif;
+  font-size: 0.80rem;
+  color: #0a2e3d;
+  overflow: hidden;
+  border-radius: 12px;
+}
+
+.smp-photo {
+  display: block;
+  width: 100%;
+  height: 120px;
+  object-fit: cover;
+  border-bottom: 1px solid rgba(0,119,182,0.10);
+}
+
+.smp-body {
+  padding: 10px 12px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.smp-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.smp-name {
+  font-family: "Poppins","Inter",sans-serif;
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: #0a2e3d;
+  line-height: 1.2;
+}
+
+.smp-status {
+  font-size: 0.68rem;
+  font-weight: 600;
+  border-radius: 999px;
+  padding: 2px 8px;
+  white-space: nowrap;
+}
+
+.smp-status.online  { background: rgba(26,158,92,0.12); color: #1a9e5c; }
+.smp-status.offline { background: rgba(214,69,69,0.10); color: #d64545; }
+
+.smp-desc {
+  margin: 0;
+  font-size: 0.74rem;
+  color: #5b7c88;
+  line-height: 1.45;
+}
+
+.smp-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.74rem;
+}
+
+.smp-table tr + tr td { border-top: 1px solid rgba(0,119,182,0.08); }
+.smp-table td { padding: 3px 0; vertical-align: top; }
+
+.smp-param {
+  color: #7a96a4;
+  padding-right: 8px;
+  white-space: nowrap;
+  text-transform: capitalize;
+}
+
+.smp-val {
+  font-weight: 600;
+  color: #0a2e3d;
+  text-align: right;
+}
+
+/* ── SensorHealthGauge card (shg-* classes) ──────────────────────── */
+.shg-card {
+  background: #ffffff;
+  border: 1px solid rgba(0,119,182,0.10);
+  border-radius: 16px;
+  padding: 16px 18px 18px;
+  box-shadow: 0 2px 12px rgba(10,46,61,0.07);
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin-bottom: 12px;
+}
+
+.shg-card:last-child { margin-bottom: 0; }
+
+.shg-top {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.shg-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  min-width: 0;
+}
+
+.shg-name {
+  font-family: "Poppins","Inter",sans-serif;
+  font-size: 0.92rem;
+  font-weight: 700;
+  color: #0a2e3d;
+  line-height: 1.2;
+}
+
+.manager-state {
+  display: inline-block;
+  font-size: 0.68rem;
+  font-weight: 600;
+  border-radius: 999px;
+  padding: 2px 9px;
+  width: fit-content;
+}
+
+.manager-state.online  { background: rgba(26,158,92,0.12); color: #1a9e5c; }
+.manager-state.offline { background: rgba(214,69,69,0.10); color: #d64545; }
+
+.shg-sync {
+  font-size: 0.70rem;
+  color: #7a96a4;
+  margin: 0;
+  line-height: 1.45;
+}
+
+.shg-sync span {
+  font-weight: 600;
+  color: #0a2e3d;
+}
+
+.shg-factors {
+  border-top: 1px solid rgba(0,119,182,0.08);
+  padding-top: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.shg-factors-title {
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: #7a96a4;
+  margin: 0 0 3px;
+}
+
+.shg-factor-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.shg-factor-label {
+  font-size: 0.70rem;
+  color: #5b7c88;
+  white-space: nowrap;
+  min-width: 148px;
+}
+
+.shg-bar-track {
+  flex: 1;
+  height: 5px;
+  background: rgba(0,119,182,0.10);
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.shg-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg,#0C4C7C,#1178b5);
+  border-radius: 999px;
+  transition: width 0.45s cubic-bezier(0.4,0,0.2,1);
 }
 
 
