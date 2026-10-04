@@ -102,7 +102,83 @@ const MapLegend = () => (
   </div>
 );
 
-const CatchmentMap = () => {
+// Build a Leaflet popup DOM element for a sensor feature.
+// Uses live data (readings, nodes, checkedAt) when available.
+function buildSensorPopup(feature, { readings = [], nodes = [], checkedAt = null } = {}) {
+  const p = feature.properties || {};
+  const sensorId = p.id;
+
+  // Match to a node by id
+  const node = nodes.find((n) => String(n.id) === String(sensorId));
+
+  // Last sync for this node
+  const lastSync = node
+    ? readings.find((r) => r.nodes?.id === node.id)?.recorded_at ?? null
+    : null;
+
+  // Online status
+  const online =
+    lastSync && checkedAt
+      ? checkedAt - new Date(lastSync).getTime() <= 5 * 60 * 1000
+      : false;
+
+  const statusDot = online
+    ? `<span class="smp-status online">● Online</span>`
+    : `<span class="smp-status offline">● Offline</span>`;
+
+  // Latest readings for this node
+  const nodeReadings = node
+    ? readings.filter((r) => r.nodes?.id === node.id)
+    : [];
+  const paramMap = {};
+  nodeReadings.forEach((r) => {
+    const name = r.parameters?.name?.toLowerCase();
+    if (name && !(name in paramMap)) paramMap[name] = `${r.value} ${r.parameters?.unit || ""}`.trim();
+  });
+
+  const readingRows = Object.entries(paramMap)
+    .slice(0, 4)
+    .map(([name, val]) => `<tr><td class="smp-param">${name}</td><td class="smp-val">${val}</td></tr>`)
+    .join("");
+
+  const lastSyncStr = lastSync ? new Date(lastSync).toLocaleString() : "No data yet";
+
+  // photo: per-sensor field in GeoJSON properties; falls back to placeholder
+  const photoSrc = p.photo || "/assets/img/location.jpg";
+
+  const el = document.createElement("div");
+  el.className = "sensor-map-popup";
+  el.innerHTML = `
+    <img class="smp-photo" src="${photoSrc}" alt="${p.name || "Sensor location"}" loading="lazy" />
+    <div class="smp-body">
+      <div class="smp-header">
+        <strong class="smp-name">${p.name || `Sensor #${sensorId}`}</strong>
+        ${statusDot}
+      </div>
+      ${p.description ? `<p class="smp-desc">${p.description}</p>` : ""}
+      <table class="smp-table">
+        <tr><td class="smp-param">Location</td><td class="smp-val">${p.location || "—"}</td></tr>
+        <tr><td class="smp-param">Last sync</td><td class="smp-val">${lastSyncStr}</td></tr>
+        ${readingRows}
+      </table>
+    </div>
+  `;
+  return el;
+}
+
+/**
+ * CatchmentMap
+ *
+ * Props:
+ *   readings   – sensor_readings rows from Supabase (for live status/values in popup)
+ *   nodes      – nodes rows from Supabase (to match sensor IDs)
+ *   checkedAt  – Date.now() timestamp of last data fetch (for online/offline calc)
+ *
+ * Sensor marker click opens a native Leaflet popup with location photo, name,
+ * description, status, and latest readings. The photo path is stored as the
+ * `photo` field in sensorLocation.geojson — swap it per-sensor for real deployment.
+ */
+const CatchmentMap = ({ readings = [], nodes = [], checkedAt = null }) => {
   const [boundaryHovered, setBoundaryHovered] = useState(false);
   const [pin, setPin] = useState(null);
 
@@ -112,6 +188,20 @@ const CatchmentMap = () => {
       mouseout: (e) => { e.target.setStyle(BOUNDARY_STYLE); setBoundaryHovered(false); },
     });
   }, []);
+
+  // Build and bind sensor popup. Uses live data if provided.
+  // stopPropagation on click so ClickToPin doesn't also drop a coordinate pin.
+  const onEachSensor = useMemo(() => (feature, layer) => {
+    const popupEl = buildSensorPopup(feature, { readings, nodes, checkedAt });
+    layer.bindPopup(popupEl, {
+      maxWidth: 280,
+      className: "sensor-popup-wrapper",
+    });
+    layer.on("click", (e) => {
+      L.DomEvent.stopPropagation(e);
+    });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [readings, nodes, checkedAt]);
 
   return (
     <div className="catchment-map-wrap">
@@ -125,8 +215,10 @@ const CatchmentMap = () => {
         <GeoJSON data={boundaryData} style={BOUNDARY_STYLE} onEachFeature={onEachFeature} />
         <GeoJSON data={riversData} style={RIVER_STYLE} />
         <GeoJSON
+          key={`sensors-${checkedAt}`}
           data={sensorData}
           pointToLayer={(feature, latlng) => L.marker(latlng, { icon: sensorIcon })}
+          onEachFeature={onEachSensor}
         />
         <FitBounds data={boundaryData} />
         <ClickToPin onPick={setPin} />
