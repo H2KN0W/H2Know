@@ -54,7 +54,7 @@ const BrandPanel = () => (
       </h1>
       <p className="lp-brand-tagline">Know the Flow, Before You Go.</p>
       <p className="lp-brand-desc">
-        Real-time water quality monitoring for smarter and safer water management.
+        Dynamic water quality monitoring for smarter and safer water management.
       </p>
 
       {/* Decorative sensor / metric pills */}
@@ -65,7 +65,7 @@ const BrandPanel = () => (
         </span>
         <span className="lp-pill">
           <span className="lp-pill-dot" />
-          Real-time Alerts
+           Active Alerts
         </span>
         <span className="lp-pill">
           <span className="lp-pill-dot" />

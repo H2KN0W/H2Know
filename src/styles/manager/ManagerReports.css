@@ -1,45 +1,78 @@
+/* ═══════════════════════════════════════════════════════════════
+   ManagerReports.css — Bento SaaS Restyle
+   All class names preserved.
+═══════════════════════════════════════════════════════════════ */
+
+/* ── Report form ─────────────────────────────────────────────────── */
 .manager-report-form {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 1rem;
+  grid-template-columns: repeat(2, minmax(0,1fr));
+  gap: 16px;
   align-items: end;
 }
 
 .manager-report-form label {
   display: grid;
-  gap: 0.4rem;
-  font-size: 0.85rem;
+  gap: 5px;
+  font-size: 0.78rem;
   font-weight: 600;
+  color: var(--color-text,#0a2e3d);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
 }
 
 .manager-report-form input,
 .manager-report-form select {
   width: 100%;
   box-sizing: border-box;
+  padding: 8px 14px;
+  border: 1px solid rgba(0,119,182,0.18);
+  border-radius: 999px;
+  background: var(--color-bg,#f2f7fb);
+  font-family: inherit;
+  font-size: 0.82rem;
+  color: var(--color-text,#0a2e3d);
+  outline: none;
+  min-height: 38px;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.manager-report-form input:focus-visible,
+.manager-report-form select:focus-visible {
+  border-color: var(--color-accent,#00b4d8);
+  box-shadow: 0 0 0 3px rgba(0,180,216,0.15);
 }
 
 .manager-report-form fieldset {
   grid-column: 1 / -1;
-  border: 1px solid #dce3e6;
-  border-radius: 6px;
+  border: 1px solid rgba(0,119,182,0.12);
+  border-radius: 18px;
+  padding: 14px 18px;
 }
 
 .manager-report-form legend {
-  font-size: 0.85rem;
+  font-size: 0.78rem;
   font-weight: 600;
+  color: var(--color-text,#0a2e3d);
+  padding: 0 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
 }
 
 .manager-checkboxes {
   display: flex;
   flex-wrap: wrap;
-  gap: 1rem;
+  gap: 12px;
 }
 
 .manager-checkboxes label {
   display: flex;
   align-items: center;
-  gap: 0.4rem;
-  font-weight: 400;
+  gap: 6px;
+  font-weight: 500;
+  font-size: 0.82rem;
+  text-transform: none;
+  letter-spacing: 0;
 }
 
 .manager-shell .manager-report-form .manager-checkboxes input,
@@ -49,12 +82,32 @@
   padding: 0;
   width: 16px;
   height: 16px;
+  accent-color: #0C4C7C;
 }
 
 .manager-report-form button[type="submit"] {
   width: 100%;
+  grid-column: 1 / -1;
+  border: none;
+  border-radius: 999px;
+  padding: 10px 20px;
+  background: linear-gradient(135deg,#0C4C7C,#1178b5);
+  color: #fff;
+  font-family: inherit;
+  font-size: 0.84rem;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 4px 14px rgba(12,76,124,0.28);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  min-height: 44px;
 }
 
+.manager-report-form button[type="submit"]:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(12,76,124,0.34);
+}
+
+/* ── Modal backdrop ──────────────────────────────────────────────── */
 .manager-report-modal-backdrop {
   position: fixed;
   inset: 0;
@@ -62,18 +115,19 @@
   display: grid;
   place-items: center;
   padding: 20px;
-  background: rgba(19, 39, 51, 0.48);
+  background: rgba(2,40,60,0.45);
+  backdrop-filter: blur(3px);
   animation: manager-report-fade-in 160ms ease-out;
 }
 
 .manager-report-modal {
-  width: min(100%, 420px);
+  width: min(100%,420px);
   box-sizing: border-box;
   padding: 30px 28px 24px;
-  border: 1px solid #d7e1e7;
-  border-radius: 8px;
+  border: 1px solid rgba(0,119,182,0.10);
+  border-radius: 24px;
   background: #fff;
-  box-shadow: 0 18px 56px rgba(13, 42, 57, 0.22);
+  box-shadow: 0 24px 56px rgba(0,40,70,0.20);
   text-align: center;
   animation: manager-report-modal-enter 180ms ease-out;
 }
@@ -81,8 +135,8 @@
 .manager-report-modal-icon {
   display: grid;
   place-items: center;
-  width: 48px;
-  height: 48px;
+  width: 52px;
+  height: 52px;
   margin: 0 auto 16px;
   border-radius: 50%;
   font-size: 1.5rem;
@@ -90,50 +144,77 @@
 }
 
 .manager-report-modal-icon-loading {
-  border: 4px solid #dce8ee;
-  border-top-color: #14658f;
+  border: 4px solid rgba(0,119,182,0.15);
+  border-top-color: #0C4C7C;
   animation: manager-report-spin 800ms linear infinite;
 }
 
-.manager-report-modal-icon-success {
-  background: #e6f7ee;
-  color: #16804a;
-}
-
-.manager-report-modal-icon-failed {
-  background: #fcebea;
-  color: #b42318;
-}
+.manager-report-modal-icon-success { background: #e3f7ea; color: #1a9e5c; }
+.manager-report-modal-icon-failed  { background: #fdecec; color: #d64545; }
 
 .manager-report-modal h2 {
   margin: 0 0 10px;
-  color: #17364a;
-  font-size: 1.15rem;
+  color: var(--color-text,#0a2e3d);
+  font-family: var(--font-display,"Poppins","Inter",sans-serif);
+  font-size: 1.1rem;
+  letter-spacing: -0.01em;
 }
 
 .manager-report-modal p {
   margin: 0;
-  color: #617785;
-  font-size: 0.9rem;
+  color: var(--color-text-muted,#5b7c88);
+  font-size: 0.88rem;
   line-height: 1.55;
   overflow-wrap: anywhere;
 }
 
 .manager-report-modal button {
-  min-width: 96px;
+  min-width: 100px;
   margin-top: 22px;
-  padding: 9px 18px;
-  border: 1px solid #14658f;
-  border-radius: 4px;
-  background: #14658f;
+  padding: 9px 20px;
+  border: none;
+  border-radius: 999px;
+  background: linear-gradient(135deg,#0C4C7C,#1178b5);
   color: #fff;
-  font: inherit;
+  font-family: inherit;
   font-weight: 600;
   cursor: pointer;
+  box-shadow: 0 3px 10px rgba(12,76,124,0.22);
+  transition: transform 0.15s ease;
 }
 
-.manager-report-modal button:hover {
-  background: #0f4e70;
+.manager-report-modal button:hover { transform: translateY(-1px); }
+
+/* ── Report status badges ─────────────────────────────────────────── */
+.badge-ready,
+.badge-pending {
+  display: inline-flex;
+  align-items: center;
+  white-space: nowrap;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-weight: 600;
+  font-size: 0.68rem;
+  letter-spacing: 0.02em;
+}
+
+.badge-ready {
+  background: #e3f7ea;
+  color: #1a9e5c;
+  border: none;
+  text-decoration: none;
+}
+
+.badge-ready:hover { background: #d0f0e0; }
+
+.badge-pending { background: #fff2d9; color: #b3760a; border: none; }
+
+/* ── Reports table ────────────────────────────────────────────────── */
+.table-wrap { overflow-x: auto; }
+
+.manager-reports-table {
+  width: 100%;
+  border-collapse: collapse;
 }
 
 @keyframes manager-report-spin {
@@ -142,84 +223,32 @@
 
 @keyframes manager-report-fade-in {
   from { opacity: 0; }
-  to { opacity: 1; }
+  to   { opacity: 1; }
 }
 
 @keyframes manager-report-modal-enter {
   from { opacity: 0; transform: translateY(8px) scale(0.98); }
-  to { opacity: 1; transform: translateY(0) scale(1); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
 }
 
-.badge-ready,
-.badge-pending {
-  display: inline-block;
-  white-space: nowrap;
-}
-
-.badge-ready {
-  background: #e6f7ee;
-  color: #0a5c36;
-  border: 1px solid #34c77b;
-  text-decoration: none;
-  padding: 3px 10px;
-  border-radius: 12px;
-  font-weight: 600;
-  font-size: 0.85rem;
-}
-
-.badge-ready:hover {
-  background: #d0f0e0;
-}
-
-.badge-pending {
-  background: #fdf3d8;
-  color: #8a6d1a;
-  border: 1px solid #eac457;
-  padding: 3px 10px;
-  border-radius: 12px;
-  font-weight: 600;
-  font-size: 0.85rem;
-}
-
-.table-wrap {
-  overflow-x: auto;
-}
-
-.manager-reports-table {
-  width: 100%;
-  border-collapse: collapse;
-}
-
-/* ---------- Tablet: form drops to 1 column ---------- */
+/* ── Responsive ──────────────────────────────────────────────────── */
 @media (max-width: 640px) {
-  .manager-report-form {
-    grid-template-columns: 1fr;
-  }
-
+  .manager-report-form { grid-template-columns: 1fr; }
 }
 
-/* ---------- Phone: table becomes stacked cards ---------- */
 @media (max-width: 720px) {
-  .manager-reports-table thead {
-    display: none;
-  }
-
+  .manager-reports-table thead { display: none; }
   .manager-reports-table,
   .manager-reports-table tbody,
   .manager-reports-table tr,
-  .manager-reports-table td {
-    display: block;
-    width: 100%;
-  }
-
+  .manager-reports-table td { display: block; width: 100%; }
   .manager-reports-table tr {
-    border: 1px solid #dce3e6;
-    border-radius: 8px;
-    padding: 10px 12px;
+    border: 1px solid rgba(0,119,182,0.10);
+    border-radius: 18px;
+    padding: 12px 16px;
     margin-bottom: 12px;
     background: #fff;
   }
-
   .manager-reports-table td {
     display: flex;
     justify-content: space-between;
@@ -229,40 +258,14 @@
     border: none;
     text-align: right;
   }
-
   .manager-reports-table td::before {
     content: attr(data-label);
     font-weight: 600;
     font-size: 0.78rem;
-    color: #5b6b73;
+    color: #7a96a4;
     text-align: left;
     flex-shrink: 0;
   }
-
-  .manager-reports-table td[colspan] {
-    text-align: center;
-    justify-content: center;
-  }
-
-  .manager-reports-table td[colspan]::before {
-    content: none;
-  }
-}
-
-@media (max-width: 400px) {
-  .badge-ready,
-  .badge-pending {
-    font-size: 0.78rem;
-    padding: 2px 8px;
-  }
-
-  .manager-reports-table td {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 2px;
-  }
-
-  .manager-reports-table td::before {
-    text-align: left;
-  }
+  .manager-reports-table td[colspan] { text-align: center; justify-content: center; }
+  .manager-reports-table td[colspan]::before { content: none; }
 }

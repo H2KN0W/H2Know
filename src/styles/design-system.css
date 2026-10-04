@@ -1,0 +1,265 @@
+/* ═══════════════════════════════════════════════════════════════
+   H2KNOW — Design System
+   Bento · SaaS · Soft Premium
+
+   Import this file ONCE (in main.jsx or index.css).
+   All existing color variables are kept; this layer adds
+   the typography, radius, spacing, and shape tokens for the
+   bento-SaaS restyle without breaking anything.
+═══════════════════════════════════════════════════════════════ */
+
+@import url("https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&display=swap");
+
+/* ── Global token overrides ── */
+:root {
+  /* Typography */
+  --ds-font-display: "Poppins", "Inter", sans-serif;
+  --ds-font-body: "Inter", sans-serif;
+  --ds-font-data: ui-monospace, "JetBrains Mono", Menlo, Consolas, monospace;
+
+  /* Override the existing font vars to use Poppins headings */
+  --font-display: var(--ds-font-display);
+  --font-body: var(--ds-font-body);
+
+  /* Radii */
+  --ds-radius-xs:  8px;
+  --ds-radius-sm:  12px;
+  --ds-radius-md:  18px;
+  --ds-radius-lg:  24px;
+  --ds-radius-xl:  32px;
+  --ds-radius-pill: 999px;
+
+  /* Shadows — soft, layered, airy */
+  --ds-shadow-card:  0 1px 3px rgba(10, 46, 61, 0.04),
+                     0 8px 24px rgba(0, 119, 182, 0.07);
+  --ds-shadow-hover: 0 4px 8px rgba(10, 46, 61, 0.06),
+                     0 16px 36px rgba(0, 119, 182, 0.12);
+  --ds-shadow-hero:  0 8px 32px rgba(12, 76, 124, 0.28);
+
+  /* Spacing scale (8px grid) */
+  --ds-space-1: 4px;
+  --ds-space-2: 8px;
+  --ds-space-3: 12px;
+  --ds-space-4: 16px;
+  --ds-space-5: 20px;
+  --ds-space-6: 24px;
+  --ds-space-8: 32px;
+
+  /* Motion */
+  --ds-ease: cubic-bezier(0.4, 0, 0.2, 1);
+  --ds-fast: 150ms var(--ds-ease);
+  --ds-base: 220ms var(--ds-ease);
+}
+
+/* ── Base reset upgrades ── */
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+body {
+  font-family: var(--ds-font-body);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* ── Shared bento card ── */
+.ds-card {
+  background: #ffffff;
+  border-radius: var(--ds-radius-lg);
+  box-shadow: var(--ds-shadow-card);
+  border: 1px solid rgba(0, 119, 182, 0.08);
+  transition: box-shadow var(--ds-base), transform var(--ds-base);
+}
+
+.ds-card:hover {
+  box-shadow: var(--ds-shadow-hover);
+}
+
+/* ── Hero card (gradient fill) ── */
+.ds-hero-card {
+  background: linear-gradient(135deg, #0C4C7C 0%, #0d6eaf 55%, #1a8abf 100%);
+  border-radius: var(--ds-radius-xl);
+  box-shadow: var(--ds-shadow-hero);
+  color: #ffffff;
+  border: none;
+}
+
+/* ── Pill button ── */
+.ds-btn-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 9px 20px;
+  border-radius: var(--ds-radius-pill);
+  font-family: var(--ds-font-body);
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  transition: transform var(--ds-fast), box-shadow var(--ds-fast), filter var(--ds-fast);
+}
+
+.ds-btn-pill-primary {
+  background: linear-gradient(135deg, #0C4C7C, #1178b5);
+  color: #ffffff;
+  box-shadow: 0 4px 14px rgba(12, 76, 124, 0.3);
+}
+
+.ds-btn-pill-primary:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(12, 76, 124, 0.38);
+  filter: brightness(1.05);
+}
+
+.ds-btn-pill-ghost {
+  background: rgba(12, 76, 124, 0.07);
+  color: #0C4C7C;
+  border: 1px solid rgba(12, 76, 124, 0.15);
+}
+
+.ds-btn-pill-ghost:hover:not(:disabled) {
+  background: rgba(12, 76, 124, 0.12);
+}
+
+/* ── Pill badge ── */
+.ds-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 10px;
+  border-radius: var(--ds-radius-pill);
+  font-size: 0.69rem;
+  font-weight: 600;
+  font-family: var(--ds-font-body);
+  letter-spacing: 0.02em;
+}
+
+.ds-badge-positive { background: #e3f7ea; color: #1a9e5c; }
+.ds-badge-warning  { background: #fff2d9; color: #b3760a; }
+.ds-badge-danger   { background: #fdecec; color: #d64545; }
+.ds-badge-neutral  { background: #e8f4fb; color: #0077b6; }
+
+/* ── Icon chip ── */
+.ds-icon-chip {
+  width: 40px;
+  height: 40px;
+  border-radius: var(--ds-radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  background: rgba(12, 76, 124, 0.08);
+  color: #0C4C7C;
+}
+
+/* ── Pill progress bar ── */
+.ds-progress-track {
+  height: 6px;
+  border-radius: var(--ds-radius-pill);
+  background: rgba(12, 76, 124, 0.10);
+  overflow: hidden;
+}
+
+.ds-progress-fill {
+  height: 100%;
+  border-radius: var(--ds-radius-pill);
+  background: linear-gradient(90deg, #0C4C7C, #1a8abf);
+  transition: width 0.4s var(--ds-ease);
+}
+
+/* ── Table polish ── */
+.ds-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.82rem;
+  font-family: var(--ds-font-body);
+}
+
+.ds-table thead th {
+  padding: 10px 14px;
+  text-align: left;
+  font-size: 0.69rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: #7a96a4;
+  border-bottom: 1px solid rgba(0, 119, 182, 0.1);
+  white-space: nowrap;
+}
+
+.ds-table tbody td {
+  padding: 13px 14px;
+  border-bottom: 1px solid rgba(0, 119, 182, 0.07);
+  color: #173042;
+}
+
+.ds-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.ds-table tbody tr {
+  transition: background var(--ds-fast);
+  border-radius: var(--ds-radius-sm);
+}
+
+.ds-table tbody tr:hover {
+  background: rgba(0, 119, 182, 0.04);
+}
+
+/* ── Percent change pill ── */
+.ds-change-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 2px 8px;
+  border-radius: var(--ds-radius-pill);
+  font-size: 0.68rem;
+  font-weight: 600;
+}
+
+.ds-change-up   { background: #e3f7ea; color: #1a9e5c; }
+.ds-change-down { background: #fdecec; color: #d64545; }
+
+/* ── Tab underline indicator ── */
+.ds-tabs {
+  display: flex;
+  gap: 4px;
+  border-bottom: 1px solid rgba(0, 119, 182, 0.12);
+}
+
+.ds-tab {
+  padding: 10px 16px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #7a96a4;
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  cursor: pointer;
+  transition: color var(--ds-fast), border-color var(--ds-fast);
+  margin-bottom: -1px;
+}
+
+.ds-tab.active, .ds-tab:hover {
+  color: #0C4C7C;
+}
+
+.ds-tab.active {
+  border-bottom-color: #0C4C7C;
+}
+
+/* ── Smooth spin utility ── */
+@keyframes ds-spin {
+  to { transform: rotate(360deg); }
+}
+
+.ds-spin {
+  animation: ds-spin 0.8s linear infinite;
+}
+
+/* ── Pulse ring utility ── */
+@keyframes ds-pulse-ring {
+  0%   { transform: scale(0.7); opacity: 0.8; }
+  100% { transform: scale(1.9); opacity: 0; }
+}
