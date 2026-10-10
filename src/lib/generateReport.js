@@ -4,52 +4,41 @@ import autoTable from "jspdf-autotable";
 import { Chart } from "chart.js/auto";
 
 const formatDateTime = (value) => {
-  if (!value) return "—";
+  if (!value) return "\u2014";
   const d = new Date(value);
   const pad = (n) => String(n).padStart(2, "0");
   return `${pad(d.getMonth() + 1)}/${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
 };
 
-// Renders a line chart (all readings across selected dates) to a PNG data URL
-const renderChartImage = async (readings, paramNames, parameterMap) => {
+const renderSingleChart = async (readings, paramName, parameterMap) => {
   const canvas = document.createElement("canvas");
   canvas.width = 900;
   canvas.height = 450;
   document.body.appendChild(canvas);
 
-  // Group readings by parameter for chart datasets
-  const colors = ["#2563eb", "#16a34a", "#dc2626", "#d97706", "#7c3aed", "#0891b2"];
+  const paramId = Object.entries(parameterMap).find(([, n]) => n === paramName)?.[0];
+  const sorted = readings
+    .filter((r) => (paramId ? r.parameter_id === paramId : true))
+    .sort((a, b) => new Date(a.recorded_at) - new Date(b.recorded_at));
 
-  // Build data points sorted by time
-  const sortedReadings = [...readings].sort(
-    (a, b) => new Date(a.recorded_at) - new Date(b.recorded_at)
-  );
-
-  // Create a single timeline dataset per parameter
-  const datasets = paramNames.map((name, i) => {
-    const paramId = Object.entries(parameterMap).find(([, n]) => n === name)?.[0];
-    const points = sortedReadings
-      .filter((r) => (paramId ? r.parameter_id === paramId : true))
-      .map((r) => ({
-        x: new Date(r.recorded_at).getTime(),
-        y: Number(r.value),
-      }));
-    return {
-      label: name,
-      data: points,
-      borderColor: colors[i % colors.length],
-      backgroundColor: colors[i % colors.length],
-      tension: 0.3,
-      pointRadius: 3,
-      pointBackgroundColor: colors[i % colors.length],
-      fill: false,
-    };
-  });
+  const points = sorted.map((r) => ({
+    x: new Date(r.recorded_at).getTime(),
+    y: Number(r.value),
+  }));
 
   const chart = new Chart(canvas, {
     type: "line",
     data: {
-      datasets,
+      datasets: [{
+        label: paramName,
+        data: points,
+        borderColor: "#2563eb",
+        backgroundColor: "#2563eb",
+        tension: 0.3,
+        pointRadius: 3,
+        pointBackgroundColor: "#2563eb",
+        fill: false,
+      }],
     },
     options: {
       responsive: false,
@@ -83,10 +72,7 @@ const renderChartImage = async (readings, paramNames, parameterMap) => {
           },
           title: { display: true, text: "Date / Time" },
         },
-        y: {
-          beginAtZero: true,
-          title: { display: true, text: "Value" },
-        },
+        y: { beginAtZero: true, title: { display: true, text: "Value" } },
       },
     },
   });
@@ -105,7 +91,7 @@ const calculateInsights = (readings, paramNames, parameterMap) => {
     const paramReadings = readings.filter((r) => (paramId ? r.parameter_id === paramId : true));
     const values = paramReadings.map((r) => Number(r.value)).filter((v) => !isNaN(v));
     if (values.length === 0) {
-      stats[name] = { count: 0, avg: "—", min: "—", max: "—" };
+      stats[name] = { count: 0, avg: "\u2014", min: "\u2014", max: "\u2014" };
     } else {
       stats[name] = {
         count: values.length,
@@ -118,43 +104,50 @@ const calculateInsights = (readings, paramNames, parameterMap) => {
   return stats;
 };
 
-const buildPdf = async (form, readings, paramNames, parameterMap, chartImage) => {
+const buildPdf = async (form, readings, paramNames, parameterMap) => {
   const doc = new jsPDF();
-  doc.setFontSize(16);
-  doc.text(form.name, 14, 18);
-  doc.setFontSize(10);
-  doc.text(`Range: ${form.startDate} to ${form.endDate}`, 14, 26);
-  doc.text(`Parameters: ${paramNames.join(", ")}`, 14, 32);
-  doc.setFontSize(9);
-  const insights = calculateInsights(readings, paramNames, parameterMap);
-  doc.text(`Total readings: ${readings.length} | Range: ${form.startDate} to ${form.endDate}`, 14, 39);
-  let insightY = 46;
-  for (const [name, s] of Object.entries(insights)) {
-    doc.text(`${name}: ${s.count} readings | avg ${s.avg} | min ${s.min} | max ${s.max}`, 14, insightY);
-    insightY += 6;
+
+  for (let i = 0; i < paramNames.length; i++) {
+    const paramName = paramNames[i];
+    if (i > 0) doc.addPage();
+
+    doc.setFontSize(16);
+    doc.text(form.name, 14, 18);
+    doc.setFontSize(12);
+    doc.text(`Parameter: ${paramName}`, 14, 28);
+    doc.setFontSize(10);
+    doc.text(`Range: ${form.startDate} to ${form.endDate}`, 14, 36);
+
+    const paramId = Object.entries(parameterMap).find(([, n]) => n === paramName)?.[0];
+    const paramReadings = readings.filter((r) => (paramId ? r.parameter_id === paramId : true));
+
+    const insights = calculateInsights(paramReadings, [paramName], parameterMap);
+    const s = insights[paramName] || { count: 0, avg: "\u2014", min: "\u2014", max: "\u2014" };
+    doc.setFontSize(9);
+    doc.text(`Readings: ${s.count} | Avg: ${s.avg} | Min: ${s.min} | Max: ${s.max}`, 14, 44);
+
+    const chartImage = paramReadings.length > 0 ? await renderSingleChart(readings, paramName, parameterMap) : null;
+    if (chartImage) doc.addImage(chartImage, "PNG", 14, 52, 180, 90);
+
+    const tableBody = paramReadings.map((row) => {
+      const dtStr = formatDateTime(row.recorded_at);
+      const parts = dtStr.includes(" ") ? dtStr.split(" ") : [dtStr, dtStr];
+      return [
+        parts[0],
+        parts[1],
+        paramName,
+        String(row.value ?? ""),
+      ];
+    });
+
+    autoTable(doc, {
+      startY: chartImage ? 148 : 52,
+      head: [["Date", "Time", "Parameter", "Value"]],
+      body: tableBody,
+      styles: { fontSize: 8 },
+      headStyles: { fillColor: [37, 99, 235] },
+    });
   }
-
-  if (chartImage) doc.addImage(chartImage, "PNG", 14, insightY + 4, 180, 90);
-
-  const tableBody = readings.map((row) => {
-    const paramName = parameterMap[row.parameter_id] || "Unknown";
-    const dtStr = formatDateTime(row.recorded_at);
-    const parts = dtStr.includes(" ") ? dtStr.split(" ") : [dtStr, dtStr];
-    return [
-      parts[0],
-      parts[1],
-      paramName,
-      String(row.value ?? ""),
-    ];
-  });
-
-  autoTable(doc, {
-    startY: chartImage ? insightY + 10 + 90 : insightY + 10,
-    head: [["Date", "Time", "Parameter", "Value"]],
-    body: tableBody,
-    styles: { fontSize: 8 },
-    headStyles: { fillColor: [37, 99, 235] },
-  });
 
   return doc.output("blob");
 };
@@ -200,8 +193,7 @@ export const generateReportFile = async ({ form, parameters, reportId }) => {
   let fileBlob;
   let extension;
   if (form.format === "pdf") {
-    const chartImage = sortedReadings.length > 0 ? await renderChartImage(sortedReadings, paramNames, parameterMap) : null;
-    fileBlob = await buildPdf(form, sortedReadings, paramNames, parameterMap, chartImage);
+    fileBlob = await buildPdf(form, sortedReadings, paramNames, parameterMap);
     extension = "pdf";
   } else {
     fileBlob = buildCsv(sortedReadings, parameterMap, paramNames);
