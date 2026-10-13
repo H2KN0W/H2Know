@@ -5,9 +5,23 @@ const CORS = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-// Dicklum River Node 1 coordinates (Manolo Fortich, Bukidnon)
-const LAT = 8.3819;
-const LON = 124.845;
+// ─── Site location (single source of truth, mirrored from src/config/siteLocation.js) ───
+// Edge functions cannot import frontend modules, so this mirror must be updated
+// together with src/config/siteLocation.js when the deployment site changes.
+const SITE_LOCATION = {
+  river: "Dicklum River",
+  barangay: "Barangay Dicklum",
+  city: "Manolo Fortich",
+  province: "Bukidnon",
+  country: "Philippines",
+  basin: "Dicklum River Basin",
+  lat: 8.3819,
+  lon: 124.845,
+};
+
+// Dicklum River Node 1 coordinates (see SITE_LOCATION above)
+const LAT = SITE_LOCATION.lat;
+const LON = SITE_LOCATION.lon;
 
 // ── Open-Meteo Forecast & Historical Rainfall ────────────────────────────────
 async function fetchWeather() {
@@ -322,9 +336,9 @@ Deno.serve(async (req) => {
     const payload = {
       generatedAt: new Date().toISOString(),
       location: {
-        name: "Dicklum River, Manolo Fortich",
-        city: "Manolo Fortich",
-        province: "Bukidnon",
+        name: `${SITE_LOCATION.river}, ${SITE_LOCATION.city}`,
+        city: SITE_LOCATION.city,
+        province: SITE_LOCATION.province,
         lat: LAT,
         lon: LON,
       },
