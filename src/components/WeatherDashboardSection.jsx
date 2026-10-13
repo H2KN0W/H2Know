@@ -1,32 +1,12 @@
 import { useMemo } from "react";
 import {
-  CloudSun,
   CloudRain,
-  Sun,
-  Cloud,
-  CloudLightning,
   Wind,
   Droplets,
   SunMedium,
   Thermometer,
-  CloudDrizzle,
 } from "lucide-react";
-
-/**
- * Interpret WMO Weather Code
- */
-export function getWeatherCondition(code) {
-  if (code == null) return { label: "Partly Cloudy", icon: CloudSun };
-  if (code === 0) return { label: "Clear Sky", icon: Sun };
-  if (code === 1 || code === 2) return { label: "Partly Cloudy", icon: CloudSun };
-  if (code === 3) return { label: "Overcast", icon: Cloud };
-  if (code >= 45 && code <= 48) return { label: "Foggy", icon: Cloud };
-  if (code >= 51 && code <= 55) return { label: "Drizzle", icon: CloudDrizzle };
-  if (code >= 61 && code <= 65) return { label: "Rain Showers", icon: CloudRain };
-  if (code >= 80 && code <= 82) return { label: "Heavy Rain", icon: CloudRain };
-  if (code >= 95) return { label: "Thunderstorm", icon: CloudLightning };
-  return { label: "Scattered Clouds", icon: CloudSun };
-}
+import { getWeatherCondition } from "../lib/weatherCondition";
 
 /**
  * WeatherDashboardSection
@@ -34,7 +14,7 @@ export function getWeatherCondition(code) {
  * - Left blue hero card: City, big temp, condition, skyline artwork silhouette
  * - Right grid cards: Hourly trend graph + rounded metric cards (Humidity, Wind gauge, UV Index, Feels like, Chance of rain)
  */
-export default function WeatherDashboardSection({ weatherData, loading }) {
+export default function WeatherDashboardSection({ weatherData }) {
   const current = weatherData?.currentWeather;
   const hourly = weatherData?.hourlyForecast;
   const weatherSummary = weatherData?.weatherSummary;
@@ -125,7 +105,7 @@ export default function WeatherDashboardSection({ weatherData, loading }) {
       <article className="weather-hero-card">
         <div className="weather-hero-header">
           <div className="weather-hero-location">
-            <span className="weather-hero-city">Malaybalay City</span>
+            <span className="weather-hero-city">{weatherData?.location?.city || "Manolo Fortich"}</span>
             <span className="weather-hero-sub">Dicklum River Basin, Bukidnon</span>
           </div>
           <div className="weather-hero-badge">
