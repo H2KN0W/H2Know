@@ -50,8 +50,8 @@ function computeHealth({ lastSync, checkedAt, alertCount, online }) {
 }
 
 /* ─── Donut gauge (pure SVG, no new deps) ───────────────── */
-const RADIUS = 34;
-const STROKE = 7;
+const RADIUS = 30;
+const STROKE = 6;
 const CIRC = 2 * Math.PI * RADIUS;
 
 function DonutGauge({ score }) {
@@ -63,12 +63,12 @@ function DonutGauge({ score }) {
   const filled = (score / 100) * CIRC;
 
   return (
-    <svg width={90} height={90} viewBox="0 0 90 90" aria-label={`Health score: ${score}`} role="img">
+    <svg width={76} height={76} viewBox="0 0 76 76" aria-label={`Health score: ${score}`} role="img">
       {/* Track */}
-      <circle cx={45} cy={45} r={RADIUS} fill="none" stroke="rgba(0,0,0,0.07)" strokeWidth={STROKE} />
+      <circle cx={38} cy={38} r={RADIUS} fill="none" stroke="rgba(0,0,0,0.07)" strokeWidth={STROKE} />
       {/* Arc — starts at 12 o'clock (offset = CIRC/4) */}
       <circle
-        cx={45} cy={45} r={RADIUS}
+        cx={38} cy={38} r={RADIUS}
         fill="none"
         stroke={color}
         strokeWidth={STROKE}
@@ -78,13 +78,13 @@ function DonutGauge({ score }) {
         style={{ transition: "stroke-dasharray 0.55s cubic-bezier(0.4,0,0.2,1)" }}
       />
       {/* Score */}
-      <text x={45} y={41} textAnchor="middle" dominantBaseline="middle"
-        fontSize={19} fontWeight={800} fontFamily="'Poppins','Inter',sans-serif" fill={color}>
+      <text x={38} y={35} textAnchor="middle" dominantBaseline="middle"
+        fontSize={16} fontWeight={800} fontFamily="'Poppins','Inter',sans-serif" fill={color}>
         {score}
       </text>
       {/* Label */}
-      <text x={45} y={57} textAnchor="middle" dominantBaseline="middle"
-        fontSize={8} fontWeight={600} fontFamily="'Inter',sans-serif"
+      <text x={38} y={49} textAnchor="middle" dominantBaseline="middle"
+        fontSize={7} fontWeight={600} fontFamily="'Inter',sans-serif"
         fill="#7a96a4" letterSpacing="0.07em">
         HEALTH
       </text>
