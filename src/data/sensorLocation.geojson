@@ -9,7 +9,7 @@
       "id": 2,
       "name": "Dicklum River Node 1",
       "description": "Primary water quality monitoring station positioned along the Dicklum River. Continuously measures pH, turbidity, TDS, and water temperature.",
-      "location": "Dicklum River, Barangay Dicklum, Malaybalay City, Bukidnon",
+      "location": "Dicklum River, Barangay Dicklum, Manolo Fortich, Bukidnon",
       "photo": "/assets/img/location.jpg"
     },
     "geometry": { "type": "Point", "coordinates": [124.845041684872612, 8.381900911471508] }
