@@ -108,6 +108,10 @@
   border: 1px solid rgba(0,0,0,0.20);
 }
 
+.catchment-legend-icon {
+  flex-shrink: 0;
+}
+
 .catchment-legend-divider {
   height: 1px;
   background: rgba(0,119,182,0.10);
@@ -161,7 +165,7 @@
   background: #1178b5;
 }
 
-/* â”€â”€ Interactive Red Sensor Marker & Popup Card â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ── Interactive Red Sensor Marker ──────────────────────────────── */
 .sensor-marker-icon {
   background: transparent;
   border: none;
@@ -173,45 +177,152 @@
   background: #d62828;
   border: 3px solid #ffffff;
   border-radius: 50%;
-  box-shadow: 0 2px 8px rgba(214,40,40,0.55), 0 0 0 2px rgba(214,40,40,0.3);
+  box-shadow: 0 2px 8px rgba(214, 40, 40, 0.55), 0 0 0 2px rgba(214, 40, 40, 0.3);
   cursor: pointer;
   transition: transform 160ms cubic-bezier(0.4, 0, 0.2, 1), box-shadow 160ms cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .sensor-marker-dot:hover {
   transform: scale(1.3);
-  box-shadow: 0 4px 14px rgba(214,40,40,0.8), 0 0 0 4px rgba(214,40,40,0.25);
+  box-shadow: 0 4px 14px rgba(214, 40, 40, 0.8), 0 0 0 4px rgba(214, 40, 40, 0.25);
 }
 
-/* ── Sensor Map Popup card (native Leaflet bindPopup) ────────────── */
-/* Wrapper override — strip Leaflet's default padding */
-.sensor-popup-wrapper .leaflet-popup-content {
+
+/* User dropped coordinate pin */
+.custom-pin-icon {
+  background: transparent;
+  border: none;
+}
+
+.pin-marker-dot {
+  width: 16px;
+  height: 16px;
+  background: #ea580c;
+  border: 2.5px solid #ffffff;
+  border-radius: 50%;
+  box-shadow: 0 2px 8px rgba(234, 88, 12, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: pin-drop 220ms ease-out;
+}
+
+.pin-marker-inner {
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: #ffffff;
+}
+
+@keyframes pin-drop {
+  from { transform: translateY(-8px) scale(0.6); opacity: 0; }
+  to { transform: translateY(0) scale(1); opacity: 1; }
+}
+
+/* ── Modern Sensor Map Popup card (Leaflet bindPopup) ────────────── */
+.sensor-popup-wrapper .leaflet-popup-content-wrapper,
+.coord-popup-wrapper .leaflet-popup-content-wrapper {
+  padding: 0;
+  border-radius: 18px;
+  overflow: hidden;
+  box-shadow: 0 8px 30px rgba(10, 46, 61, 0.16), 0 2px 8px rgba(10, 46, 61, 0.08);
+  border: 1px solid rgba(0, 119, 182, 0.12);
+  background: #ffffff;
+}
+
+.sensor-popup-wrapper .leaflet-popup-content,
+.coord-popup-wrapper .leaflet-popup-content {
   margin: 0;
   padding: 0;
+  line-height: 1.4;
+}
+
+.sensor-popup-wrapper .leaflet-popup-tip-container,
+.coord-popup-wrapper .leaflet-popup-tip-container {
+  margin-top: -1px;
+}
+
+.sensor-popup-wrapper .leaflet-popup-tip,
+.coord-popup-wrapper .leaflet-popup-tip {
+  background: #ffffff;
+  box-shadow: 0 4px 12px rgba(10, 46, 61, 0.10);
 }
 
 .sensor-map-popup {
-  width: 260px;
+  width: 275px;
   font-family: "Inter", sans-serif;
   font-size: 0.80rem;
   color: #0a2e3d;
   overflow: hidden;
-  border-radius: 12px;
+}
+
+.smp-photo-wrap {
+  position: relative;
+  width: 100%;
+  height: 120px;
+  background: #0f172a;
+  overflow: hidden;
+  cursor: pointer;
 }
 
 .smp-photo {
   display: block;
   width: 100%;
-  height: 120px;
+  height: 100%;
   object-fit: cover;
-  border-bottom: 1px solid rgba(0,119,182,0.10);
+  transition: transform 300ms ease;
+}
+
+.smp-photo-wrap:hover .smp-photo {
+  transform: scale(1.04);
+}
+
+.smp-photo-tag {
+  position: absolute;
+  bottom: 8px;
+  left: 10px;
+  background: rgba(10, 46, 61, 0.75);
+  backdrop-filter: blur(6px);
+  color: #ffffff;
+  font-size: 0.67rem;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.smp-photo-expand-btn {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: rgba(10, 46, 61, 0.72);
+  backdrop-filter: blur(6px);
+  color: #ffffff;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: 999px;
+  padding: 3px 8px;
+  font-size: 0.65rem;
+  font-weight: 600;
+  cursor: pointer;
+  opacity: 0.85;
+  transition: all 180ms ease;
+  z-index: 2;
+}
+
+.smp-photo-wrap:hover .smp-photo-expand-btn {
+  opacity: 1;
+  background: rgba(2, 132, 199, 0.88);
+  transform: scale(1.04);
 }
 
 .smp-body {
-  padding: 10px 12px 12px;
+  padding: 12px 14px 14px;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 8px;
 }
 
 .smp-header {
@@ -222,27 +333,37 @@
 }
 
 .smp-name {
-  font-family: "Poppins","Inter",sans-serif;
-  font-size: 0.88rem;
+  font-family: "Poppins", "Inter", sans-serif;
+  font-size: 0.92rem;
   font-weight: 700;
   color: #0a2e3d;
   line-height: 1.2;
 }
 
 .smp-status {
-  font-size: 0.68rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.67rem;
   font-weight: 600;
   border-radius: 999px;
-  padding: 2px 8px;
+  padding: 2px 9px;
   white-space: nowrap;
 }
 
-.smp-status.online  { background: rgba(26,158,92,0.12); color: #1a9e5c; }
-.smp-status.offline { background: rgba(214,69,69,0.10); color: #d64545; }
+.smp-status-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.smp-status.online  { background: rgba(22, 163, 74, 0.12); color: #16a34a; }
+.smp-status.offline { background: rgba(220, 38, 38, 0.10); color: #dc2626; }
 
 .smp-desc {
   margin: 0;
-  font-size: 0.74rem;
+  font-size: 0.73rem;
   color: #5b7c88;
   line-height: 1.45;
 }
@@ -250,23 +371,182 @@
 .smp-table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 0.74rem;
+  font-size: 0.73rem;
 }
 
-.smp-table tr + tr td { border-top: 1px solid rgba(0,119,182,0.08); }
-.smp-table td { padding: 3px 0; vertical-align: top; }
+.smp-table tr + tr td { border-top: 1px solid rgba(0, 119, 182, 0.08); }
+.smp-table td { padding: 4px 0; vertical-align: top; }
 
 .smp-param {
   color: #7a96a4;
   padding-right: 8px;
   white-space: nowrap;
   text-transform: capitalize;
+  font-size: 0.71rem;
 }
 
 .smp-val {
   font-weight: 600;
   color: #0a2e3d;
   text-align: right;
+  font-size: 0.73rem;
+}
+
+.smp-no-data {
+  color: #7a96a4;
+  font-style: italic;
+  text-align: center;
+  padding: 8px 0;
+  font-size: 0.72rem;
+}
+
+/* Action button bar inside popup (Google Maps & OpenStreetMap) */
+.smp-actions {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 8px;
+  margin-top: 4px;
+  padding-top: 8px;
+  border-top: 1px solid rgba(0, 119, 182, 0.08);
+}
+
+.smp-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  padding: 6px 10px;
+  border-radius: 8px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-decoration: none;
+  transition: all 160ms ease;
+}
+
+.smp-btn-gmaps {
+  background: #0284c7;
+  color: #ffffff !important;
+}
+
+.smp-btn-gmaps:hover {
+  background: #0369a1;
+  color: #ffffff !important;
+  box-shadow: 0 2px 8px rgba(2, 132, 199, 0.35);
+}
+
+.smp-btn-osm {
+  background: rgba(0, 119, 182, 0.08);
+  color: #0C4C7C !important;
+  border: 1px solid rgba(0, 119, 182, 0.15);
+}
+
+.smp-btn-osm:hover {
+  background: rgba(0, 119, 182, 0.16);
+  border-color: rgba(0, 119, 182, 0.3);
+}
+
+/* ── Coordinate Click-to-Pin Popup ──────────────────────────────── */
+.coord-popup {
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 220px;
+  font-family: "Inter", sans-serif;
+}
+
+.coord-header {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.70rem;
+  font-weight: 700;
+  color: #5b7c88;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.coord-pin-icon {
+  color: #ea580c;
+}
+
+.coord-value-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  background: rgba(0, 119, 182, 0.05);
+  padding: 6px 8px;
+  border-radius: 8px;
+  border: 1px solid rgba(0, 119, 182, 0.10);
+}
+
+.coord-text {
+  font-family: ui-monospace, Menlo, Consolas, monospace;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #0a2e3d;
+}
+
+.coord-copy-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: #ffffff;
+  border: 1px solid rgba(0, 119, 182, 0.20);
+  border-radius: 6px;
+  padding: 3px 7px;
+  font-size: 0.68rem;
+  font-weight: 600;
+  color: #0C4C7C;
+  cursor: pointer;
+  transition: all 140ms ease;
+}
+
+.coord-copy-btn:hover {
+  background: #0C4C7C;
+  color: #ffffff;
+  border-color: #0C4C7C;
+}
+
+.coord-actions {
+  display: flex;
+  gap: 6px;
+  margin-top: 2px;
+}
+
+.coord-map-link {
+  flex: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 5px 8px;
+  border-radius: 6px;
+  font-size: 0.68rem;
+  font-weight: 600;
+  text-decoration: none;
+  transition: all 140ms ease;
+}
+
+.coord-gmaps {
+  background: #0284c7;
+  color: #ffffff !important;
+}
+
+.coord-gmaps:hover {
+  background: #0369a1;
+  color: #ffffff !important;
+}
+
+.coord-osm {
+  background: rgba(0, 119, 182, 0.08);
+  color: #0C4C7C !important;
+  border: 1px solid rgba(0, 119, 182, 0.15);
+}
+
+.coord-osm:hover {
+  background: rgba(0, 119, 182, 0.16);
 }
 
 /* ── SensorHealthGauge card (shg-* classes - compacted for high visibility) ── */
@@ -389,3 +669,251 @@
     border-radius: 12px;
   }
 }
+
+/* ── Photo Lightbox Modal with Smooth Zoom & Pan ──────────────────── */
+.map-photo-lightbox-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 99999;
+  background: rgba(5, 18, 25, 0.85);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  animation: lb-fade-in 180ms ease-out;
+}
+
+.map-photo-lightbox-modal {
+  position: relative;
+  width: 100%;
+  max-width: 920px;
+  max-height: 90vh;
+  background: #0f172a;
+  border-radius: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.7), 0 0 0 1px rgba(255, 255, 255, 0.08);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  animation: lb-zoom-in 220ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes lb-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes lb-zoom-in {
+  from {
+    opacity: 0;
+    transform: scale(0.94) translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.map-lightbox-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 20px;
+  background: rgba(15, 23, 42, 0.95);
+  backdrop-filter: blur(8px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  z-index: 10;
+}
+
+.map-lightbox-title-group {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.map-lightbox-title {
+  font-family: "Poppins", "Inter", sans-serif;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #ffffff;
+  margin: 0;
+  line-height: 1.25;
+}
+
+.map-lightbox-location {
+  font-size: 0.75rem;
+  color: #94a3b8;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.map-lightbox-pin {
+  color: #38bdf8;
+  flex-shrink: 0;
+}
+
+.map-lightbox-close-btn {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 50%;
+  width: 34px;
+  height: 34px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #ffffff;
+  cursor: pointer;
+  transition: all 160ms ease;
+}
+
+.map-lightbox-close-btn:hover {
+  background: rgba(239, 68, 68, 0.85);
+  border-color: rgba(239, 68, 68, 0.95);
+  color: #ffffff;
+  transform: scale(1.06);
+}
+
+.map-lightbox-viewport {
+  position: relative;
+  width: 100%;
+  height: 520px;
+  max-height: calc(90vh - 145px);
+  background: #020617;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  user-select: none;
+}
+
+.map-lightbox-viewport.is-grabbable {
+  cursor: grab;
+}
+
+.map-lightbox-viewport.is-grabbing {
+  cursor: grabbing;
+}
+
+.map-lightbox-image {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  transform-origin: center center;
+  will-change: transform;
+  pointer-events: none;
+  user-select: none;
+}
+
+.map-lightbox-toolbar {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 20px 16px;
+  background: rgba(15, 23, 42, 0.95);
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  z-index: 10;
+}
+
+.map-lightbox-controls {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(30, 41, 59, 0.85);
+  backdrop-filter: blur(8px);
+  padding: 5px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
+}
+
+.map-lightbox-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  background: transparent;
+  border: none;
+  color: #ffffff;
+  border-radius: 999px;
+  width: 28px;
+  height: 28px;
+  cursor: pointer;
+  transition: all 140ms ease;
+}
+
+.map-lightbox-btn:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.15);
+  color: #38bdf8;
+}
+
+.map-lightbox-btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.map-lightbox-zoom-indicator {
+  background: transparent;
+  border: none;
+  color: #ffffff;
+  font-family: ui-monospace, Menlo, Consolas, monospace;
+  font-size: 0.78rem;
+  font-weight: 700;
+  padding: 0 8px;
+  cursor: pointer;
+  transition: color 140ms ease;
+  min-width: 52px;
+  text-align: center;
+}
+
+.map-lightbox-zoom-indicator:hover {
+  color: #38bdf8;
+  text-decoration: underline;
+}
+
+.map-lightbox-divider {
+  width: 1px;
+  height: 16px;
+  background: rgba(255, 255, 255, 0.18);
+  margin: 0 2px;
+}
+
+.map-lightbox-reset-btn {
+  width: auto;
+  padding: 0 10px;
+  font-size: 0.74rem;
+  font-weight: 600;
+}
+
+.map-lightbox-hint {
+  font-size: 0.68rem;
+  color: #64748b;
+  letter-spacing: 0.01em;
+  text-align: center;
+}
+
+@media (max-width: 640px) {
+  .map-photo-lightbox-overlay {
+    padding: 12px;
+  }
+  .map-photo-lightbox-modal {
+    max-height: 94vh;
+    border-radius: 16px;
+  }
+  .map-lightbox-viewport {
+    height: 380px;
+  }
+  .map-lightbox-title {
+    font-size: 0.94rem;
+  }
+  .map-lightbox-location {
+    font-size: 0.70rem;
+  }
+  .map-lightbox-hint {
+    display: none;
+  }
+}
+

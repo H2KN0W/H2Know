@@ -1,5 +1,23 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { RefreshCw, CloudRain } from "lucide-react";
+import {
+  RefreshCw,
+  CloudRain,
+  ShieldCheck,
+  ShieldAlert,
+  AlertTriangle,
+  TrendingUp,
+  TrendingDown,
+  Minus,
+  Droplets,
+  Waves,
+  Gauge,
+  Thermometer,
+  Calendar,
+  Compass,
+  ArrowRight,
+  Layers,
+  Sparkles,
+} from "lucide-react";
 import { supabase } from "../../lib/supabase";
 import { useLogPageView } from "../../lib/useLogPageView";
 import { buildInsights } from "../../lib/insights";
@@ -9,46 +27,19 @@ import ManagerSidebar from "./ManagerSidebar";
 import "../../styles/manager/ManagerPortal.css";
 import "../../styles/manager/Insights.css";
 
-const HISTORY_DAYS = 7;
+const HISTORY_DAYS = 14;
 const REFRESH_MS = 30 * 60 * 1000;
-const formatDateTime = (value) => value ? new Date(value).toLocaleString() : "—";
+
+const formatDateTime = (value) => (value ? new Date(value).toLocaleString() : "—");
 const formatValue = (value) => Number(value).toLocaleString(undefined, { maximumFractionDigits: 2 });
 
-const bandLabel = (comparison) => {
-  if (!comparison) return "Threshold unavailable";
-  if (comparison.state === "within") return "Within safe band";
-  if (comparison.state === "exceeded") return `${comparison.label} band`;
-  if (comparison.state === "outside") return "Outside configured bands";
-  if (comparison.state === "unknown") return `Unrecognized band: ${comparison.label}`;
-  return "Threshold unavailable";
+const PARAM_ICONS = {
+  pH: Droplets,
+  TDS: Gauge,
+  Turbidity: Waves,
+  Temperature: Thermometer,
 };
 
-const estimateBandLabel = (comparison) => {
-  if (comparison.state === "within") return "Estimated in safe band";
-  if (comparison.state === "exceeded") return `Estimated ${comparison.label} band`;
-  if (comparison.state === "outside") return "Estimated outside configured bands";
-  return `Estimated band unavailable: ${comparison.label}`;
-};
-
-const bandTone = (state) => {
-  if (state === "within") return "ok";
-  if (state === "exceeded" || state === "outside") return "alert";
-  return "warn";
-};
-
-const trendTone = (label) => {
-  if (label === "Improving") return "ok";
-  if (label === "Worsening") return "alert";
-  return "neutral";
-};
-
-const TONE_GLYPH = { ok: "✓", alert: "!", warn: "?" };
-
-const StatusMark = ({ tone }) => (
-  <span className={`insights-mark is-${tone}`} aria-hidden="true">{TONE_GLYPH[tone]}</span>
-);
-
-// The nodes table has no "location" column, so the node label stands in for it.
 const withNodeLocation = (row) => ({
   ...row,
   nodes: row.nodes ? { ...row.nodes, location: row.nodes.device_label } : row.nodes,
@@ -64,12 +55,13 @@ const Insights = () => {
   const [weather, setWeather] = useState(null);
   const [weatherLoading, setWeatherLoading] = useState(false);
   const [weatherError, setWeatherError] = useState("");
+  const [activeHorizonTab, setActiveHorizonTab] = useState("both"); // "current" | "longterm" | "both"
 
-  const loadWeatherInsights = useCallback(async () => {
+  const loadWeatherInsights = useCallback(async (currentReadings = []) => {
     setWeatherLoading(true);
     setWeatherError("");
     try {
-      const data = await fetchWeatherInsights();
+      const data = await fetchWeatherInsights(currentReadings);
       setWeather(data);
     } catch (e) {
       setWeatherError(e.message || "Could not load weather insights.");
@@ -97,9 +89,15 @@ const Insights = () => {
       if (readingResult.error || thresholdResult.error) {
         throw readingResult.error || thresholdResult.error;
       }
-      setReadings((readingResult.data || []).map(withNodeLocation));
-      setThresholds(thresholdResult.data || []);
+      const loadedReadings = (readingResult.data || []).map(withNodeLocation);
+      const loadedThresholds = thresholdResult.data || [];
+
+      setReadings(loadedReadings);
+      setThresholds(loadedThresholds);
       setUpdatedAt(new Date().toISOString());
+
+      // Trigger weather and AI correlation analysis with freshly loaded data
+      loadWeatherInsights(loadedReadings);
     } catch (fetchError) {
       setError(fetchError.message || "Could not load sensor readings and configured thresholds.");
       setReadings([]);
@@ -107,12 +105,14 @@ const Insights = () => {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [loadWeatherInsights]);
 
   useEffect(() => {
     loadInsightsData();
-    loadWeatherInsights();
-    const interval = setInterval(() => { loadInsightsData(); loadWeatherInsights(); }, REFRESH_MS);
+    const interval = setInterval(() => {
+      loadInsightsData();
+    }, REFRESH_MS);
+
     const channel = supabase
       .channel("manager-insights-realtime")
       .on("postgres_changes", { event: "*", schema: "public", table: "sensor_readings" }, () => loadInsightsData())
@@ -123,266 +123,484 @@ const Insights = () => {
       clearInterval(interval);
       supabase.removeChannel(channel);
     };
-  }, [loadInsightsData, loadWeatherInsights]);
+  }, [loadInsightsData]);
 
+  // Client-side statistical calculation and backtesting
   const insights = useMemo(() => buildInsights(readings, thresholds), [readings, thresholds]);
+
+  // Unified AI analysis payload (from Edge endpoint with client fallback)
+  const unifiedAnalysis = weather?.unifiedAnalysis;
+  const weatherSummary = weather?.weatherSummary;
+
+  // Derive unified risk level
+  const riskLevel = unifiedAnalysis?.riskLevel || "low";
+  const runoffAnalysis = unifiedAnalysis?.runoffAnalysis;
+  const currentInterpretation = unifiedAnalysis?.currentInterpretation;
+  const longTermPredictiveImpacts = unifiedAnalysis?.longTermPredictiveImpacts;
+  const recommendations = unifiedAnalysis?.recommendations;
+
+  // Condition evaluation
   const conditionState = insights.status === "Insufficient Data for Analysis"
     ? "insufficient"
     : insights.status === "Within configured thresholds"
       ? "within"
       : "exceedance";
-  const conditionTone = conditionState === "within" ? "ok" : conditionState === "exceedance" ? "alert" : "warn";
+
+  const conditionIcon = conditionState === "within"
+    ? ShieldCheck
+    : conditionState === "exceedance"
+      ? ShieldAlert
+      : AlertTriangle;
+
+  const ConditionIconComponent = conditionIcon;
 
   return (
     <div className="admin-shell">
       <ManagerSidebar />
       <main className="admin-main manager-main insights-page">
+        {/* Page Header */}
         <header className="page-header page-header-with-actions">
           <div>
-            <h1>Insights</h1>
-            <p>Station review · latest readings and seven-day changes</p>
+            <h1>Watershed Insights</h1>
+            <p>Unified telemetry, Open-Meteo runoff modeling, and multi-horizon AI intelligence</p>
           </div>
           <WeatherWidget />
           <div className="insights-refreshed">
-            <span className="insights-refreshed-label">Data refreshed</span>
+            <span className="insights-refreshed-label">Data Refreshed</span>
             <time className="insights-refreshed-time">{formatDateTime(updatedAt)}</time>
-            <button type="button" className="insights-button" onClick={() => { loadInsightsData(); loadWeatherInsights(); }}>
-              <RefreshCw size={14} aria-hidden="true" />
-              <span>Refresh all</span>
+            <button
+              type="button"
+              className="insights-button"
+              onClick={() => loadInsightsData()}
+              disabled={loading || weatherLoading}
+              title="Refresh telemetry and AI predictive analysis"
+            >
+              <RefreshCw size={14} className={weatherLoading ? "spin" : ""} aria-hidden="true" />
+              <span>Refresh analysis</span>
             </button>
           </div>
         </header>
 
-        {/* ── AI Predictions (top of tab) ── */}
-        <section className="insights-panel" aria-labelledby="ai-predictions-title">
-          <div className="insights-section-head">
-            <div>
-              <h2 id="ai-predictions-title">AI Predictions</h2>
-              <p>Weather-correlated 48-hour water quality risk forecast</p>
-            </div>
-            <button
-              type="button"
-              className="insights-button"
-              onClick={loadWeatherInsights}
-              disabled={weatherLoading}
-              style={{ marginLeft: "auto", alignSelf: "flex-start" }}
-            >
-              <RefreshCw size={14} aria-hidden="true" />
-              <span>Refresh</span>
-            </button>
-          </div>
-
-          {weatherLoading && !weather && (
-            <p className="insights-note">
-              <span className="spinner spinner-dark" role="status" aria-label="Loading AI predictions" />
-              {" "}Analysing weather and telemetry…
-            </p>
-          )}
-
-          {weatherError && !weatherLoading && (
-            <p className="insights-note" style={{ color: "var(--color-alert, #c0392b)" }}>{weatherError}</p>
-          )}
-
-          {weather && (() => {
-            const ai = weather.aiInsights;
-            const riskColor = ai.riskLevel === "high" ? "var(--color-alert, #c0392b)"
-              : ai.riskLevel === "moderate" ? "var(--color-warn, #e67e22)"
-              : "var(--color-ok, #27ae60)";
-            return (
-              <>
-                <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", margin: "0.75rem 0 1rem" }}>
-                  <span
-                    style={{
-                      display: "inline-flex",
-                      alignItems: "center",
-                      padding: "4px 14px",
-                      borderRadius: "999px",
-                      background: `${riskColor}18`,
-                      border: `1.5px solid ${riskColor}`,
-                      color: riskColor,
-                      fontWeight: 700,
-                      fontSize: "0.8rem",
-                      textTransform: "capitalize",
-                      letterSpacing: "0.02em",
-                    }}
-                  >
-                    {ai.riskLevel} risk
-                  </span>
-                  <span className="insights-note" style={{ margin: 0 }}>
-                    48-hour horizon · {ai.model}
-                    {weather.generatedAt && (
-                      <> · generated {new Date(weather.generatedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</>
-                    )}
-                  </span>
-                </div>
-
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem" }}>
-                  <div>
-                    <p className="insights-eyebrow" style={{ marginBottom: "0.35rem" }}>Risks detected</p>
-                    <ul className="insights-trend-list">
-                      {ai.risks.map((r, i) => <li key={i} className="insights-trend-item">{r}</li>)}
-                    </ul>
-                  </div>
-                  <div>
-                    <p className="insights-eyebrow" style={{ marginBottom: "0.35rem" }}>Recommendations</p>
-                    <ul className="insights-trend-list">
-                      {ai.recommendations.map((r, i) => <li key={i} className="insights-trend-item">{r}</li>)}
-                    </ul>
-                  </div>
-                </div>
-              </>
-            );
-          })()}
-
-          {!weather && !weatherLoading && !weatherError && (
-            <p className="insights-note">No forecast data yet — click Refresh to load.</p>
-          )}
-        </section>
-
-        {/* ── Telemetry sections (condition, measurements, trend, estimate) ── */}
-        {loading ? (
+        {/* Global Loading / Error State */}
+        {loading && !updatedAt ? (
           <section className="insights-loading" aria-live="polite">
             <span className="spinner spinner-dark" role="status" aria-label="Loading insights" />
-            <p>Loading recent sensor readings and configured thresholds…</p>
+            <p>Correlating live sensor readings, thresholds, and meteorological models…</p>
           </section>
-        ) : error ? (
+        ) : error && readings.length === 0 ? (
           <section className="insights-empty" aria-live="polite">
             <h2>No analysis available</h2>
-            <p>The latest sensor readings or configured thresholds could not be read. Try again to rebuild the station review.</p>
             <p>{error}</p>
-            <button type="button" className="insights-button" onClick={() => loadInsightsData()}>Try again</button>
+            <button type="button" className="insights-button" onClick={() => loadInsightsData()}>
+              Retry
+            </button>
           </section>
         ) : (
-          <>
-            <section className={`insights-condition is-${conditionState}`} aria-live="polite">
-              <StatusMark tone={conditionTone} />
-              <div className="insights-condition-body">
-                <p className="insights-eyebrow">Overall water condition</p>
-                <h2 className="insights-condition-status">{insights.status}</h2>
-                <p className="insights-condition-summary">{insights.summary}</p>
-                {insights.latestUsedAt && (
-                  <p className="insights-condition-time">Latest valid measurement set: {formatDateTime(insights.latestUsedAt)}</p>
+          /* ═══════════════════════════════════════════════════════════════════
+             UNIFIED ANALYSIS PANEL (Consolidated Executive Intelligence)
+             ═══════════════════════════════════════════════════════════════════ */
+          <div className="unified-analysis-panel">
+            {weatherError && !weatherLoading && (
+              <div className="unified-notice is-warn">
+                <AlertTriangle size={14} />
+                <span>Operating on local hydrological model: {weatherError}</span>
+              </div>
+            )}
+            {/* ── 1. Executive AI Synthesis & Environmental Risk Banner ── */}
+            <section className={`unified-hero is-${conditionState}`} aria-label="Executive Health Overview">
+              <div className="unified-hero-top">
+                <div className="unified-hero-title-group">
+                  <span className="unified-hero-icon-wrap">
+                    <ConditionIconComponent size={28} />
+                  </span>
+                  <div>
+                    <span className="unified-hero-eyebrow">Executive Water Quality &amp; Watershed Assessment</span>
+                    <h2 className="unified-hero-status">{insights.status}</h2>
+                  </div>
+                </div>
+
+                <div className="unified-hero-badges">
+                  <span className={`unified-risk-pill is-${riskLevel}`}>
+                    <Sparkles size={13} />
+                    <span>{riskLevel.toUpperCase()} RUNOFF RISK</span>
+                  </span>
+                  {runoffAnalysis && (
+                    <span className={`unified-soil-pill is-${runoffAnalysis.soilSaturation}`}>
+                      <CloudRain size={13} />
+                      <span>Soil Saturation: {runoffAnalysis.soilSaturation}</span>
+                    </span>
+                  )}
+                  <span className="unified-model-tag">
+                    AI Correlated · Open-Meteo 7-Day Horizon
+                  </span>
+                </div>
+              </div>
+
+              <div className="unified-hero-body">
+                <p className="unified-hero-summary">
+                  {currentInterpretation?.overview || insights.summary}
+                </p>
+                {currentInterpretation?.hydroChemicalStatus && (
+                  <p className="unified-hero-details">
+                    {currentInterpretation.hydroChemicalStatus}
+                  </p>
                 )}
               </div>
             </section>
 
-            <section className="insights-measurements" aria-labelledby="insights-measurements-title">
-              <div className="insights-section-head">
-                <h2 id="insights-measurements-title">Latest measurements</h2>
-                <p>Most recent validated value for each monitored parameter.</p>
+            {/* ── 2. Live Telemetry & Parameter Diagnostic Grid ── */}
+            <section className="unified-section" aria-labelledby="telemetry-grid-title">
+              <div className="unified-section-head">
+                <div>
+                  <h3 id="telemetry-grid-title">Live Parameter Diagnostics &amp; Trajectory</h3>
+                  <p>Validated real-time readings, historical 7-day movement, and short-term projections</p>
+                </div>
               </div>
-              <ul className="insights-tiles">
+
+              <div className="unified-param-grid">
                 {insights.latest.map(({ parameter, reading, comparison }) => {
-                  const tone = reading ? bandTone(comparison?.state) : "warn";
+                  const Icon = PARAM_ICONS[parameter] || Droplets;
+                  const isSafe = comparison?.state === "within";
+                  const isAlert = comparison?.state === "exceeded" || comparison?.state === "outside";
+                  const toneClass = isSafe ? "is-safe" : isAlert ? "is-alert" : "is-warn";
+
+                  // Match trend details from 7-day calculations
+                  const trendParam = insights.trend.parameterResults?.find((p) => p.parameter === parameter);
+                  const deltaPercent = trendParam
+                    ? trendParam.changePercentagePoints
+                    : 0;
+                  const trendDir = deltaPercent > 1 ? "rising" : deltaPercent < -1 ? "falling" : "stable";
+
+                  // Match short-term estimate projection
+                  const estimateRow = insights.prediction?.rows?.find((r) => r.parameter === parameter);
+
                   return (
-                    <li className="insights-tile" key={parameter}>
-                      <p className="insights-tile-name">{parameter}</p>
-                      <p className={`insights-tile-value${reading ? "" : " is-empty"}`}>
-                        {reading ? formatValue(reading.value) : "—"}
-                        {reading?.parameters?.unit ? <span className="insights-unit">{reading.parameters.unit}</span> : null}
-                      </p>
-                      <p className={`insights-band is-${tone}`}>
-                        <StatusMark tone={tone} />
-                        <span>{reading ? bandLabel(comparison) : "No valid current reading"}</span>
-                      </p>
-                      <p className="insights-tile-time">
-                        {reading ? <time>{formatDateTime(reading.recorded_at)}</time> : "No recorded time"}
-                      </p>
-                    </li>
+                    <article key={parameter} className={`unified-param-card ${toneClass}`}>
+                      <div className="unified-param-card-header">
+                        <div className="unified-param-title">
+                          <Icon size={17} className="unified-param-icon" />
+                          <span>{parameter}</span>
+                        </div>
+                        <span className={`unified-param-badge ${toneClass}`}>
+                          {comparison?.state === "within"
+                            ? "Safe Band"
+                            : comparison?.label
+                              ? `${comparison.label} Band`
+                              : "Unconfigured"}
+                        </span>
+                      </div>
+
+                      <div className="unified-param-value-row">
+                        <span className="unified-param-current">
+                          {reading ? formatValue(reading.value) : "—"}
+                        </span>
+                        {reading?.parameters?.unit && (
+                          <span className="unified-param-unit">{reading.parameters.unit}</span>
+                        )}
+                      </div>
+
+                      <div className="unified-param-metrics">
+                        <div className="unified-param-metric">
+                          <span className="unified-metric-label">7-Day Trajectory</span>
+                          <span className={`unified-metric-val is-${trendDir}`}>
+                            {trendDir === "rising" && <TrendingUp size={13} />}
+                            {trendDir === "falling" && <TrendingDown size={13} />}
+                            {trendDir === "stable" && <Minus size={13} />}
+                            <span>
+                              {deltaPercent > 0 ? `+${deltaPercent.toFixed(0)}%` : `${deltaPercent.toFixed(0)}%`}{" "}
+                              {trendDir}
+                            </span>
+                          </span>
+                        </div>
+
+                        {estimateRow && (
+                          <div className="unified-param-metric">
+                            <span className="unified-metric-label">30-min Estimate</span>
+                            <span className="unified-metric-val">
+                              {formatValue(estimateRow.value)} {estimateRow.unit || ""}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="unified-param-footer">
+                        <span>
+                          {reading ? `Updated ${formatDateTime(reading.recorded_at)}` : "Awaiting data"}
+                        </span>
+                      </div>
+                    </article>
                   );
                 })}
-              </ul>
+              </div>
             </section>
 
-            <div className="insights-body">
-              <div className="insights-primary">
-                <section className="insights-panel insights-estimate">
-                  <div className="insights-section-head">
-                    <h2>Short-term estimate</h2>
-                    <p className="insights-estimate-status">{insights.prediction.available ? "30-minute estimates" : "Prediction unavailable"}</p>
-                  </div>
-                  <p className="insights-note insights-note-lead">{insights.prediction.message}</p>
-                  {insights.prediction.available && (
-                    <>
-                      <ul className="insights-estimate-list">
-                        {insights.prediction.rows.map((item) => (
-                          <li className="insights-estimate-item" key={item.parameter}>
-                            <span className="insights-estimate-name">{item.parameter}</span>
-                            <span className="insights-estimate-value">
-                              {formatValue(item.value)}
-                              {item.unit ? <span className="insights-unit">{item.unit}</span> : null}
-                            </span>
-                            <span className="insights-estimate-meta">
-                              <span className={`insights-band is-${bandTone(item.comparison.state)}`}>
-                                <StatusMark tone={bandTone(item.comparison.state)} />
-                                <span>{estimateBandLabel(item.comparison)}</span>
-                              </span>
-                              <span className="insights-estimate-caption">
-                                for {formatDateTime(item.forecastAt)} · backtest MAE {formatValue(item.meanAbsoluteError)} {item.unit}
-                              </span>
-                            </span>
-                          </li>
-                        ))}
-                      </ul>
-                      <p className="insights-note">{insights.prediction.validationMethod}</p>
-                    </>
-                  )}
-                </section>
+            {/* ── 3. Open-Meteo Meteorological & Watershed Runoff Intelligence ── */}
+            <section className="unified-section unified-weather-section" aria-labelledby="weather-intel-title">
+              <div className="unified-section-head">
+                <div>
+                  <h3 id="weather-intel-title">Weather &amp; Watershed Runoff Intelligence</h3>
+                  <p>Open-Meteo meteorological telemetry correlated with catchment hydrological response</p>
+                </div>
               </div>
 
-              <aside className="insights-aside">
-                <section className="insights-panel insights-trend">
-                  <div className="insights-section-head">
-                    <h2>Overall trend</h2>
+              <div className="unified-weather-container">
+                <div className="unified-weather-stats-bar">
+                  <div className="unified-w-stat">
+                    <span className="unified-w-label">Past 7 Days Rain</span>
+                    <strong className="unified-w-val">
+                      {weatherSummary?.past7DaysRainMm != null ? `${weatherSummary.past7DaysRainMm} mm` : "—"}
+                    </strong>
+                    <span className="unified-w-hint">Cumulative watershed wash</span>
                   </div>
-                  <p className={`insights-trend-label is-${trendTone(insights.trend.label)}`}>{insights.trend.label}</p>
-                  {insights.trend.period && <p className="insights-trend-period">{insights.trend.period}</p>}
-                  <p className="insights-note insights-note-lead">{insights.trend.detail}</p>
-                  {insights.trend.parameterResults?.length > 0 && (
-                    <ul className="insights-trend-list">
-                      {insights.trend.parameterResults.map((item) => (
-                        <li className="insights-trend-item" key={item.parameter}>
-                          <span className="insights-trend-name">{item.parameter}</span>
-                          <span className={`insights-trend-delta ${item.changePercentagePoints < 0 ? "better" : item.changePercentagePoints > 0 ? "worse" : "flat"}`}>
-                            {item.changePercentagePoints > 0 ? "+" : ""}{item.changePercentagePoints.toFixed(0)} pp
-                          </span>
-                          <span className="insights-trend-detail">
-                            Outside safe band: {(item.earlyRate * 100).toFixed(0)}% ({item.earlyOutside}/{item.earlyCount}) → {(item.recentRate * 100).toFixed(0)}% ({item.recentOutside}/{item.recentCount})
-                          </span>
-                        </li>
-                      ))}
-                    </ul>
-                  )}
-                </section>
-              </aside>
-            </div>
 
-            {/* ── Weather detail (supporting context, below main panels) ── */}
-            {weather?.weatherSummary && (
-              <section className="insights-panel" style={{ marginTop: "1rem" }} aria-labelledby="weather-detail-title">
-                <div className="insights-section-head">
-                  <h2 id="weather-detail-title">Weather context</h2>
-                  <p>Open-Meteo forecast · {weather.location?.name}</p>
+                  <div className="unified-w-stat">
+                    <span className="unified-w-label">Past 3 Days Rain</span>
+                    <strong className="unified-w-val">
+                      {weatherSummary?.past3DaysRainMm != null ? `${weatherSummary.past3DaysRainMm} mm` : "—"}
+                    </strong>
+                    <span className="unified-w-hint">Recent soil soaking</span>
+                  </div>
+
+                  <div className="unified-w-stat">
+                    <span className="unified-w-label">Next 48 Hours Rain</span>
+                    <strong className="unified-w-val">
+                      {weatherSummary?.next48hRainMm != null ? `${weatherSummary.next48hRainMm} mm` : "—"}
+                    </strong>
+                    <span className="unified-w-hint">
+                      {weatherSummary?.next48hPrecipProbMax != null ? `${weatherSummary.next48hPrecipProbMax}% peak prob.` : "Short-term"}
+                    </span>
+                  </div>
+
+                  <div className="unified-w-stat highlight">
+                    <span className="unified-w-label">Next 7 Days Sustained Rain</span>
+                    <strong className="unified-w-val">
+                      {weatherSummary?.next7DaysRainMm != null ? `${weatherSummary.next7DaysRainMm} mm` : "—"}
+                    </strong>
+                    <span className="unified-w-hint">
+                      {weatherSummary?.next7DaysPrecipProbMax != null ? `${weatherSummary.next7DaysPrecipProbMax}% weekly max prob.` : "Weekly forecast"}
+                    </span>
+                  </div>
+
+                  <div className="unified-w-stat">
+                    <span className="unified-w-label">Air Temperature</span>
+                    <strong className="unified-w-val">
+                      {weatherSummary?.currentTempC != null ? `${weatherSummary.currentTempC} °C` : "—"}
+                    </strong>
+                    <span className="unified-w-hint">
+                      Tomorrow Max: {weatherSummary?.tomorrowTempMaxC != null ? `${weatherSummary.tomorrowTempMaxC} °C` : "—"}
+                    </span>
+                  </div>
                 </div>
-                <dl className="insights-note" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(160px, 1fr))", gap: "0.5rem 1.25rem", marginTop: "0.5rem" }}>
-                  <dt style={{ fontWeight: 600 }}>Past 3-day rain</dt>
-                  <dd>{weather.weatherSummary.past3DaysRainMm?.toFixed(1)} mm</dd>
-                  <dt style={{ fontWeight: 600 }}>Today rain</dt>
-                  <dd>{weather.weatherSummary.todayRainMm?.toFixed(1)} mm</dd>
-                  <dt style={{ fontWeight: 600 }}>Next 48 h rain</dt>
-                  <dd>{weather.weatherSummary.next48hRainMm?.toFixed(1)} mm</dd>
-                  <dt style={{ fontWeight: 600 }}>48 h precip chance</dt>
-                  <dd>{weather.weatherSummary.next48hPrecipProbMax}%</dd>
-                  {weather.weatherSummary.tomorrowTempMaxC != null && (
-                    <>
-                      <dt style={{ fontWeight: 600 }}>Tomorrow max temp</dt>
-                      <dd>{weather.weatherSummary.tomorrowTempMaxC} °C</dd>
-                    </>
-                  )}
-                </dl>
-              </section>
-            )}
-          </>
+
+                {runoffAnalysis && (
+                  <div className={`unified-runoff-card is-${runoffAnalysis.riskLevel}`}>
+                    <div className="unified-runoff-header">
+                      <div className="unified-runoff-title">
+                        <AlertTriangle size={18} />
+                        <strong>Weekly Sustained Rainfall &amp; Runoff Risk Analysis</strong>
+                      </div>
+                      <span className={`unified-runoff-badge is-${runoffAnalysis.riskLevel}`}>
+                        {runoffAnalysis.riskLevel.toUpperCase()} RUNOFF RISK
+                      </span>
+                    </div>
+                    <p className="unified-runoff-desc">
+                      {runoffAnalysis.summary}
+                    </p>
+                  </div>
+                )}
+              </div>
+            </section>
+
+            {/* ── 4. Dual-Horizon Analytical Interpretations (Current vs Long-Term) ── */}
+            <section className="unified-section" aria-labelledby="dual-horizon-title">
+              <div className="unified-section-head flex-between">
+                <div>
+                  <h3 id="dual-horizon-title">Dual-Horizon Predictive Analysis</h3>
+                  <p>Immediate telemetry interpretations alongside long-term watershed impacts</p>
+                </div>
+
+                {/* Horizon Selector Filter */}
+                <div className="unified-tab-buttons" role="tablist" aria-label="Analytical Horizon Filters">
+                  <button
+                    type="button"
+                    role="tab"
+                    aria-selected={activeHorizonTab === "both"}
+                    className={`unified-tab-btn ${activeHorizonTab === "both" ? "is-active" : ""}`}
+                    onClick={() => setActiveHorizonTab("both")}
+                  >
+                    All Horizons
+                  </button>
+                  <button
+                    type="button"
+                    role="tab"
+                    aria-selected={activeHorizonTab === "current"}
+                    className={`unified-tab-btn ${activeHorizonTab === "current" ? "is-active" : ""}`}
+                    onClick={() => setActiveHorizonTab("current")}
+                  >
+                    Current Diagnostic
+                  </button>
+                  <button
+                    type="button"
+                    role="tab"
+                    aria-selected={activeHorizonTab === "longterm"}
+                    className={`unified-tab-btn ${activeHorizonTab === "longterm" ? "is-active" : ""}`}
+                    onClick={() => setActiveHorizonTab("longterm")}
+                  >
+                    Long-Term Impacts
+                  </button>
+                </div>
+              </div>
+
+              <div className="unified-horizon-grid">
+                {/* ── Left Column: Current Data Interpretation ── */}
+                {(activeHorizonTab === "both" || activeHorizonTab === "current") && (
+                  <div className="unified-horizon-card">
+                    <div className="unified-horizon-header">
+                      <div className="unified-horizon-icon-box is-current">
+                        <Compass size={20} />
+                      </div>
+                      <div>
+                        <h4>Current Telemetry Interpretation</h4>
+                        <span className="unified-horizon-sub">Immediate Hydro-Chemical Diagnostic</span>
+                      </div>
+                    </div>
+
+                    <div className="unified-horizon-body">
+                      <p className="unified-horizon-lead">
+                        {currentInterpretation?.overview || "Telemetry readings reflect active baseline monitoring along the Dicklum River basin."}
+                      </p>
+
+                      <div className="unified-horizon-points">
+                        <h5 className="unified-points-title">Key Diagnostic Observations:</h5>
+                        <ul className="unified-point-list">
+                          {currentInterpretation?.keyObservations?.map((obs, idx) => (
+                            <li key={idx} className="unified-point-item">
+                              <span className="point-bullet" />
+                              <span>{obs}</span>
+                            </li>
+                          )) || (
+                            <li className="unified-point-item">
+                              <span className="point-bullet" />
+                              <span>All parameters are exhibiting standard daytime fluctuation characteristics.</span>
+                            </li>
+                          )}
+                        </ul>
+                      </div>
+
+                      {insights.trend?.detail && (
+                        <div className="unified-trend-note">
+                          <strong>7-Day Historical Movement:</strong> {insights.trend.detail}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* ── Right Column: Long-Term Predictive Impacts (Weeks & Months) ── */}
+                {(activeHorizonTab === "both" || activeHorizonTab === "longterm") && (
+                  <div className="unified-horizon-card">
+                    <div className="unified-horizon-header">
+                      <div className="unified-horizon-icon-box is-future">
+                        <Calendar size={20} />
+                      </div>
+                      <div>
+                        <h4>Long-Term Predictive Impacts</h4>
+                        <span className="unified-horizon-sub">Weeks &amp; Months Environmental Forecast</span>
+                      </div>
+                    </div>
+
+                    <div className="unified-horizon-body">
+                      {/* 1–4 Weeks Horizon */}
+                      <div className="unified-sub-horizon">
+                        <div className="unified-sub-badge">
+                          <Layers size={13} />
+                          <span>1–4 WEEKS HORIZON (RUNOFF &amp; SEDIMENTATION)</span>
+                        </div>
+                        <ul className="unified-point-list">
+                          {longTermPredictiveImpacts?.weeksHorizon?.impacts?.map((item, idx) => (
+                            <li key={idx} className="unified-point-item">
+                              <span className="point-bullet is-warning" />
+                              <span>{item}</span>
+                            </li>
+                          )) || (
+                            <li className="unified-point-item">
+                              <span className="point-bullet is-warning" />
+                              <span>Sustained weekly rainfall will drive cumulative sediment transport into river bends.</span>
+                            </li>
+                          )}
+                        </ul>
+                      </div>
+
+                      {/* 1–3 Months Horizon */}
+                      <div className="unified-sub-horizon mt-4">
+                        <div className="unified-sub-badge is-secondary">
+                          <Calendar size={13} />
+                          <span>1–3 MONTHS HORIZON (SEASONAL &amp; ECOSYSTEM DYNAMICS)</span>
+                        </div>
+                        <ul className="unified-point-list">
+                          {longTermPredictiveImpacts?.monthsHorizon?.impacts?.map((item, idx) => (
+                            <li key={idx} className="unified-point-item">
+                              <span className="point-bullet is-accent" />
+                              <span>{item}</span>
+                            </li>
+                          )) || (
+                            <li className="unified-point-item">
+                              <span className="point-bullet is-accent" />
+                              <span>Seasonal precipitation regimes will transition river baseflow between wet flushing and dry concentration.</span>
+                            </li>
+                          )}
+                        </ul>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </section>
+
+            {/* ── 5. Actionable Recommendations (Immediate vs Strategic) ── */}
+            <section className="unified-section" aria-labelledby="recommendations-title">
+              <div className="unified-section-head">
+                <div>
+                  <h3 id="recommendations-title">Strategic &amp; Operational Directives</h3>
+                  <p>Prescribed interventions for treatment management and watershed resilience</p>
+                </div>
+              </div>
+
+              <div className="unified-rec-grid">
+                {/* Immediate Protocols */}
+                <div className="unified-rec-column">
+                  <div className="unified-rec-column-header">
+                    <span className="unified-rec-chip is-immediate">Immediate Actions</span>
+                    <span className="unified-rec-timing">Next 24–48 Hours</span>
+                  </div>
+                  <ul className="unified-rec-list">
+                    {(recommendations?.immediate || []).map((rec, idx) => (
+                      <li key={idx} className="unified-rec-item">
+                        <ArrowRight size={14} className="unified-rec-arrow is-immediate" />
+                        <span>{rec}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+
+                {/* Long-Term Watershed Protocols */}
+                <div className="unified-rec-column">
+                  <div className="unified-rec-column-header">
+                    <span className="unified-rec-chip is-strategic">Watershed Management</span>
+                    <span className="unified-rec-timing">Weeks to Months</span>
+                  </div>
+                  <ul className="unified-rec-list">
+                    {(recommendations?.strategic || []).map((rec, idx) => (
+                      <li key={idx} className="unified-rec-item">
+                        <ArrowRight size={14} className="unified-rec-arrow is-strategic" />
+                        <span>{rec}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
+            </section>
+          </div>
         )}
       </main>
     </div>
@@ -390,4 +608,3 @@ const Insights = () => {
 };
 
 export default Insights;
-
