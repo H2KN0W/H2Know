@@ -1,30 +1,41 @@
-import { Cloud, CloudRain } from "lucide-react";
+import { CloudRain } from "lucide-react";
+import { getWeatherCondition } from "../lib/weatherCondition";
 
 /**
- * Vertical Overcast Weather Card
- * Fits cleanly on the far left column alongside Catchment Map and Sensor Status.
- * Displays:
- * - City / Location
- * - Current Overcast state with big icon and temperature
- * - Mini table showing recent rainfall (past 3 days, today) and upcoming rain forecast (next 48h, max probability)
+ * Vertical Weather Card
+ * Fits on the left column of the Manager Dashboard alongside Catchment Map and Sensor Status.
+ * Fully dynamic: Reads Open-Meteo weather codes, real temperatures, live rainfall, and Manolo Fortich location.
  */
 export default function VerticalOvercastWeatherCard({ weatherData, loading }) {
   const current = weatherData?.currentWeather;
   const weatherSummary = weatherData?.weatherSummary;
+  const location = weatherData?.location;
 
-  const temp = current?.temperature_2m != null ? Math.round(current.temperature_2m) : 28;
-  const feelsLike = current?.apparent_temperature != null ? Math.round(current.apparent_temperature) : temp;
+  // Location dynamically sourced, defaulting to Manolo Fortich (Barangay Dicklum)
+  const cityName = location?.city || "Manolo Fortich";
+  const subLocation = location?.name ? "Dicklum River Basin" : "Dicklum River, Bukidnon";
+
+  // Dynamic temperature & apparent temperature from Open-Meteo
+  const temp = current?.temperature_2m != null ? Math.round(current.temperature_2m) : null;
+  const feelsLike = current?.apparent_temperature != null
+    ? Math.round(current.apparent_temperature)
+    : temp;
+
+  // Dynamic WMO weather code & condition label / icon
+  const weatherCode = current?.weather_code;
+  const condition = getWeatherCondition(weatherCode);
+  const ConditionIcon = condition.icon;
 
   const past3DaysRain = weatherSummary?.past3DaysRainMm != null
-    ? `${weatherSummary.past3DaysRainMm.toFixed(1)} mm`
+    ? `${Number(weatherSummary.past3DaysRainMm).toFixed(1)} mm`
     : "—";
 
   const todayRain = weatherSummary?.todayRainMm != null
-    ? `${weatherSummary.todayRainMm.toFixed(1)} mm`
+    ? `${Number(weatherSummary.todayRainMm).toFixed(1)} mm`
     : "—";
 
   const next48hRain = weatherSummary?.next48hRainMm != null
-    ? `${weatherSummary.next48hRainMm.toFixed(1)} mm`
+    ? `${Number(weatherSummary.next48hRainMm).toFixed(1)} mm`
     : "—";
 
   const precipProb = weatherSummary?.next48hPrecipProbMax != null
@@ -36,24 +47,28 @@ export default function VerticalOvercastWeatherCard({ weatherData, loading }) {
       <div className="voc-top">
         <div className="voc-badge">
           <span className="voc-live-dot" />
-          <span>Live Weather</span>
+          <span>{loading ? "Syncing..." : "Live Weather"}</span>
         </div>
-        <p className="voc-city">Malaybalay City</p>
-        <span className="voc-sub">Dicklum River Basin</span>
+        <p className="voc-city">{cityName}</p>
+        <span className="voc-sub">{subLocation}</span>
       </div>
 
       <div className="voc-main">
         <div className="voc-icon-wrap" aria-hidden="true">
-          <Cloud size={52} strokeWidth={1.5} className="voc-cloud-icon" />
-          <CloudRain size={26} strokeWidth={1.8} className="voc-rain-icon" />
+          <ConditionIcon size={52} strokeWidth={1.5} className="voc-cloud-icon" />
+          {(weatherCode >= 51 || (weatherSummary?.todayRainMm ?? 0) > 0) && (
+            <CloudRain size={26} strokeWidth={1.8} className="voc-rain-icon" />
+          )}
         </div>
         <div className="voc-temp-block">
           <div className="voc-temp-row">
-            <span className="voc-temp">{temp}</span>
+            <span className="voc-temp">{temp != null ? temp : "—"}</span>
             <span className="voc-deg">°C</span>
           </div>
-          <span className="voc-condition">Overcast Skies</span>
-          <span className="voc-feels">Feels like {feelsLike}°C</span>
+          <span className="voc-condition">{condition.label}</span>
+          {feelsLike != null && (
+            <span className="voc-feels">Feels like {feelsLike}°C</span>
+          )}
         </div>
       </div>
 
