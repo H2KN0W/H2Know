@@ -1,19 +1,22 @@
 import { CloudRain } from "lucide-react";
 import { getWeatherCondition } from "../lib/weatherCondition";
+import { SITE_LOCATION } from "../config/siteLocation";
 
 /**
  * Vertical Weather Card
  * Fits on the left column of the Manager Dashboard alongside Catchment Map and Sensor Status.
- * Fully dynamic: Reads Open-Meteo weather codes, real temperatures, live rainfall, and Manolo Fortich location.
+ * Location is dynamic: renders weatherData.location when present, otherwise falls
+ * back to the central SITE_LOCATION config (no hardcoded city strings).
  */
 export default function VerticalOvercastWeatherCard({ weatherData, loading }) {
   const current = weatherData?.currentWeather;
   const weatherSummary = weatherData?.weatherSummary;
   const location = weatherData?.location;
 
-  // Location dynamically sourced, defaulting to Manolo Fortich (Barangay Dicklum)
-  const cityName = location?.city || "Manolo Fortich";
-  const subLocation = location?.name ? "Dicklum River Basin" : "Dicklum River, Bukidnon";
+  // Location dynamically sourced from the insights payload, falling back to
+  // the central SITE_LOCATION config (single source of truth).
+  const cityName = location?.city || SITE_LOCATION.city;
+  const subLocation = location?.name ? SITE_LOCATION.basin : `${SITE_LOCATION.river}, ${SITE_LOCATION.province}`;
 
   // Dynamic temperature & apparent temperature from Open-Meteo
   const temp = current?.temperature_2m != null ? Math.round(current.temperature_2m) : null;
