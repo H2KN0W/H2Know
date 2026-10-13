@@ -16,6 +16,9 @@ import { useLogPageView } from "../../lib/useLogPageView";
 import ManagerSidebar from "./ManagerSidebar";
 import CatchmentMap from "./CatchmentMap";
 import SensorHealthGauge from "../../components/SensorStatusPanel";
+import WeatherWidget from "../../components/WeatherWidget";
+import VerticalOvercastWeatherCard from "../../components/VerticalOvercastWeatherCard";
+import { fetchWeatherInsights } from "../../lib/weather";
 import "../../styles/manager/ManagerPortal.css";
 import "../../styles/manager/ManagerDashboard.css";
 
@@ -65,6 +68,8 @@ const ManagerDashboard = () => {
   const [readings, setReadings] = useState([]);
   const [alerts, setAlerts] = useState([]);
   const [nodes, setNodes] = useState([]);
+  const [weatherData, setWeatherData] = useState(null);
+  const [weatherLoading, setWeatherLoading] = useState(true);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
   const [accountName, setAccountName] = useState("Loading...");
@@ -98,7 +103,7 @@ const ManagerDashboard = () => {
   const load = useCallback(async (manual = false) => {
     setLoading(true);
     try {
-      const [readingResult, alertResult, nodeResult] = await Promise.all([
+      const [readingResult, alertResult, nodeResult, weatherResult] = await Promise.all([
         supabase
           .from("sensor_readings")
           .select(
@@ -115,6 +120,7 @@ const ManagerDashboard = () => {
           .order("triggered_at", { ascending: false })
           .limit(10),
         supabase.from("nodes").select("id, device_label"),
+        fetchWeatherInsights().catch(() => null),
       ]);
 
       const firstError =
@@ -127,9 +133,13 @@ const ManagerDashboard = () => {
       setReadings(readingResult.data || []);
       setAlerts(alertResult.data || []);
       setNodes(nodeResult.data || []);
+      if (weatherResult) {
+        setWeatherData(weatherResult);
+      }
       setCheckedAt(Date.now());
     } finally {
       setLoading(false);
+      setWeatherLoading(false);
     }
   }, []);
 
@@ -278,6 +288,8 @@ const ManagerDashboard = () => {
             <p>Welcome back, {accountName}</p>
           </div>
 
+          <WeatherWidget />
+
           <div className="header-refresh-controls">
             <div className="header-last-updated">
               <span className="live-pulse-dot" />
@@ -362,15 +374,21 @@ const ManagerDashboard = () => {
               })}
             </section>
 
-            <section className="manager-two-column">
+            <section className="manager-monitoring-row">
+              {/* ── Far Left: Vertical Overcast Weather Card ── */}
+              <VerticalOvercastWeatherCard weatherData={weatherData} loading={weatherLoading} />
+
+              {/* ── Middle: Catchment Map (shifted right) ── */}
               <article className="manager-panel">
                 <h2>Catchment Map</h2>
                 <CatchmentMap readings={readings} nodes={nodes} checkedAt={checkedAt} />
               </article>
+
+              {/* ── Right: Shrunk Sensor Status Panel ── */}
               <article className="manager-panel">
                 <div className="manager-panel-heading">
                   <h2>Sensor Status</h2>
-                  <span>Online if synced in the last 5 minutes</span>
+                  <span>Online if synced in last 5m</span>
                 </div>
                 {nodes.length === 0 ? (
                   <p style={{ color: "var(--color-text-muted)", fontSize: "0.84rem" }}>
