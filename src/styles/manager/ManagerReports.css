@@ -1,12 +1,282 @@
 /* ═══════════════════════════════════════════════════════════════
-   ManagerReports.css — Bento SaaS Restyle
-   All class names preserved.
+   ManagerReports.css — Dean-Level Report UI
+   Two-column layout: Form | AI Insights Preview
+   All original class names preserved + new mr-* additions.
 ═══════════════════════════════════════════════════════════════ */
 
-/* ── Report form ─────────────────────────────────────────────────── */
+/* ── Two-column grid layout ────────────────────────────────── */
+.mr-layout {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+  align-items: start;
+  margin-bottom: 20px;
+}
+
+/* ── Panel shared header ──────────────────────────────────── */
+.mr-panel-header {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin-bottom: 18px;
+}
+
+.mr-panel-header h2 {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--color-text, #0a2e3d);
+  letter-spacing: -0.01em;
+}
+
+.mr-panel-icon {
+  color: #0C4C7C;
+  flex-shrink: 0;
+}
+
+.mr-ai-icon { color: #7c3aed; }
+
+.mr-refresh-btn {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: 1px solid rgba(124, 58, 237, 0.20);
+  border-radius: 50%;
+  background: rgba(124, 58, 237, 0.06);
+  color: #7c3aed;
+  cursor: pointer;
+  transition: background 0.15s ease, transform 0.15s ease;
+}
+
+.mr-refresh-btn:hover:not(:disabled) {
+  background: rgba(124, 58, 237, 0.13);
+  transform: rotate(45deg);
+}
+
+.mr-refresh-btn:disabled { opacity: 0.45; cursor: not-allowed; }
+
+/* ── Insights sub-label ───────────────────────────────────── */
+.mr-insights-sub {
+  font-size: 0.78rem;
+  color: var(--color-text-muted, #5b7c88);
+  margin: -10px 0 16px;
+  line-height: 1.5;
+}
+
+/* ── Loading / Empty states ───────────────────────────────── */
+.mr-insights-loading,
+.mr-insights-empty {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 18px;
+  border-radius: 14px;
+  font-size: 0.82rem;
+  color: var(--color-text-muted, #5b7c88);
+}
+
+.mr-insights-loading { background: rgba(0, 119, 182, 0.04); }
+
+.mr-insights-empty {
+  background: rgba(220, 38, 38, 0.04);
+  color: #b91c1c;
+  border: 1px solid rgba(220, 38, 38, 0.10);
+}
+
+/* ── Risk Banner ──────────────────────────────────────────── */
+.mr-risk-banner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 16px;
+  border-radius: 14px;
+  margin-bottom: 14px;
+  border: 1.5px solid transparent;
+  font-size: 0.82rem;
+}
+
+.mr-risk-banner.is-low {
+  background: rgba(22, 163, 74, 0.07);
+  border-color: rgba(22, 163, 74, 0.20);
+  color: #15803d;
+}
+
+.mr-risk-banner.is-moderate {
+  background: rgba(217, 119, 6, 0.07);
+  border-color: rgba(217, 119, 6, 0.22);
+  color: #b45309;
+}
+
+.mr-risk-banner.is-high {
+  background: rgba(220, 38, 38, 0.07);
+  border-color: rgba(220, 38, 38, 0.20);
+  color: #b91c1c;
+}
+
+.mr-risk-banner.is-severe {
+  background: rgba(159, 18, 57, 0.09);
+  border-color: rgba(159, 18, 57, 0.25);
+  color: #9f1239;
+}
+
+.mr-risk-label {
+  font-size: 0.68rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  display: block;
+  opacity: 0.75;
+}
+
+.mr-risk-val {
+  font-size: 0.9rem;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  display: block;
+}
+
+.mr-rain-stat {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin-left: auto;
+  font-size: 0.76rem;
+  font-weight: 600;
+  opacity: 0.85;
+  white-space: nowrap;
+}
+
+/* ── AI Overview block ────────────────────────────────────── */
+.mr-overview-block {
+  background: rgba(124, 58, 237, 0.04);
+  border-left: 3px solid #7c3aed;
+  border-radius: 0 10px 10px 0;
+  padding: 10px 14px;
+  margin-bottom: 14px;
+}
+
+.mr-overview-text {
+  margin: 0;
+  font-size: 0.80rem;
+  line-height: 1.6;
+  color: var(--color-text, #0a2e3d);
+}
+
+/* ── Key Observations ─────────────────────────────────────── */
+.mr-observations {
+  margin-bottom: 14px;
+}
+
+.mr-obs-title {
+  display: block;
+  font-size: 0.70rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--color-text-muted, #5b7c88);
+  margin-bottom: 8px;
+}
+
+.mr-obs-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.mr-obs-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 0.79rem;
+  line-height: 1.5;
+  color: var(--color-text, #0a2e3d);
+}
+
+.mr-obs-bullet {
+  flex-shrink: 0;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #7c3aed;
+  margin-top: 6px;
+}
+
+/* ── Parameter chips row ──────────────────────────────────── */
+.mr-param-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.mr-param-chip {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  background: rgba(0, 119, 182, 0.08);
+  color: #0C4C7C;
+  border: 1px solid rgba(0, 119, 182, 0.15);
+}
+
+/* ── Immediate Recommendations ────────────────────────────── */
+.mr-recs {
+  margin-bottom: 12px;
+}
+
+.mr-recs-title {
+  display: block;
+  font-size: 0.70rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--color-text-muted, #5b7c88);
+  margin-bottom: 8px;
+}
+
+.mr-recs-list {
+  padding-left: 16px;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.mr-recs-list li {
+  font-size: 0.79rem;
+  line-height: 1.5;
+  color: var(--color-text, #0a2e3d);
+}
+
+/* ── AI stamp ─────────────────────────────────────────────── */
+.mr-ai-stamp {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.68rem;
+  color: var(--color-text-muted, #5b7c88);
+  margin: 0;
+  padding-top: 10px;
+  border-top: 1px solid rgba(0, 119, 182, 0.08);
+}
+
+/* ══════════════════════════════════════════════════════════
+   ORIGINAL STYLES (all preserved below)
+══════════════════════════════════════════════════════════ */
+
+/* ── Report form ─────────────────────────────────────────── */
 .manager-report-form {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0,1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 16px;
   align-items: end;
 }
@@ -16,7 +286,7 @@
   gap: 5px;
   font-size: 0.78rem;
   font-weight: 600;
-  color: var(--color-text,#0a2e3d);
+  color: var(--color-text, #0a2e3d);
   text-transform: uppercase;
   letter-spacing: 0.04em;
 }
@@ -26,12 +296,12 @@
   width: 100%;
   box-sizing: border-box;
   padding: 8px 14px;
-  border: 1px solid rgba(0,119,182,0.18);
+  border: 1px solid rgba(0, 119, 182, 0.18);
   border-radius: 999px;
-  background: var(--color-bg,#f2f7fb);
+  background: var(--color-bg, #f2f7fb);
   font-family: inherit;
   font-size: 0.82rem;
-  color: var(--color-text,#0a2e3d);
+  color: var(--color-text, #0a2e3d);
   outline: none;
   min-height: 38px;
   transition: border-color 0.15s ease, box-shadow 0.15s ease;
@@ -39,13 +309,13 @@
 
 .manager-report-form input:focus-visible,
 .manager-report-form select:focus-visible {
-  border-color: var(--color-accent,#00b4d8);
-  box-shadow: 0 0 0 3px rgba(0,180,216,0.15);
+  border-color: var(--color-accent, #00b4d8);
+  box-shadow: 0 0 0 3px rgba(0, 180, 216, 0.15);
 }
 
 .manager-report-form fieldset {
   grid-column: 1 / -1;
-  border: 1px solid rgba(0,119,182,0.12);
+  border: 1px solid rgba(0, 119, 182, 0.12);
   border-radius: 18px;
   padding: 14px 18px;
 }
@@ -53,7 +323,7 @@
 .manager-report-form legend {
   font-size: 0.78rem;
   font-weight: 600;
-  color: var(--color-text,#0a2e3d);
+  color: var(--color-text, #0a2e3d);
   padding: 0 6px;
   text-transform: uppercase;
   letter-spacing: 0.04em;
@@ -91,23 +361,23 @@
   border: none;
   border-radius: 999px;
   padding: 10px 20px;
-  background: linear-gradient(135deg,#0C4C7C,#1178b5);
+  background: linear-gradient(135deg, #0C4C7C, #1178b5);
   color: #fff;
   font-family: inherit;
   font-size: 0.84rem;
   font-weight: 700;
   cursor: pointer;
-  box-shadow: 0 4px 14px rgba(12,76,124,0.28);
+  box-shadow: 0 4px 14px rgba(12, 76, 124, 0.28);
   transition: transform 0.15s ease, box-shadow 0.15s ease;
   min-height: 44px;
 }
 
 .manager-report-form button[type="submit"]:hover {
   transform: translateY(-1px);
-  box-shadow: 0 6px 20px rgba(12,76,124,0.34);
+  box-shadow: 0 6px 20px rgba(12, 76, 124, 0.34);
 }
 
-/* ── Modal backdrop ──────────────────────────────────────────────── */
+/* ── Modal backdrop ─────────────────────────────────────── */
 .manager-report-modal-backdrop {
   position: fixed;
   inset: 0;
@@ -115,19 +385,19 @@
   display: grid;
   place-items: center;
   padding: 20px;
-  background: rgba(2,40,60,0.45);
+  background: rgba(2, 40, 60, 0.45);
   backdrop-filter: blur(3px);
   animation: manager-report-fade-in 160ms ease-out;
 }
 
 .manager-report-modal {
-  width: min(100%,420px);
+  width: min(100%, 420px);
   box-sizing: border-box;
   padding: 30px 28px 24px;
-  border: 1px solid rgba(0,119,182,0.10);
+  border: 1px solid rgba(0, 119, 182, 0.10);
   border-radius: 24px;
   background: #fff;
-  box-shadow: 0 24px 56px rgba(0,40,70,0.20);
+  box-shadow: 0 24px 56px rgba(0, 40, 70, 0.20);
   text-align: center;
   animation: manager-report-modal-enter 180ms ease-out;
 }
@@ -144,7 +414,7 @@
 }
 
 .manager-report-modal-icon-loading {
-  border: 4px solid rgba(0,119,182,0.15);
+  border: 4px solid rgba(0, 119, 182, 0.15);
   border-top-color: #0C4C7C;
   animation: manager-report-spin 800ms linear infinite;
 }
@@ -154,15 +424,15 @@
 
 .manager-report-modal h2 {
   margin: 0 0 10px;
-  color: var(--color-text,#0a2e3d);
-  font-family: var(--font-display,"Poppins","Inter",sans-serif);
+  color: var(--color-text, #0a2e3d);
+  font-family: var(--font-display, "Poppins", "Inter", sans-serif);
   font-size: 1.1rem;
   letter-spacing: -0.01em;
 }
 
 .manager-report-modal p {
   margin: 0;
-  color: var(--color-text-muted,#5b7c88);
+  color: var(--color-text-muted, #5b7c88);
   font-size: 0.88rem;
   line-height: 1.55;
   overflow-wrap: anywhere;
@@ -174,18 +444,18 @@
   padding: 9px 20px;
   border: none;
   border-radius: 999px;
-  background: linear-gradient(135deg,#0C4C7C,#1178b5);
+  background: linear-gradient(135deg, #0C4C7C, #1178b5);
   color: #fff;
   font-family: inherit;
   font-weight: 600;
   cursor: pointer;
-  box-shadow: 0 3px 10px rgba(12,76,124,0.22);
+  box-shadow: 0 3px 10px rgba(12, 76, 124, 0.22);
   transition: transform 0.15s ease;
 }
 
 .manager-report-modal button:hover { transform: translateY(-1px); }
 
-/* ── Report status badges ─────────────────────────────────────────── */
+/* ── Status badges ──────────────────────────────────────── */
 .badge-ready,
 .badge-pending {
   display: inline-flex;
@@ -209,7 +479,7 @@
 
 .badge-pending { background: #fff2d9; color: #b3760a; border: none; }
 
-/* ── Reports table ────────────────────────────────────────────────── */
+/* ── Reports table ──────────────────────────────────────── */
 .table-wrap { overflow-x: auto; }
 
 .manager-reports-table {
@@ -217,6 +487,7 @@
   border-collapse: collapse;
 }
 
+/* ── Keyframes ──────────────────────────────────────────── */
 @keyframes manager-report-spin {
   to { transform: rotate(360deg); }
 }
@@ -231,7 +502,13 @@
   to   { opacity: 1; transform: translateY(0) scale(1); }
 }
 
-/* ── Responsive ──────────────────────────────────────────────────── */
+/* ── Responsive ─────────────────────────────────────────── */
+@media (max-width: 900px) {
+  .mr-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
 @media (max-width: 640px) {
   .manager-report-form { grid-template-columns: 1fr; }
 }
@@ -243,7 +520,7 @@
   .manager-reports-table tr,
   .manager-reports-table td { display: block; width: 100%; }
   .manager-reports-table tr {
-    border: 1px solid rgba(0,119,182,0.10);
+    border: 1px solid rgba(0, 119, 182, 0.10);
     border-radius: 18px;
     padding: 12px 16px;
     margin-bottom: 12px;
