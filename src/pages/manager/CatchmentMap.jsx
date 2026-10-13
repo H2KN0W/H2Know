@@ -20,6 +20,7 @@ import {
   Scan,
 } from "lucide-react";
 import L from "leaflet";
+import { SITE_MAP_FALLBACK_LABEL } from "../../config/siteLocation";
 import catchmentData from "../../data/catchmentBoundary.geojson?raw";
 import landCoverRaw from "../../data/landCover.geojson?raw";
 import riversRaw from "../../data/riverNetwork.geojson?raw";
@@ -276,7 +277,7 @@ const SensorPopupContent = ({ feature, readings = [], nodes = [], checkedAt = nu
     onExpandPhoto?.({
       src: photoSrc,
       title: p.name || `Sensor Node #${sensorId}`,
-      location: p.location || "Dicklum River, Manolo Fortich, Bukidnon",
+      location: p.location || SITE_MAP_FALLBACK_LABEL,
       lat,
       lng,
     });
