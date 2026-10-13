@@ -7,12 +7,14 @@ import {
   Thermometer,
 } from "lucide-react";
 import { getWeatherCondition } from "../lib/weatherCondition";
+import { SITE_LOCATION } from "../config/siteLocation";
 
 /**
  * WeatherDashboardSection
  * Inspired by reference layout:
  * - Left blue hero card: City, big temp, condition, skyline artwork silhouette
  * - Right grid cards: Hourly trend graph + rounded metric cards (Humidity, Wind gauge, UV Index, Feels like, Chance of rain)
+ * City label is dynamic: renders weatherData.location when present, otherwise SITE_LOCATION.
  */
 export default function WeatherDashboardSection({ weatherData }) {
   const current = weatherData?.currentWeather;
@@ -105,8 +107,8 @@ export default function WeatherDashboardSection({ weatherData }) {
       <article className="weather-hero-card">
         <div className="weather-hero-header">
           <div className="weather-hero-location">
-            <span className="weather-hero-city">{weatherData?.location?.city || "Manolo Fortich"}</span>
-            <span className="weather-hero-sub">Dicklum River Basin, Bukidnon</span>
+            <span className="weather-hero-city">{weatherData?.location?.city || SITE_LOCATION.city}</span>
+            <span className="weather-hero-sub">{SITE_LOCATION.basin}, {SITE_LOCATION.province}</span>
           </div>
           <div className="weather-hero-badge">
             <ConditionIcon size={16} />

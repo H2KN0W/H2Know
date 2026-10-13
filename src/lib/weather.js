@@ -1,7 +1,8 @@
 import { supabase } from "./supabase";
+import { SITE_LOCATION } from "../config/siteLocation";
 
-const LAT = 8.3819;
-const LON = 124.845;
+const LAT = SITE_LOCATION.lat;
+const LON = SITE_LOCATION.lon;
 
 /**
  * Summarize Open-Meteo weather data for runoff and precipitation modeling.
@@ -316,9 +317,9 @@ export async function fetchWeatherInsights(clientReadings = []) {
   return {
     generatedAt: new Date().toISOString(),
     location: {
-      name: "Dicklum River, Manolo Fortich",
-      city: "Manolo Fortich",
-      province: "Bukidnon",
+      name: `${SITE_LOCATION.river}, ${SITE_LOCATION.city}`,
+      city: SITE_LOCATION.city,
+      province: SITE_LOCATION.province,
       lat: LAT,
       lon: LON,
     },
