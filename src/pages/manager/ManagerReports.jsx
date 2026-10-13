@@ -1,8 +1,22 @@
 import { useCallback, useEffect, useState } from "react";
+import {
+  FileText,
+  Sparkles,
+  ShieldCheck,
+  ShieldAlert,
+  AlertTriangle,
+  CloudRain,
+  Droplets,
+  Gauge,
+  Waves,
+  Thermometer,
+  RefreshCw,
+} from "lucide-react";
 import { supabase } from "../../lib/supabase";
 import { useLogPageView } from "../../lib/useLogPageView";
 import { logActivity } from "../../lib/logActivity";
 import { generateReportFile } from "../../lib/generateReport";
+import { fetchWeatherInsights } from "../../lib/weather";
 import ManagerSidebar from "./ManagerSidebar";
 import "../../styles/manager/ManagerPortal.css";
 import "../../styles/manager/ManagerReports.css";
@@ -11,6 +25,8 @@ const PAGE_SIZE = 15;
 const ALL_VALUE = "all";
 const formatDateTime = (value) => value ? new Date(value).toLocaleString() : "—";
 const formatDate = (value) => value ? new Date(value).toLocaleDateString() : "—";
+
+const PARAM_ICONS = { pH: Droplets, TDS: Gauge, Turbidity: Waves, Temperature: Thermometer };
 
 const downloadReport = (blob, name, format) => {
   const fileName = name.trim().replace(/[\\/:*?"<>|]/g, "_") || "water-quality-report";
@@ -37,6 +53,11 @@ const ManagerReports = () => {
   const [reportModal, setReportModal] = useState(null);
   const [form, setForm] = useState({ name: "", parameterIds: [], startDate: "", endDate: "", format: "pdf" });
 
+  // AI insights state for report preview & PDF embedding
+  const [aiInsights, setAiInsights] = useState(null);
+  const [weatherSummary, setWeatherSummary] = useState(null);
+  const [insightsLoading, setInsightsLoading] = useState(false);
+
   const fetchReports = useCallback(async (userId) => {
     if (!userId) return;
     setLoading(true);
@@ -52,7 +73,6 @@ const ManagerReports = () => {
     setLoading(false);
   }, [page]);
 
-  // fetchReports is reused after a report submission.
   useEffect(() => {
     if (currentUser?.id) fetchReports(currentUser.id);
   }, [currentUser?.id, fetchReports]);
@@ -76,6 +96,35 @@ const ManagerReports = () => {
       }
     });
   }, []);
+
+  // Load live AI insights once on mount for PDF embedding & preview
+  const loadInsightsPreview = useCallback(async () => {
+    setInsightsLoading(true);
+    try {
+      const data = await fetchWeatherInsights([]);
+      const ua = data?.unifiedAnalysis;
+      const ws = data?.weatherSummary;
+      if (ua) {
+        setAiInsights({
+          riskLevel: ua.riskLevel || "low",
+          currentInterpretation: ua.currentInterpretation || null,
+          recommendations: ua.recommendations || null,
+          runoffAnalysis: ua.runoffAnalysis || null,
+          riskFactors: ua.riskFactors || [],
+          positiveFactors: ua.positiveFactors || [],
+        });
+      }
+      if (ws) setWeatherSummary(ws);
+    } catch (e) {
+      console.warn("AI insights preview unavailable:", e.message);
+    } finally {
+      setInsightsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadInsightsPreview();
+  }, [loadInsightsPreview]);
 
   const toggleParameter = (id) => setForm((current) => ({
     ...current,
@@ -122,7 +171,14 @@ const ManagerReports = () => {
 
     let generationSucceeded = false;
     try {
-      const { url: fileUrl, blob } = await generateReportFile({ form, parameters, reportId: inserted.id });
+      const { url: fileUrl, blob } = await generateReportFile({
+        form,
+        parameters,
+        reportId: inserted.id,
+        authorName: currentUser.full_name || "Manager",
+        aiInsights,
+        weatherSummary,
+      });
       const { error: updateError } = await supabase
         .from("reports")
         .update({ file_url: fileUrl, status: "success" })
@@ -167,62 +223,190 @@ const ManagerReports = () => {
 
   const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
 
+  // Risk level helpers
+  const riskLevel = aiInsights?.riskLevel || "low";
+  const riskIcon = riskLevel === "severe" || riskLevel === "high"
+    ? ShieldAlert
+    : riskLevel === "moderate"
+      ? AlertTriangle
+      : ShieldCheck;
+  const RiskIcon = riskIcon;
+
   return (
     <div className="admin-shell">
       <ManagerSidebar />
       <main className="admin-main manager-main">
         <header className="page-header">
           <h1>Reports</h1>
-          <p>Request water-quality summaries and download completed reports</p>
+          <p>Generate and download professional water-quality reports for institutional review</p>
         </header>
 
-        <section className="manager-panel">
-          <h2>Generate New Report</h2>
-          <form className="manager-report-form" onSubmit={submit}>
-            <label>
-              Report name
-              <input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="e.g. Weekly water quality summary" />
-            </label>
-            <fieldset>
-              <legend>Parameters</legend>
-              <div className="manager-checkboxes">
-                <label>
-                  <input type="checkbox" checked={form.parameterIds.includes(ALL_VALUE)} onChange={() => toggleParameter(ALL_VALUE)} /> All Parameters
-                </label>
-                {parameters.map((item) => (
-                  <label key={item.id}>
-                    <input
-                      type="checkbox"
-                      checked={form.parameterIds.includes(item.id)}
-                      onChange={() => toggleParameter(item.id)}
-                      disabled={form.parameterIds.includes(ALL_VALUE)}
-                    /> {item.name}
+        {/* ── Two-column layout: Form left, AI Preview right ── */}
+        <div className="mr-layout">
+
+          {/* ── Left: Generate Form ── */}
+          <section className="manager-panel mr-form-panel">
+            <div className="mr-panel-header">
+              <FileText size={18} className="mr-panel-icon" />
+              <h2>Generate New Report</h2>
+            </div>
+            <form className="manager-report-form" onSubmit={submit}>
+              <label>
+                Report name
+                <input
+                  value={form.name}
+                  onChange={(e) => setForm({ ...form, name: e.target.value })}
+                  placeholder="e.g. Weekly Water Quality Summary"
+                />
+              </label>
+              <fieldset>
+                <legend>Parameters</legend>
+                <div className="manager-checkboxes">
+                  <label>
+                    <input type="checkbox" checked={form.parameterIds.includes(ALL_VALUE)} onChange={() => toggleParameter(ALL_VALUE)} />
+                    All Parameters
                   </label>
-                ))}
+                  {parameters.map((item) => (
+                    <label key={item.id}>
+                      <input
+                        type="checkbox"
+                        checked={form.parameterIds.includes(item.id)}
+                        onChange={() => toggleParameter(item.id)}
+                        disabled={form.parameterIds.includes(ALL_VALUE)}
+                      />
+                      {item.name}
+                    </label>
+                  ))}
+                </div>
+              </fieldset>
+              <label>
+                Start date
+                <input type="date" value={form.startDate} max={form.endDate || undefined} onChange={(e) => setForm({ ...form, startDate: e.target.value })} />
+              </label>
+              <label>
+                End date
+                <input type="date" value={form.endDate} min={form.startDate || undefined} onChange={(e) => setForm({ ...form, endDate: e.target.value })} />
+              </label>
+              <label>
+                Format
+                <select value={form.format} onChange={(e) => setForm({ ...form, format: e.target.value })}>
+                  <option value="pdf">PDF — Full Report with Charts &amp; AI Insights</option>
+                  <option value="csv">CSV — Raw Data Export</option>
+                </select>
+              </label>
+              <button type="submit" disabled={saving}>{saving ? "Generating…" : "Generate report"}</button>
+            </form>
+            {error && <p className="manager-error">{error}</p>}
+          </section>
+
+          {/* ── Right: AI Insights Preview Panel ── */}
+          <aside className="manager-panel mr-insights-panel" aria-label="AI Insights Preview">
+            <div className="mr-panel-header">
+              <Sparkles size={18} className="mr-panel-icon mr-ai-icon" />
+              <h2>Live AI Insights Preview</h2>
+              <button
+                type="button"
+                className="mr-refresh-btn"
+                onClick={loadInsightsPreview}
+                disabled={insightsLoading}
+                title="Refresh AI insights"
+                aria-label="Refresh insights"
+              >
+                <RefreshCw size={13} className={insightsLoading ? "spin" : ""} />
+              </button>
+            </div>
+            <p className="mr-insights-sub">
+              These AI insights will be embedded in the PDF when you generate a report.
+            </p>
+
+            {insightsLoading ? (
+              <div className="mr-insights-loading">
+                <span className="spinner spinner-dark" role="status" aria-label="Loading insights" />
+                <span>Fetching AI analysis…</span>
               </div>
-            </fieldset>
-            <label>
-              Start date
-              <input type="date" value={form.startDate} max={form.endDate || undefined} onChange={(e) => setForm({ ...form, startDate: e.target.value })} />
-            </label>
-            <label>
-              End date
-              <input type="date" value={form.endDate} min={form.startDate || undefined} onChange={(e) => setForm({ ...form, endDate: e.target.value })} />
-            </label>
-            <label>
-              Format
-              <select value={form.format} onChange={(e) => setForm({ ...form, format: e.target.value })}>
-                <option value="pdf">PDF</option>
-                <option value="csv">CSV</option>
-              </select>
-            </label>
-            <button type="submit" disabled={saving}>{saving ? "Generating..." : "Generate report"}</button>
-          </form>
-          {error && <p className="manager-error">{error}</p>}
-        </section>
+            ) : !aiInsights ? (
+              <div className="mr-insights-empty">
+                <AlertTriangle size={18} />
+                <span>AI insights unavailable. PDF will still be generated without this section.</span>
+              </div>
+            ) : (
+              <div className="mr-insights-body">
+
+                {/* Risk Banner */}
+                <div className={`mr-risk-banner is-${riskLevel}`}>
+                  <RiskIcon size={17} />
+                  <div>
+                    <span className="mr-risk-label">Runoff Risk</span>
+                    <strong className="mr-risk-val">{riskLevel.toUpperCase()}</strong>
+                  </div>
+                  {weatherSummary?.next7DaysRainMm != null && (
+                    <div className="mr-rain-stat">
+                      <CloudRain size={14} />
+                      <span>{weatherSummary.next7DaysRainMm} mm forecast (7 days)</span>
+                    </div>
+                  )}
+                </div>
+
+                {/* Parameter status mini-grid */}
+                {aiInsights.currentInterpretation?.overview && (
+                  <div className="mr-overview-block">
+                    <p className="mr-overview-text">{aiInsights.currentInterpretation.overview}</p>
+                  </div>
+                )}
+
+                {/* Key observations */}
+                {aiInsights.currentInterpretation?.keyObservations?.length > 0 && (
+                  <div className="mr-observations">
+                    <span className="mr-obs-title">Key Diagnostic Observations</span>
+                    <ul className="mr-obs-list">
+                      {aiInsights.currentInterpretation.keyObservations.slice(0, 4).map((obs, idx) => (
+                        <li key={idx} className="mr-obs-item">
+                          <span className="mr-obs-bullet" />
+                          <span>{obs}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
+                {/* Parameter icons row */}
+                <div className="mr-param-row">
+                  {["pH", "TDS", "Turbidity", "Temperature"].map((param) => {
+                    const Icon = PARAM_ICONS[param] || Droplets;
+                    return (
+                      <div key={param} className="mr-param-chip">
+                        <Icon size={14} />
+                        <span>{param}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {/* Immediate recommendations */}
+                {aiInsights.recommendations?.immediate?.length > 0 && (
+                  <div className="mr-recs">
+                    <span className="mr-recs-title">Immediate Actions</span>
+                    <ul className="mr-recs-list">
+                      {aiInsights.recommendations.immediate.slice(0, 2).map((rec, idx) => (
+                        <li key={idx}>{rec}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
+                <p className="mr-ai-stamp">
+                  <Sparkles size={11} />
+                  AI-Correlated · Open-Meteo 7-Day Horizon · Will be included in PDF
+                </p>
+              </div>
+            )}
+          </aside>
+        </div>
+
+        {/* ── Report History ── */}
         <section className="manager-panel">
           <h2>Report History</h2>
-          {loading ? <p>Loading reports...</p> : (
+          {loading ? <p>Loading reports…</p> : (
             <>
               <div className="table-wrap">
                 <table className="manager-reports-table">
@@ -285,9 +469,9 @@ const ManagerReports = () => {
             </h2>
             <p>
               {reportModal.status === "loading"
-                ? `Creating ${reportModal.format.toUpperCase()} report “${reportModal.name}”…`
+                ? `Creating ${reportModal.format.toUpperCase()} report "${reportModal.name}"…`
                 : reportModal.status === "success"
-                ? `“${reportModal.name}” was generated successfully as a ${reportModal.format.toUpperCase()} report.`
+                ? `"${reportModal.name}" was generated successfully as a ${reportModal.format.toUpperCase()} report.`
                 : reportModal.message}
             </p>
             {reportModal.status !== "loading" && (
