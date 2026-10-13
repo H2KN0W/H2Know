@@ -10,6 +10,12 @@ entrypoint = "./functions/log-activity/index.ts"
 # For example, if you want to serve static HTML pages in your function:
 # static_files = [ "./functions/log-activity/*.html" ]
 
+[functions.weather-insights]
+enabled = true
+verify_jwt = false
+import_map = "./functions/weather-insights/deno.json"
+entrypoint = "./functions/weather-insights/index.ts"
+
 [functions.manage-user]
 enabled = true
 verify_jwt = false

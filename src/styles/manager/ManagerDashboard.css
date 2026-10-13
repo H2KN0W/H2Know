@@ -7,64 +7,63 @@
 .manager-card-grid {
   display: grid;
   grid-template-columns: repeat(5, minmax(0, 1fr));
-  gap: 16px;
+  gap: 12px;
   margin-bottom: 0;
 }
 
-/* ── Stat cards ─────────────────────────────────────────────────── */
+/* ── Stat cards (compacted to fit cleanly) ───────────────────────── */
 .manager-stat-card {
   background: #ffffff;
   border: 1px solid rgba(0,119,182,0.08);
-  border-radius: 24px;
-  padding: 20px;
+  border-radius: 18px;
+  padding: 12px 14px;
   display: flex;
-  gap: 14px;
-  align-items: flex-start;
+  gap: 10px;
+  align-items: center;
   box-shadow: 0 1px 3px rgba(10,46,61,0.04),
-              0 8px 24px rgba(0,119,182,0.07);
+              0 6px 18px rgba(0,119,182,0.05);
   transition: box-shadow 220ms ease, transform 220ms ease;
-  min-height: 112px;
+  min-height: 72px;
 }
 
 .manager-stat-card:hover {
   box-shadow: 0 4px 8px rgba(10,46,61,0.06),
-              0 16px 36px rgba(0,119,182,0.12);
-  transform: translateY(-2px);
+              0 12px 28px rgba(0,119,182,0.10);
+  transform: translateY(-1px);
 }
 
 /* Icon chip */
 .manager-stat-card svg {
   color: #0C4C7C;
-  margin-top: 2px;
   stroke-width: 1.8;
   flex-shrink: 0;
-  opacity: 0.85;
+  opacity: 0.9;
 }
 
 .manager-stat-card p {
-  font-size: 0.72rem;
+  font-size: 0.68rem;
   font-weight: 600;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.03em;
   text-transform: uppercase;
   color: #7a96a4;
-  margin: 0 0 6px;
+  margin: 0 0 2px;
 }
 
 .manager-stat-card strong {
   display: block;
   font-family: "Poppins","Inter",sans-serif;
-  font-size: 1.15rem;
+  font-size: 1rem;
   font-weight: 700;
   color: #0a2e3d;
-  line-height: 1.25;
+  line-height: 1.2;
 }
 
 .manager-stat-card small {
   display: block;
   color: #7a96a4;
-  font-size: 0.72rem;
-  margin-top: 5px;
-  line-height: 1.4;
+  font-size: 0.67rem;
+  margin-top: 2px;
+  line-height: 1.3;
 }
 
 /* ── River condition hero card ───────────────────────────────────── */
@@ -142,7 +141,7 @@
 .manager-shell .manager-card-grid,
 .admin-shell:has(.manager-main) .manager-card-grid {
   grid-template-columns: repeat(5, minmax(0, 1fr));
-  gap: 16px;
+  gap: 12px;
   margin-bottom: 0;
 }
 
@@ -150,13 +149,13 @@
 .admin-shell:has(.manager-main) .manager-stat-card,
 .manager-shell .manager-node-card,
 .admin-shell:has(.manager-main) .manager-node-card {
-  border-radius: 24px;
+  border-radius: 18px;
   border: 1px solid rgba(0,119,182,0.08);
 }
 
 .manager-shell .river-condition-card,
 .admin-shell:has(.manager-main) .river-condition-card {
-  border-radius: 24px !important;
+  border-radius: 18px !important;
 }
 
 .manager-shell .manager-stat-card svg,
@@ -169,7 +168,7 @@
 .admin-shell:has(.manager-main) .manager-stat-card strong {
   color: #0a2e3d;
   font-family: "Poppins","Inter",sans-serif;
-  font-size: 1.1rem;
+  font-size: 1rem;
 }
 
 .manager-shell .manager-node-grid,
@@ -205,4 +204,187 @@
   .admin-shell:has(.manager-main) .manager-card-grid {
     grid-template-columns: 1fr;
   }
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   Vertical Overcast Card — Far Left of Monitoring Layout
+   ═══════════════════════════════════════════════════════════════════ */
+
+.vertical-overcast-card {
+  background: linear-gradient(160deg, #103b5c 0%, #175482 45%, #1a6b9a 100%);
+  border-radius: 24px;
+  padding: 22px 20px;
+  color: #ffffff;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  box-shadow: 0 4px 20px rgba(16, 59, 92, 0.22);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  min-height: 100%;
+}
+
+.voc-top {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.voc-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(255, 255, 255, 0.16);
+  backdrop-filter: blur(6px);
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 0.68rem;
+  font-weight: 600;
+  color: #ffffff;
+  width: fit-content;
+  margin-bottom: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+}
+
+.voc-live-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #38bdf8;
+  box-shadow: 0 0 6px #38bdf8;
+}
+
+.voc-city {
+  font-family: var(--font-display, "Poppins", sans-serif);
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: #ffffff;
+  margin: 0;
+  letter-spacing: -0.01em;
+}
+
+.voc-sub {
+  font-size: 0.72rem;
+  color: rgba(255, 255, 255, 0.82);
+  font-weight: 500;
+}
+
+.voc-main {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin: 18px 0;
+  padding: 16px 14px;
+  background: rgba(255, 255, 255, 0.10);
+  backdrop-filter: blur(8px);
+  border-radius: 18px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+}
+
+.voc-icon-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.voc-cloud-icon {
+  color: #e0f2fe;
+  filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.25));
+}
+
+.voc-rain-icon {
+  position: absolute;
+  bottom: -4px;
+  right: -2px;
+  color: #7dd3fc;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
+}
+
+.voc-temp-block {
+  display: flex;
+  flex-direction: column;
+}
+
+.voc-temp-row {
+  display: flex;
+  align-items: flex-start;
+  line-height: 1;
+}
+
+.voc-temp {
+  font-family: var(--font-display, "Poppins", sans-serif);
+  font-size: 2.8rem;
+  font-weight: 800;
+  color: #ffffff;
+  letter-spacing: -0.03em;
+}
+
+.voc-deg {
+  font-size: 1.3rem;
+  font-weight: 600;
+  margin-top: 4px;
+  margin-left: 2px;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.voc-condition {
+  font-size: 0.76rem;
+  font-weight: 700;
+  color: #e0f2fe;
+  margin-top: 4px;
+}
+
+.voc-feels {
+  font-size: 0.68rem;
+  color: rgba(255, 255, 255, 0.75);
+}
+
+/* Small rain status table */
+.voc-table-section {
+  background: rgba(0, 0, 0, 0.18);
+  border-radius: 16px;
+  padding: 12px 14px;
+  border: 1px solid rgba(255, 255, 255, 0.10);
+}
+
+.voc-table-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+  font-size: 0.70rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.voc-table-tag {
+  font-size: 0.62rem;
+  color: #7dd3fc;
+  font-weight: 600;
+}
+
+.voc-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.voc-table td {
+  padding: 5px 0;
+  font-size: 0.73rem;
+  color: rgba(255, 255, 255, 0.85);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.voc-table tr:last-child td {
+  border-bottom: none;
+}
+
+.voc-td-val {
+  text-align: right;
+  font-family: var(--font-display, "Poppins", sans-serif);
+  font-weight: 700;
+  color: #ffffff;
 }

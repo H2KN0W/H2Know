@@ -4,6 +4,7 @@ import { supabase } from "../../lib/supabase";
 import "../../styles/admin/AdminDashboard.css";
 import { useLogPageView } from "../../lib/useLogPageView";
 import Sidebar from "../../components/Sidebar";
+import WeatherWidget from "../../components/WeatherWidget";
 import { Wifi, Clock, AlertTriangle, Database, Users, Hourglass, RefreshCw } from "lucide-react";
 
 /**
@@ -449,6 +450,8 @@ const Dashboard = () => {
                 : "Loading..."}
             </p>
           </div>
+
+          <WeatherWidget />
 
           <div className="header-refresh-controls">
             <div className="header-last-updated">

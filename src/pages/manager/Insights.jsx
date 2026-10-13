@@ -1,8 +1,10 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { RefreshCw } from "lucide-react";
+import { RefreshCw, CloudRain } from "lucide-react";
 import { supabase } from "../../lib/supabase";
 import { useLogPageView } from "../../lib/useLogPageView";
 import { buildInsights } from "../../lib/insights";
+import { fetchWeatherInsights } from "../../lib/weather";
+import WeatherWidget from "../../components/WeatherWidget";
 import ManagerSidebar from "./ManagerSidebar";
 import "../../styles/manager/ManagerPortal.css";
 import "../../styles/manager/Insights.css";
@@ -59,6 +61,22 @@ const Insights = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [updatedAt, setUpdatedAt] = useState(null);
+  const [weather, setWeather] = useState(null);
+  const [weatherLoading, setWeatherLoading] = useState(false);
+  const [weatherError, setWeatherError] = useState("");
+
+  const loadWeatherInsights = useCallback(async () => {
+    setWeatherLoading(true);
+    setWeatherError("");
+    try {
+      const data = await fetchWeatherInsights();
+      setWeather(data);
+    } catch (e) {
+      setWeatherError(e.message || "Could not load weather insights.");
+    } finally {
+      setWeatherLoading(false);
+    }
+  }, []);
 
   const loadInsightsData = useCallback(async () => {
     setError("");
@@ -93,7 +111,8 @@ const Insights = () => {
 
   useEffect(() => {
     loadInsightsData();
-    const interval = setInterval(() => loadInsightsData(), REFRESH_MS);
+    loadWeatherInsights();
+    const interval = setInterval(() => { loadInsightsData(); loadWeatherInsights(); }, REFRESH_MS);
     const channel = supabase
       .channel("manager-insights-realtime")
       .on("postgres_changes", { event: "*", schema: "public", table: "sensor_readings" }, () => loadInsightsData())
@@ -104,7 +123,7 @@ const Insights = () => {
       clearInterval(interval);
       supabase.removeChannel(channel);
     };
-  }, [loadInsightsData]);
+  }, [loadInsightsData, loadWeatherInsights]);
 
   const insights = useMemo(() => buildInsights(readings, thresholds), [readings, thresholds]);
   const conditionState = insights.status === "Insufficient Data for Analysis"
@@ -123,16 +142,104 @@ const Insights = () => {
             <h1>Insights</h1>
             <p>Station review · latest readings and seven-day changes</p>
           </div>
+          <WeatherWidget />
           <div className="insights-refreshed">
             <span className="insights-refreshed-label">Data refreshed</span>
             <time className="insights-refreshed-time">{formatDateTime(updatedAt)}</time>
-            <button type="button" className="insights-button" onClick={() => loadInsightsData()}>
+            <button type="button" className="insights-button" onClick={() => { loadInsightsData(); loadWeatherInsights(); }}>
               <RefreshCw size={14} aria-hidden="true" />
-              <span>Refresh insights</span>
+              <span>Refresh all</span>
             </button>
           </div>
         </header>
 
+        {/* ── AI Predictions (top of tab) ── */}
+        <section className="insights-panel" aria-labelledby="ai-predictions-title">
+          <div className="insights-section-head">
+            <div>
+              <h2 id="ai-predictions-title">AI Predictions</h2>
+              <p>Weather-correlated 48-hour water quality risk forecast</p>
+            </div>
+            <button
+              type="button"
+              className="insights-button"
+              onClick={loadWeatherInsights}
+              disabled={weatherLoading}
+              style={{ marginLeft: "auto", alignSelf: "flex-start" }}
+            >
+              <RefreshCw size={14} aria-hidden="true" />
+              <span>Refresh</span>
+            </button>
+          </div>
+
+          {weatherLoading && !weather && (
+            <p className="insights-note">
+              <span className="spinner spinner-dark" role="status" aria-label="Loading AI predictions" />
+              {" "}Analysing weather and telemetry…
+            </p>
+          )}
+
+          {weatherError && !weatherLoading && (
+            <p className="insights-note" style={{ color: "var(--color-alert, #c0392b)" }}>{weatherError}</p>
+          )}
+
+          {weather && (() => {
+            const ai = weather.aiInsights;
+            const riskColor = ai.riskLevel === "high" ? "var(--color-alert, #c0392b)"
+              : ai.riskLevel === "moderate" ? "var(--color-warn, #e67e22)"
+              : "var(--color-ok, #27ae60)";
+            return (
+              <>
+                <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", margin: "0.75rem 0 1rem" }}>
+                  <span
+                    style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      padding: "4px 14px",
+                      borderRadius: "999px",
+                      background: `${riskColor}18`,
+                      border: `1.5px solid ${riskColor}`,
+                      color: riskColor,
+                      fontWeight: 700,
+                      fontSize: "0.8rem",
+                      textTransform: "capitalize",
+                      letterSpacing: "0.02em",
+                    }}
+                  >
+                    {ai.riskLevel} risk
+                  </span>
+                  <span className="insights-note" style={{ margin: 0 }}>
+                    48-hour horizon · {ai.model}
+                    {weather.generatedAt && (
+                      <> · generated {new Date(weather.generatedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</>
+                    )}
+                  </span>
+                </div>
+
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem" }}>
+                  <div>
+                    <p className="insights-eyebrow" style={{ marginBottom: "0.35rem" }}>Risks detected</p>
+                    <ul className="insights-trend-list">
+                      {ai.risks.map((r, i) => <li key={i} className="insights-trend-item">{r}</li>)}
+                    </ul>
+                  </div>
+                  <div>
+                    <p className="insights-eyebrow" style={{ marginBottom: "0.35rem" }}>Recommendations</p>
+                    <ul className="insights-trend-list">
+                      {ai.recommendations.map((r, i) => <li key={i} className="insights-trend-item">{r}</li>)}
+                    </ul>
+                  </div>
+                </div>
+              </>
+            );
+          })()}
+
+          {!weather && !weatherLoading && !weatherError && (
+            <p className="insights-note">No forecast data yet — click Refresh to load.</p>
+          )}
+        </section>
+
+        {/* ── Telemetry sections (condition, measurements, trend, estimate) ── */}
         {loading ? (
           <section className="insights-loading" aria-live="polite">
             <span className="spinner spinner-dark" role="status" aria-label="Loading insights" />
@@ -249,6 +356,32 @@ const Insights = () => {
                 </section>
               </aside>
             </div>
+
+            {/* ── Weather detail (supporting context, below main panels) ── */}
+            {weather?.weatherSummary && (
+              <section className="insights-panel" style={{ marginTop: "1rem" }} aria-labelledby="weather-detail-title">
+                <div className="insights-section-head">
+                  <h2 id="weather-detail-title">Weather context</h2>
+                  <p>Open-Meteo forecast · {weather.location?.name}</p>
+                </div>
+                <dl className="insights-note" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(160px, 1fr))", gap: "0.5rem 1.25rem", marginTop: "0.5rem" }}>
+                  <dt style={{ fontWeight: 600 }}>Past 3-day rain</dt>
+                  <dd>{weather.weatherSummary.past3DaysRainMm?.toFixed(1)} mm</dd>
+                  <dt style={{ fontWeight: 600 }}>Today rain</dt>
+                  <dd>{weather.weatherSummary.todayRainMm?.toFixed(1)} mm</dd>
+                  <dt style={{ fontWeight: 600 }}>Next 48 h rain</dt>
+                  <dd>{weather.weatherSummary.next48hRainMm?.toFixed(1)} mm</dd>
+                  <dt style={{ fontWeight: 600 }}>48 h precip chance</dt>
+                  <dd>{weather.weatherSummary.next48hPrecipProbMax}%</dd>
+                  {weather.weatherSummary.tomorrowTempMaxC != null && (
+                    <>
+                      <dt style={{ fontWeight: 600 }}>Tomorrow max temp</dt>
+                      <dd>{weather.weatherSummary.tomorrowTempMaxC} °C</dd>
+                    </>
+                  )}
+                </dl>
+              </section>
+            )}
           </>
         )}
       </main>
@@ -257,3 +390,4 @@ const Insights = () => {
 };
 
 export default Insights;
+
