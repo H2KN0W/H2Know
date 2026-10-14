@@ -9,6 +9,28 @@ import loginCoverVideo from "../assets/video/h2knowLoginCoverSide.mp4";
 
 const REMEMBER_KEY = "h2know_remembered_email";
 
+// ── Eye icon SVGs (declared outside render to prevent recreation) ───────────
+const EyeOff = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+    <path
+      d="M3 3l18 18M10.6 10.6a2 2 0 002.8 2.8M9.5 5.3A10.4 10.4 0 0112 5c5 0 9 4 10 7-.4 1.1-1.1 2.3-2.1 3.4M6.2 6.6C4.3 8 3 9.9 2 12c1 3 5 7 10 7 1.4 0 2.7-.3 3.9-.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+  </svg>
+);
+
+const EyeOn = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+    <path
+      d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7-10-7-10-7z"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+    <circle cx="12" cy="12" r="3" />
+  </svg>
+);
+
 /* ─────────────────────────────────────────────
    LEFT PANEL — branding / video background
 ───────────────────────────────────────────── */
@@ -364,28 +386,6 @@ const Login = () => {
       setSettingPassword(false);
     }
   };
-
-  // ── Eye icon SVGs (reused) ────────────────────────────────────────────────
-  const EyeOff = () => (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
-      <path
-        d="M3 3l18 18M10.6 10.6a2 2 0 002.8 2.8M9.5 5.3A10.4 10.4 0 0112 5c5 0 9 4 10 7-.4 1.1-1.1 2.3-2.1 3.4M6.2 6.6C4.3 8 3 9.9 2 12c1 3 5 7 10 7 1.4 0 2.7-.3 3.9-.8"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
-
-  const EyeOn = () => (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
-      <path
-        d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7-10-7-10-7z"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      <circle cx="12" cy="12" r="3" />
-    </svg>
-  );
 
   // ─────────────────────────────────────────────────────────────────────────
   // RENDER: Session check loading screen
