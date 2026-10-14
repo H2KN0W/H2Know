@@ -55,6 +55,24 @@ Deno.serve(async (req) => {
       );
     }
 
+    // ── SEC-6: Rate limiting — 30 log writes per user per 60 seconds ──────────
+    const { data: withinLimit, error: rateError } = await supabase.rpc("check_rate_limit", {
+      p_user_id:   user.id,
+      p_action:    "log_activity",
+      p_max_calls: 30,
+      p_window_s:  60,
+    });
+    if (rateError) {
+      // If the rate-limit function itself errors (e.g. migration not yet applied),
+      // log a warning but allow through — availability beats a hard block here.
+      console.warn("Rate limit check failed (non-blocking):", rateError.message);
+    } else if (!withinLimit) {
+      return new Response(
+        JSON.stringify({ error: "Too many requests. Please wait before logging more activity." }),
+        { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     // ── SEC-4: Strict schema validation — reject unknown fields ────────────────
     let body: Record<string, unknown>;
     try {

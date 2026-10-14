@@ -95,6 +95,22 @@ Deno.serve(async (req) => {
         );
       }
 
+      // SEC-6: 5 user creations per admin per 5 minutes
+      const { data: createAllowed, error: createRateErr } = await supabase.rpc("check_rate_limit", {
+        p_user_id:   callerUser.id,
+        p_action:    "create_user",
+        p_max_calls: 5,
+        p_window_s:  300,
+      });
+      if (createRateErr) {
+        console.warn("Rate limit check failed (non-blocking):", createRateErr.message);
+      } else if (!createAllowed) {
+        return new Response(
+          JSON.stringify({ error: "Too many user creation requests. Please wait before trying again." }),
+          { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
       const { data: created, error: createError } =
         await supabase.auth.admin.createUser({
           email,
@@ -180,6 +196,22 @@ Deno.serve(async (req) => {
         return new Response(
           JSON.stringify({ error: "Missing user_id." }),
           { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      // SEC-6: 5 user deletions per admin per 5 minutes
+      const { data: deleteAllowed, error: deleteRateErr } = await supabase.rpc("check_rate_limit", {
+        p_user_id:   callerUser.id,
+        p_action:    "delete_user",
+        p_max_calls: 5,
+        p_window_s:  300,
+      });
+      if (deleteRateErr) {
+        console.warn("Rate limit check failed (non-blocking):", deleteRateErr.message);
+      } else if (!deleteAllowed) {
+        return new Response(
+          JSON.stringify({ error: "Too many user deletion requests. Please wait before trying again." }),
+          { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
 
