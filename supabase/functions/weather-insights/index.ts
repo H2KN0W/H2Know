@@ -319,10 +319,42 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: CORS });
 
   try {
+    // ── SEC-2: Authenticate caller — sensor telemetry is not public ───────────
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader) {
+      return new Response(
+        JSON.stringify({ error: "Missing Authorization header." }),
+        { status: 401, headers: { ...CORS, "Content-Type": "application/json" } }
+      );
+    }
+
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
+
+    const token = authHeader.replace(/^Bearer\s+/i, "");
+    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+    if (authError || !user) {
+      return new Response(
+        JSON.stringify({ error: "Unauthorized: Invalid or expired token." }),
+        { status: 401, headers: { ...CORS, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Verify caller is an approved account
+    const { data: profile, error: profileError } = await supabase
+      .from("profiles")
+      .select("status")
+      .eq("id", user.id)
+      .single();
+
+    if (profileError || !profile || profile.status !== "approved") {
+      return new Response(
+        JSON.stringify({ error: "Forbidden: Account is not approved." }),
+        { status: 403, headers: { ...CORS, "Content-Type": "application/json" } }
+      );
+    }
 
     const [weather, telemetry] = await Promise.all([
       fetchWeather().catch(() => null),

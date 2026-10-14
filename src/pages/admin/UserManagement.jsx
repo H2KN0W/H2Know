@@ -116,14 +116,7 @@ const UserManagement = () => {
   };
 
   const logAdminAction = async (activityText) => {
-    if (!currentAdmin) return;
-    await logActivity({
-      user_id: currentAdmin.id,
-      full_name: currentAdmin.full_name,
-      role: currentAdmin.role,
-      activity: activityText,
-      status: "Success",
-    });
+    await logActivity({ activity: activityText, status: "Success" });
   };
 
   const handleToggleDisable = async (p) => {

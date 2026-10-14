@@ -8,7 +8,10 @@
     "build": "vite build",
     "lint": "eslint .",
     "preview": "vite preview",
-    "supabase": "supabase"
+    "supabase": "supabase",
+    "test": "node --test tests/insights.test.js",
+    "test:security": "node --test tests/cross-user-authorization.test.js",
+    "test:all": "node --test tests/insights.test.js tests/cross-user-authorization.test.js"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.110.2",

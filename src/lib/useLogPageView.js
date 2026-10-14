@@ -6,7 +6,11 @@ import { logActivity } from "./logActivity";
  * Logs a "Viewed X" activity entry for the currently logged-in user
  * the first time a page component mounts.
  *
- * Usage in any admin page:
+ * SEC-2: We no longer send user_id, full_name, or role in the body —
+ * the hardened log-activity edge function now derives those server-side
+ * from the caller's JWT so they cannot be spoofed by the client.
+ *
+ * Usage in any admin/manager page:
  *   useLogPageView("Viewed Dashboard");
  */
 export const useLogPageView = (activityLabel) => {
@@ -20,21 +24,8 @@ export const useLogPageView = (activityLabel) => {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) return;
 
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("full_name, role")
-        .eq("id", session.user.id)
-        .single();
-
-      if (!profile) return;
-
-      await logActivity({
-        user_id: session.user.id,
-        full_name: profile.full_name,
-        role: profile.role,
-        activity: activityLabel,
-        status: "Success",
-      });
+      // Only pass the fields the hardened edge function accepts.
+      await logActivity({ activity: activityLabel, status: "Success" });
     };
 
     log();
