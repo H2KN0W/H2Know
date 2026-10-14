@@ -46,7 +46,35 @@ Deno.serve(async (req) => {
       );
     }
 
-    const { action, ...payload } = await req.json();
+    const body = await req.json();
+    const { action, ...payload } = body;
+
+    if (!action || typeof action !== "string") {
+      return new Response(JSON.stringify({ error: "Missing or invalid 'action' field." }), {
+        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // ── SEC-4: Per-action strict schema — reject unknown fields ───────────────
+    const ALLOWED_FIELDS: Record<string, Set<string>> = {
+      create:       new Set(["email", "password", "full_name", "role"]),
+      update_email: new Set(["user_id", "new_email"]),
+      delete:       new Set(["user_id"]),
+    };
+    const ALLOWED_ROLES = new Set(["admin", "manager"]);
+
+    if (!ALLOWED_FIELDS[action]) {
+      return new Response(JSON.stringify({ error: `Unknown action: '${action}'.` }), {
+        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    const unknownKeys = Object.keys(payload).filter((k) => !ALLOWED_FIELDS[action].has(k));
+    if (unknownKeys.length > 0) {
+      return new Response(
+        JSON.stringify({ error: `Unknown field(s) for action '${action}': ${unknownKeys.join(", ")}` }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
 
     // ---- CREATE a brand new user (Add New User) ----
     if (action === "create") {
@@ -56,6 +84,30 @@ Deno.serve(async (req) => {
         return new Response(
           JSON.stringify({ error: "Missing required fields." }),
           { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      // SEC-4: Validate role is one of the known values — prevents privilege escalation
+      if (!ALLOWED_ROLES.has(role)) {
+        return new Response(
+          JSON.stringify({ error: `Invalid role '${role}'. Must be one of: ${[...ALLOWED_ROLES].join(", ")}.` }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      // SEC-6: 5 user creations per admin per 5 minutes
+      const { data: createAllowed, error: createRateErr } = await supabase.rpc("check_rate_limit", {
+        p_user_id:   callerUser.id,
+        p_action:    "create_user",
+        p_max_calls: 5,
+        p_window_s:  300,
+      });
+      if (createRateErr) {
+        console.warn("Rate limit check failed (non-blocking):", createRateErr.message);
+      } else if (!createAllowed) {
+        return new Response(
+          JSON.stringify({ error: "Too many user creation requests. Please wait before trying again." }),
+          { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
 
@@ -144,6 +196,22 @@ Deno.serve(async (req) => {
         return new Response(
           JSON.stringify({ error: "Missing user_id." }),
           { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      // SEC-6: 5 user deletions per admin per 5 minutes
+      const { data: deleteAllowed, error: deleteRateErr } = await supabase.rpc("check_rate_limit", {
+        p_user_id:   callerUser.id,
+        p_action:    "delete_user",
+        p_max_calls: 5,
+        p_window_s:  300,
+      });
+      if (deleteRateErr) {
+        console.warn("Rate limit check failed (non-blocking):", deleteRateErr.message);
+      } else if (!deleteAllowed) {
+        return new Response(
+          JSON.stringify({ error: "Too many user deletion requests. Please wait before trying again." }),
+          { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
 

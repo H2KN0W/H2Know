@@ -204,9 +204,6 @@ const ManagerReports = () => {
     if (generationSucceeded) {
       try {
         await logActivity({
-          user_id: currentUser.id,
-          full_name: currentUser.full_name,
-          role: currentUser.role,
           activity: `Requested ${form.format.toUpperCase()} report: ${form.name}`,
           status: "Success"
         });
