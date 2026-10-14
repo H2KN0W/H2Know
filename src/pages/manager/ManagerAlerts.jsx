@@ -5,9 +5,11 @@ import ManagerSidebar from "./ManagerSidebar";
 import "../../styles/manager/ManagerPortal.css";
 import "../../styles/manager/ManagerAlerts.css";
 
-const PAGE_SIZE = 15;
-const formatDateTime = (value) => value ? new Date(value).toLocaleString() : "—";
-const severityClass = (value) => { const severity = (value || "").toLowerCase(); return severity === "critical" || severity === "danger" ? "badge-failed" : severity === "warning" ? "badge-warning" : "badge-normal"; };
+import { formatDateTime, severityBadgeClass } from "../../lib/formatters";
+import { PAGE_SIZES } from "../../config/constants";
+
+const PAGE_SIZE = PAGE_SIZES.DEFAULT;
+const severityClass = severityBadgeClass;
 
 const ManagerAlerts = () => {
   useLogPageView("Viewed Manager Alerts");

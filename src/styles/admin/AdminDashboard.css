@@ -517,6 +517,11 @@ td.data-cell {
 @media (max-width: 900px) {
   .admin-main { padding: 20px 18px 36px; }
   .panel-grid { grid-template-columns: 1fr; }
+  .page-header-with-actions {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 14px;
+  }
 }
 
 @media (max-width: 640px) {
@@ -525,8 +530,27 @@ td.data-cell {
     gap: 12px;
   }
   .admin-main { padding: 16px 14px 32px; }
+  .header-refresh-controls {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+  }
+  .header-refresh-actions {
+    width: 100%;
+    justify-content: space-between;
+  }
+  .refresh-interval-select {
+    flex: 1;
+  }
+  .header-last-updated {
+    justify-content: center;
+  }
 }
 
 @media (max-width: 380px) {
   .summary-grid { grid-template-columns: 1fr; }
+  .header-refresh-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
 }

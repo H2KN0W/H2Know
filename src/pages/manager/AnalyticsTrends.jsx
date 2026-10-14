@@ -13,8 +13,10 @@ import { useLogPageView } from "../../lib/useLogPageView";
 import ManagerSidebar from "./ManagerSidebar";
 import "../../styles/manager/ManagerPortal.css";
 import "../../styles/manager/AnalyticsTrends.css";
+import { formatDateTime } from "../../lib/formatters";
+import { PAGE_SIZES } from "../../config/constants";
 
-const PAGE_SIZE = 15;
+const PAGE_SIZE = PAGE_SIZES.DEFAULT;
 const ALL_VALUE = "all";
 
 const LINE_COLORS = ["#3B82F6", "#10B981", "#F59E0B", "#8B5CF6", "#EF4444", "#14B8A6"];
@@ -28,8 +30,6 @@ const PARAMETER_COLORS = {
 
 const getLineColor = (paramName, index) =>
   PARAMETER_COLORS[paramName] || LINE_COLORS[index % LINE_COLORS.length];
-
-const formatDateTime = (value) => (value ? new Date(value).toLocaleString() : "—");
 
 const formatChartTime = (isoString) => {
   if (!isoString) return "";

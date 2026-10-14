@@ -13,52 +13,8 @@ import { Wifi, Clock, AlertTriangle, Database, Users, Hourglass, RefreshCw } fro
  * and recent user activity logs with auto-refresh & Supabase realtime updates.
  */
 
-const formatDateTime = (isoString) => {
-  if (!isoString) return "—";
-  const d = new Date(isoString);
-  const pad = (n) => String(n).padStart(2, "0");
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(
-    d.getHours()
-  )}:${pad(d.getMinutes())}`;
-};
-
-const formatClockTime = (timestamp) => {
-  if (!timestamp) return "—";
-  const d = new Date(timestamp);
-  let hours = d.getHours();
-  const minutes = String(d.getMinutes()).padStart(2, "0");
-  const seconds = String(d.getSeconds()).padStart(2, "0");
-  const ampm = hours >= 12 ? "PM" : "AM";
-  hours = hours % 12;
-  hours = hours ? hours : 12;
-  const strHours = String(hours).padStart(2, "0");
-  return `${strHours}:${minutes}:${seconds} ${ampm}`;
-};
-
-const formatRelativeTime = (isoString, checkedAt) => {
-  if (!isoString) return "No data yet";
-  const date = new Date(isoString);
-  const now = checkedAt ? new Date(checkedAt) : date;
-  const diffSec = Math.floor((now.getTime() - date.getTime()) / 1000);
-
-  if (diffSec < 0 || isNaN(diffSec)) return "Just now";
-  if (diffSec < 60) return `${diffSec}s ago`;
-  const diffMin = Math.floor(diffSec / 60);
-  if (diffMin < 60) return `${diffMin} min${diffMin === 1 ? "" : "s"} ago`;
-  const diffHours = Math.floor(diffMin / 60);
-  if (diffHours < 24) return `${diffHours} hr${diffHours === 1 ? "" : "s"} ago`;
-  const diffDays = Math.floor(diffHours / 24);
-  if (diffDays < 7) return `${diffDays}d ago`;
-  const pad = (n) => String(n).padStart(2, "0");
-  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
-};
-
-const severityBadgeClass = (severity) => {
-  const s = (severity || "").toLowerCase();
-  if (s === "critical" || s === "danger") return "badge-failed";
-  if (s === "warning") return "badge-warning";
-  return "badge-normal";
-};
+import { formatDateTime, formatClockTime, formatRelativeTime, severityBadgeClass } from "../../lib/formatters";
+import { REFRESH_INTERVALS } from "../../config/constants";
 
 const Dashboard = () => {
   useLogPageView("Viewed Dashboard");
@@ -83,7 +39,7 @@ const Dashboard = () => {
   const [recentActivity, setRecentActivity] = useState([]);
 
   const [checkedAt, setCheckedAt] = useState(null);
-  const [refreshInterval, setRefreshInterval] = useState(30000); // 30s default
+  const [refreshInterval, setRefreshInterval] = useState(REFRESH_INTERVALS.FAST);
   const [isRefreshing, setIsRefreshing] = useState(false);
 
   useEffect(() => {
@@ -241,7 +197,7 @@ const Dashboard = () => {
   }, []);
 
   const fetchAllData = useCallback(
-    async (manual = false) => {
+    async () => {
       setIsRefreshing(true);
       try {
         await Promise.allSettled([
@@ -475,7 +431,7 @@ const Dashboard = () => {
               <button
                 type="button"
                 className="header-refresh-btn"
-                onClick={() => fetchAllData(true)}
+                onClick={() => fetchAllData()}
                 disabled={isRefreshing}
                 title="Refresh now"
               >

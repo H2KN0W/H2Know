@@ -5,33 +5,10 @@ import "../../styles/admin/AlertHistory.css";
 import { useLogPageView } from "../../lib/useLogPageView";
 import Sidebar from "../../components/Sidebar";
 
-const PAGE_SIZE = 15;
+import { formatDateTime, severityBadgeClass } from "../../lib/formatters";
+import { PAGE_SIZES } from "../../config/constants";
 
-/**
- * Alert History — Admin page.
- * `alerts` rows link to `thresholds` (min/max + severity_label, which
- * itself links to `parameters`) and to `sensor_readings` (the actual
- * value that triggered the alert), which links to `nodes`.
- * Server-side paginated, filterable by parameter and date range.
- */
-
-const formatDateTime = (isoString) => {
-  if (!isoString) return "—";
-  const d = new Date(isoString);
-  const pad = (n) => String(n).padStart(2, "0");
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(
-    d.getHours()
-  )}:${pad(d.getMinutes())}`;
-};
-
-// Maps whatever severity_label values you seeded in `thresholds`
-// onto the existing badge color classes in Dashboard.css.
-const severityBadgeClass = (severity) => {
-  const s = (severity || "").toLowerCase();
-  if (s === "critical" || s === "danger") return "badge-failed";
-  if (s === "warning") return "badge-warning";
-  return "badge-normal";
-};
+const PAGE_SIZE = PAGE_SIZES.DEFAULT;
 
 const AlertHistory = () => {
   useLogPageView("Viewed Alert History");

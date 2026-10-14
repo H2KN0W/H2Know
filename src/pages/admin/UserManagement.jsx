@@ -7,16 +7,10 @@ import { useLogPageView } from "../../lib/useLogPageView";
 import { logActivity } from "../../lib/logActivity";
 import { Plus, Pencil, Ban, CircleCheck, Trash2 } from "lucide-react";
 
-const PAGE_SIZE = 5;
+import { formatDateTime } from "../../lib/formatters";
+import { PAGE_SIZES } from "../../config/constants";
 
-const formatDateTime = (isoString) => {
-  if (!isoString) return "—";
-  const d = new Date(isoString);
-  const pad = (n) => String(n).padStart(2, "0");
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(
-    d.getHours()
-  )}:${pad(d.getMinutes())}`;
-};
+const PAGE_SIZE = PAGE_SIZES.USERS;
 
 // status column in DB: 'pending' | 'approved' | 'rejected'
 // wireframe labels: Pending | Active | Disabled
@@ -41,7 +35,6 @@ const UserManagement = () => {
   const [confirmDeleteUser, setConfirmDeleteUser] = useState(null);
   const [deleting, setDeleting] = useState(false);
   const [deleted, setDeleted] = useState(false);
-  const [currentAdmin, setCurrentAdmin] = useState(null);
 
   const fetchProfiles = async () => {
     const { data, error: fetchError } = await supabase
@@ -57,20 +50,8 @@ const UserManagement = () => {
     setLoading(false);
   };
 
-  const fetchCurrentAdmin = async () => {
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session) return;
-    const { data } = await supabase
-      .from("profiles")
-      .select("id, full_name, role")
-      .eq("id", session.user.id)
-      .single();
-    setCurrentAdmin(data);
-  };
-
   useEffect(() => {
     fetchProfiles();
-    fetchCurrentAdmin();
   }, []);
 
   const summary = useMemo(() => {

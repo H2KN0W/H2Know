@@ -21,10 +21,11 @@ import ManagerSidebar from "./ManagerSidebar";
 import "../../styles/manager/ManagerPortal.css";
 import "../../styles/manager/ManagerReports.css";
 
-const PAGE_SIZE = 15;
+import { formatDateTime, formatDate } from "../../lib/formatters";
+import { PAGE_SIZES } from "../../config/constants";
+
+const PAGE_SIZE = PAGE_SIZES.DEFAULT;
 const ALL_VALUE = "all";
-const formatDateTime = (value) => value ? new Date(value).toLocaleString() : "—";
-const formatDate = (value) => value ? new Date(value).toLocaleDateString() : "—";
 
 const PARAM_ICONS = { pH: Droplets, TDS: Gauge, Turbidity: Waves, Temperature: Thermometer };
 

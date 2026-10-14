@@ -5,23 +5,10 @@ import "../../styles/admin/Reports.css";
 import { useLogPageView } from "../../lib/useLogPageView";
 import Sidebar from "../../components/Sidebar";
 
-const PAGE_SIZE = 15;
+import { formatDateTime, formatDate } from "../../lib/formatters";
+import { PAGE_SIZES } from "../../config/constants";
 
-const formatDateTime = (isoString) => {
-  if (!isoString) return "—";
-  const d = new Date(isoString);
-  const pad = (n) => String(n).padStart(2, "0");
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(
-    d.getHours()
-  )}:${pad(d.getMinutes())}`;
-};
-
-const formatDate = (isoString) => {
-  if (!isoString) return "—";
-  const d = new Date(isoString);
-  const pad = (n) => String(n).padStart(2, "0");
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
-};
+const PAGE_SIZE = PAGE_SIZES.DEFAULT;
 
 const Reports = () => {
   useLogPageView("Viewed Reports");

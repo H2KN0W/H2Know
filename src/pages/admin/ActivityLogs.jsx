@@ -11,15 +11,10 @@ import Sidebar from "../../components/Sidebar";
  * by the log-activity Edge Function, which captures the real client IP).
  */
 
-const PAGE_SIZE = 25;
+import { formatDateTime } from "../../lib/formatters";
+import { PAGE_SIZES } from "../../config/constants";
 
-const formatDateTime = (isoString) => {
-  const d = new Date(isoString);
-  const pad = (n) => String(n).padStart(2, "0");
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(
-    d.getHours()
-  )}:${pad(d.getMinutes())}`;
-};
+const PAGE_SIZE = PAGE_SIZES.ACTIVITY_LOGS;
 
 const ActivityLogs = () => {
   useLogPageView("Viewed User Activity Logs");

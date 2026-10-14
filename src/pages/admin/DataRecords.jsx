@@ -5,24 +5,10 @@ import "../../styles/admin/DataRecords.css";
 import { useLogPageView } from "../../lib/useLogPageView";
 import Sidebar from "../../components/Sidebar";
 
-const PAGE_SIZE = 15;
+import { formatDateTime } from "../../lib/formatters";
+import { PAGE_SIZES } from "../../config/constants";
 
-/**
- * Data Records — Admin page.
- * `sensor_readings` is normalized: one row per single-parameter reading
- * (id, node_id, parameter_id, value, source, recorded_at), joined to
- * `parameters` (name, unit) and `nodes` (device_label) for display.
- * Server-side paginated, filterable by parameter and date range.
- */
-
-const formatDateTime = (isoString) => {
-  if (!isoString) return "—";
-  const d = new Date(isoString);
-  const pad = (n) => String(n).padStart(2, "0");
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(
-    d.getHours()
-  )}:${pad(d.getMinutes())}`;
-};
+const PAGE_SIZE = PAGE_SIZES.DEFAULT;
 
 const DataRecords = () => {
   useLogPageView("Viewed Data Records");

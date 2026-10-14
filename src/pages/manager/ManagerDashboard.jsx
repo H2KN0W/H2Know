@@ -22,32 +22,12 @@ import { fetchWeatherInsights } from "../../lib/weather";
 import "../../styles/manager/ManagerPortal.css";
 import "../../styles/manager/ManagerDashboard.css";
 
-const PARAMETERS = ["pH", "Turbidity", "TDS", "Temperature"];
+import { formatDateTime, formatClockTime, severityBadgeClass } from "../../lib/formatters";
+import { PARAMETERS, REFRESH_INTERVALS } from "../../config/constants";
+
 const icons = { ph: Droplets, turbidity: Waves, tds: Gauge, temperature: Thermometer };
 
-const formatDateTime = (value) => (value ? new Date(value).toLocaleString() : "—");
-
-const formatClockTime = (timestamp) => {
-  if (!timestamp) return "—";
-  const d = new Date(timestamp);
-  let hours = d.getHours();
-  const minutes = String(d.getMinutes()).padStart(2, "0");
-  const seconds = String(d.getSeconds()).padStart(2, "0");
-  const ampm = hours >= 12 ? "PM" : "AM";
-  hours = hours % 12;
-  hours = hours ? hours : 12;
-  const strHours = String(hours).padStart(2, "0");
-  return `${strHours}:${minutes}:${seconds} ${ampm}`;
-};
-
-const severityClass = (value) => {
-  const severity = (value || "").toLowerCase();
-  return severity === "critical" || severity === "danger"
-    ? "badge-failed"
-    : severity === "warning"
-    ? "badge-warning"
-    : "badge-normal";
-};
+const severityClass = severityBadgeClass;
 
 const conditionRank = { safe: 0, warning: 1, critical: 2, unknown: 3 };
 const conditionLabel = {
@@ -74,7 +54,7 @@ const ManagerDashboard = () => {
   const [loading, setLoading] = useState(true);
   const [accountName, setAccountName] = useState("Loading...");
   const [checkedAt, setCheckedAt] = useState(null);
-  const [refreshInterval, setRefreshInterval] = useState(30000); // 30s default
+  const [refreshInterval, setRefreshInterval] = useState(REFRESH_INTERVALS.FAST);
 
   useEffect(() => {
     const loadAccountName = async () => {
@@ -100,7 +80,7 @@ const ManagerDashboard = () => {
     loadAccountName();
   }, []);
 
-  const load = useCallback(async (manual = false) => {
+  const load = useCallback(async () => {
     setLoading(true);
     try {
       const [readingResult, alertResult, nodeResult, weatherResult] = await Promise.all([
@@ -195,12 +175,6 @@ const ManagerDashboard = () => {
       (reading) =>
         reading.parameters?.name?.toLowerCase() === name.toLowerCase()
     );
-
-  const nodeLastSync = (node) =>
-    readings.find((reading) => reading.nodes?.id === node.id)?.recorded_at;
-
-  const isOnline = (time) =>
-    time && checkedAt - new Date(time).getTime() <= 5 * 60 * 1000;
 
   const riverCondition = useMemo(() => {
     const latestReadings = PARAMETERS.map((name) =>
@@ -312,7 +286,7 @@ const ManagerDashboard = () => {
               <button
                 type="button"
                 className="header-refresh-btn"
-                onClick={() => load(true)}
+                onClick={() => load()}
                 disabled={loading}
                 title="Refresh now"
               >
