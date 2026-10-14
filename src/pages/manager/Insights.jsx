@@ -27,10 +27,11 @@ import ManagerSidebar from "./ManagerSidebar";
 import "../../styles/manager/ManagerPortal.css";
 import "../../styles/manager/Insights.css";
 
+import { formatDateTime } from "../../lib/formatters";
+
 const HISTORY_DAYS = 14;
 const REFRESH_MS = 30 * 60 * 1000;
 
-const formatDateTime = (value) => (value ? new Date(value).toLocaleString() : "—");
 const formatValue = (value) => Number(value).toLocaleString(undefined, { maximumFractionDigits: 2 });
 
 const PARAM_ICONS = {
