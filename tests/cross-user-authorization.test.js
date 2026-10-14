@@ -20,11 +20,10 @@ import assert from "node:assert/strict";
 // ─── Shared fixtures ──────────────────────────────────────────────────────────
 const USER_A_ID   = "aaaaaaaa-0000-0000-0000-000000000001";
 const USER_B_ID   = "bbbbbbbb-0000-0000-0000-000000000002";
-const REPORT_B_ID = "report-owned-by-b";
 const ALERT_ID    = "alert-001";
 
 // ── Minimal mock Supabase client factory ─────────────────────────────────────
-function makeClient({ callerId, ownerId, callerRole = "manager", callerStatus = "approved" }) {
+function makeClient({ callerId, callerRole = "manager", callerStatus = "approved" }) {
   // Simulates Supabase's row-level behavior:
   //   - `.eq("generated_by", userId)` only returns rows owned by userId
   //   - `.eq("id", userId)` profile lookups only succeed for the caller
@@ -122,7 +121,7 @@ function makeClient({ callerId, ownerId, callerRole = "manager", callerStatus = 
 
 // 1. User A cannot read User B's private report history
 test("User A cannot read User B's report history", async () => {
-  const clientA = makeClient({ callerId: USER_A_ID, ownerId: USER_B_ID });
+  const clientA = makeClient({ callerId: USER_A_ID });
 
   // User A requests reports filtered by User B's ID (simulates a crafted API call)
   const { data } = await clientA
