@@ -80,7 +80,7 @@ const ManagerReports = () => {
 
   useEffect(() => {
     Promise.all([
-      supabase.from("parameters").select("id, name").order("name"),
+      supabase.from("parameters").select("id, name, unit").order("name"),
       supabase.auth.getSession()
     ]).then(async ([parameterResult, sessionResult]) => {
       setParameters((parameterResult.data || []).filter((item) => item.name?.toLowerCase() !== "water level"));
