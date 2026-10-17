@@ -6,6 +6,7 @@ import UserManagement from "./pages/admin/UserManagement";
 import DataRecords from "./pages/admin/DataRecords";
 import AlertHistory from "./pages/admin/AlertHistory";
 import Reports from "./pages/admin/Reports";
+import NodeHealth from "./pages/admin/NodeHealth";
 import ProtectedRoute from "./routes/ProtectedRoute";
 import ResetPassword from "./pages/ResetPassword";
 import ManagerDashboard from "./pages/manager/ManagerDashboard";
@@ -31,6 +32,14 @@ function App() {
           element={
             <ProtectedRoute requiredRole="admin">
               <Dashboard />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/node-health"
+          element={
+            <ProtectedRoute requiredRole="admin">
+              <NodeHealth />
             </ProtectedRoute>
           }
         />
