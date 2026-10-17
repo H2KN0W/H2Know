@@ -107,7 +107,7 @@ export default function WeatherDashboardSection({ weatherData }) {
       <article className="weather-hero-card">
         <div className="weather-hero-header">
           <div className="weather-hero-location">
-            <span className="weather-hero-city">{weatherData?.location?.city || SITE_LOCATION.city}</span>
+            <span className="weather-hero-city">{SITE_LOCATION.city}</span>
             <span className="weather-hero-sub">{SITE_LOCATION.basin}, {SITE_LOCATION.province}</span>
           </div>
           <div className="weather-hero-badge">
