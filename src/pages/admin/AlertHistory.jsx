@@ -6,7 +6,7 @@ import { useLogPageView } from "../../lib/useLogPageView";
 import Sidebar from "../../components/Sidebar";
 
 import { formatDateTime, severityBadgeClass } from "../../lib/formatters";
-import { PAGE_SIZES } from "../../config/constants";
+import { PAGE_SIZES, filterMonitoredParameters } from "../../config/constants";
 
 const PAGE_SIZE = PAGE_SIZES.DEFAULT;
 
@@ -37,9 +37,7 @@ const AlertHistory = () => {
         .order("name", { ascending: true });
 
       if (!fetchError) {
-        // H2KNOW only monitors pH, TDS, Turbidity, and Temperature —
-        // exclude Water Level in case it's still seeded in the DB.
-        setParameters(data.filter((p) => p.name?.toLowerCase() !== "water level"));
+        setParameters(filterMonitoredParameters(data));
       }
     };
 

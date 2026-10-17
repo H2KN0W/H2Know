@@ -14,7 +14,7 @@ import ManagerSidebar from "./ManagerSidebar";
 import "../../styles/manager/ManagerPortal.css";
 import "../../styles/manager/AnalyticsTrends.css";
 import { formatDateTime } from "../../lib/formatters";
-import { PAGE_SIZES } from "../../config/constants";
+import { PAGE_SIZES, filterMonitoredParameters } from "../../config/constants";
 
 const PAGE_SIZE = PAGE_SIZES.DEFAULT;
 const ALL_VALUE = "all";
@@ -93,10 +93,7 @@ const AnalyticsTrends = () => {
         if (fetchError) {
           setError("Could not load parameters.");
         } else {
-          const available = (data || []).filter(
-            (item) => item.name?.toLowerCase() !== "water level"
-          );
-          setParameters(available);
+          setParameters(filterMonitoredParameters(data));
           setParameterId(ALL_VALUE);
         }
       });

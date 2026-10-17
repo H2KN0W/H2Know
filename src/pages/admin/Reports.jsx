@@ -5,7 +5,7 @@ import "../../styles/admin/Reports.css";
 import { useLogPageView } from "../../lib/useLogPageView";
 import Sidebar from "../../components/Sidebar";
 
-import { formatDateTime, formatDate } from "../../lib/formatters";
+import { formatDateTime, formatDate, formatReportParameters } from "../../lib/formatters";
 import { PAGE_SIZES } from "../../config/constants";
 
 const PAGE_SIZE = PAGE_SIZES.DEFAULT;
@@ -127,7 +127,7 @@ const Reports = () => {
                         <td className="data-cell">
                           {formatDate(row.date_range_start)} – {formatDate(row.date_range_end)}
                         </td>
-                        <td>{row.parameters?.join(", ") || "All parameters"}</td>
+                        <td>{formatReportParameters(row.parameters)}</td>
                         <td>{row.format?.toUpperCase() || "PDF"}</td>
                         <td>
                           {row.status === "success" ? (

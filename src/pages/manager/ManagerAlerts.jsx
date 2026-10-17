@@ -6,7 +6,7 @@ import "../../styles/manager/ManagerPortal.css";
 import "../../styles/manager/ManagerAlerts.css";
 
 import { formatDateTime, severityBadgeClass } from "../../lib/formatters";
-import { PAGE_SIZES } from "../../config/constants";
+import { PAGE_SIZES, filterMonitoredParameters } from "../../config/constants";
 
 const PAGE_SIZE = PAGE_SIZES.DEFAULT;
 const severityClass = severityBadgeClass;
@@ -15,7 +15,7 @@ const ManagerAlerts = () => {
   useLogPageView("Viewed Manager Alerts");
   const [parameters, setParameters] = useState([]); const [alerts, setAlerts] = useState([]); const [counts, setCounts] = useState({ active: 0, reviewed: 0, resolved: 0 });
   const [tab, setTab] = useState("active"); const [parameterId, setParameterId] = useState(""); const [dateFrom, setDateFrom] = useState(""); const [dateTo, setDateTo] = useState(""); const [page, setPage] = useState(1); const [totalCount, setTotalCount] = useState(0); const [loading, setLoading] = useState(true); const [error, setError] = useState("");
-  useEffect(() => { supabase.from("parameters").select("id, name").order("name").then(({ data }) => setParameters((data || []).filter((item) => item.name?.toLowerCase() !== "water level"))); }, []);
+  useEffect(() => { supabase.from("parameters").select("id, name").order("name").then(({ data }) => setParameters(filterMonitoredParameters(data))); }, []);
   const fetchAlerts = async () => {
     setLoading(true); setError(""); const from = (page - 1) * PAGE_SIZE;
     let query = supabase.from("alerts").select("id, message, status, triggered_at, reviewed_at, thresholds!inner ( min_value, max_value, severity_label, parameter_id, parameters!inner ( name, unit ) ), sensor_readings ( value, nodes ( device_label ) )", { count: "exact" }).eq("status", tab);

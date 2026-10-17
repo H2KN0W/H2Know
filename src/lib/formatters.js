@@ -73,3 +73,17 @@ export const severityBadgeClass = (severity) => {
   if (s === "warning") return "badge-warning";
   return "badge-normal";
 };
+
+/**
+ * Format report parameters array for display (handles canonical array, legacy string, or empty)
+ */
+export const formatReportParameters = (params) => {
+  if (!params || !Array.isArray(params) || params.length === 0) {
+    return "All parameters";
+  }
+  if (params.includes("All Parameters") || params.length >= 4) {
+    return "All parameters";
+  }
+  return params.join(", ");
+};
+
