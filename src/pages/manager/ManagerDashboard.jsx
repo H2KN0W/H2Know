@@ -22,6 +22,7 @@ import VerticalOvercastWeatherCard from "../../components/VerticalOvercastWeathe
 import { fetchWeatherInsights } from "../../lib/weather";
 import "../../styles/manager/ManagerPortal.css";
 import "../../styles/manager/ManagerDashboard.css";
+import { PageTransition, SkeletonCard, SkeletonTableRows, LiveValue, AnimatedRow } from "../../components/ui";
 
 import { formatDateTime, formatClockTime, severityBadgeClass } from "../../lib/formatters";
 import { PARAMETERS, REFRESH_INTERVALS } from "../../config/constants";
@@ -279,7 +280,7 @@ const ManagerDashboard = () => {
   return (
     <div className="admin-shell manager-shell">
       <ManagerSidebar />
-      <main className="admin-main manager-main">
+      <PageTransition className="admin-main manager-main">
         <header className="page-header page-header-with-actions">
           <div>
             <h1>Monitoring Dashboard</h1>
@@ -323,11 +324,14 @@ const ManagerDashboard = () => {
 
         {error && <p className="manager-error">{error}</p>}
 
-        {loading ? (
-          <p>Loading monitoring data...</p>
-        ) : (
-          <>
-            <section className="manager-card-grid">
+        <section className="manager-card-grid">
+          {loading ? (
+            <>
+              <SkeletonCard type="river" />
+              <SkeletonCard type="water" count={4} />
+            </>
+          ) : (
+            <>
               {(() => {
                 const Icon = conditionIcon[riverCondition.condition];
                 const detail =
@@ -357,9 +361,13 @@ const ManagerDashboard = () => {
                     <div>
                       <p>{name}</p>
                       <strong>
-                        {reading
-                          ? `${reading.value} ${reading.parameters?.unit || ""}`
-                          : "No reading"}
+                        {reading ? (
+                          <LiveValue
+                            value={`${reading.value} ${reading.parameters?.unit || ""}`}
+                          />
+                        ) : (
+                          "No reading"
+                        )}
                       </strong>
                       <small>
                         {reading
@@ -370,7 +378,9 @@ const ManagerDashboard = () => {
                   </article>
                 );
               })}
-            </section>
+            </>
+          )}
+        </section>
 
             <section className="manager-monitoring-row">
               {/* ── Far Left: Vertical Overcast Weather Card ── */}
@@ -420,15 +430,17 @@ const ManagerDashboard = () => {
                     </tr>
                   </thead>
                   <tbody>
-                    {alerts.length === 0 ? (
+                    {loading ? (
+                      <SkeletonTableRows rows={3} columns={5} />
+                    ) : alerts.length === 0 ? (
                       <tr>
                         <td colSpan={5}>No active alerts.</td>
                       </tr>
                     ) : (
-                      alerts.map((alert) => {
+                      alerts.map((alert, idx) => {
                         const threshold = alert.thresholds;
                         return (
-                          <tr key={alert.id}>
+                          <AnimatedRow key={alert.id} index={idx} isNew={alert.status === "active"}>
                             <td>{formatDateTime(alert.triggered_at)}</td>
                             <td>{threshold?.parameters?.name || "—"}</td>
                             <td className="data-cell">
@@ -442,13 +454,13 @@ const ManagerDashboard = () => {
                             <td>
                               <span
                                 className={`badge ${severityClass(
-                                  threshold?.severity_label
-                                )}`}
+                                   threshold?.severity_label
+                                 )}`}
                               >
                                 {threshold?.severity_label || "—"}
                               </span>
                             </td>
-                          </tr>
+                          </AnimatedRow>
                         );
                       })
                     )}
@@ -471,28 +483,28 @@ const ManagerDashboard = () => {
                     </tr>
                   </thead>
                   <tbody>
-                    {recentRows.length === 0 ? (
+                    {loading ? (
+                      <SkeletonTableRows rows={5} columns={5} />
+                    ) : recentRows.length === 0 ? (
                       <tr>
                         <td colSpan={5}>No readings yet.</td>
                       </tr>
                     ) : (
-                      recentRows.map((row) => (
-                        <tr key={row.recorded_at}>
+                      recentRows.map((row, idx) => (
+                        <AnimatedRow key={row.recorded_at} index={idx}>
                           <td>{formatDateTime(row.recorded_at)}</td>
                           <td className="data-cell">{row.ph ?? "—"}</td>
                           <td className="data-cell">{row.turbidity ?? "—"}</td>
                           <td className="data-cell">{row.tds ?? "—"}</td>
                           <td className="data-cell">{row.temperature ?? "—"}</td>
-                        </tr>
+                        </AnimatedRow>
                       ))
                     )}
                   </tbody>
                 </table>
               </div>
             </section>
-          </>
-        )}
-      </main>
+      </PageTransition>
     </div>
   );
 };
