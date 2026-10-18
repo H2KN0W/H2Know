@@ -4,6 +4,7 @@ import "../../styles/admin/AdminDashboard.css";
 import "../../styles/admin/ActivityLogs.css";
 import { useLogPageView } from "../../lib/useLogPageView";
 import Sidebar from "../../components/Sidebar";
+import { PageTransition, SkeletonTableRows, AnimatedRow } from "../../components/ui";
 
 /**
  * User Activity Logs — Admin page.
@@ -104,7 +105,7 @@ const ActivityLogs = () => {
       <Sidebar />
 
       {/* Main content */}
-      <main className="admin-main">
+      <PageTransition className="admin-main">
         <header className="page-header">
           <h1>User Activity Logs</h1>
           <p>Login events and account activity across H2KNOW</p>
@@ -182,10 +183,9 @@ const ActivityLogs = () => {
             </button>
           </div>
 
-          {loading && <p>Loading activity logs...</p>}
           {error && <p style={{ color: "#d64545" }}>{error}</p>}
 
-          {!loading && !error && (
+          {!error && (
             <div className="table-wrap">
               <table>
                 <thead>
@@ -199,27 +199,30 @@ const ActivityLogs = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {logs.length === 0 && (
+                  {loading ? (
+                    <SkeletonTableRows rows={PAGE_SIZE} columns={6} />
+                  ) : logs.length === 0 ? (
                     <tr>
                       <td colSpan={6}>No activity matches these filters.</td>
                     </tr>
+                  ) : (
+                    logs.map((row, index) => (
+                      <AnimatedRow key={row.id} index={index}>
+                        <td>{formatDateTime(row.created_at)}</td>
+                        <td>{row.full_name}</td>
+                        <td>{row.role || "—"}</td>
+                        <td>{row.activity}</td>
+                        <td className="data-cell">{row.ip_address || "—"}</td>
+                        <td>
+                          <span
+                            className={`badge badge-${(row.status || "unknown").toLowerCase()}`}
+                          >
+                            {row.status || "—"}
+                          </span>
+                        </td>
+                      </AnimatedRow>
+                    ))
                   )}
-                  {logs.map((row) => (
-                    <tr key={row.id}>
-                      <td>{formatDateTime(row.created_at)}</td>
-                      <td>{row.full_name}</td>
-                      <td>{row.role || "—"}</td>
-                      <td>{row.activity}</td>
-                      <td className="data-cell">{row.ip_address || "—"}</td>
-                      <td>
-                        <span
-                          className={`badge badge-${(row.status || "unknown").toLowerCase()}`}
-                        >
-                          {row.status || "—"}
-                        </span>
-                      </td>
-                    </tr>
-                  ))}
                 </tbody>
               </table>
             </div>
@@ -237,7 +240,7 @@ const ActivityLogs = () => {
             </div>
           )}
         </section>
-      </main>
+      </PageTransition>
     </div>
   );
 };
