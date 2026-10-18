@@ -6,16 +6,13 @@ import { CITY_NAME } from "../config/constants";
 /**
  * Vertical Weather Card
  * Fits on the left column of the Manager Dashboard alongside Catchment Map and Sensor Status.
- * Location is dynamic: renders weatherData.location when present, otherwise falls
- * back to the central SITE_LOCATION config (no hardcoded city strings).
+ * City label is the shared CITY_NAME constant; location metadata comes from SITE_LOCATION.
  */
 export default function VerticalOvercastWeatherCard({ weatherData, loading }) {
   const current = weatherData?.currentWeather;
   const weatherSummary = weatherData?.weatherSummary;
 
-  // City label is the CITY_NAME constant ("Manolo Fortich"). Coordinates stay
-  // sourced from SITE_LOCATION — never derived from reverse-geocode or API
-  // responses.
+  // City label is the shared CITY_NAME constant.
   const cityName = CITY_NAME;
   const subLocation = `${SITE_LOCATION.river}, ${SITE_LOCATION.province}`;
 
