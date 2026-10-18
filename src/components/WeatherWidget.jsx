@@ -21,6 +21,8 @@ const RISK_ICON = {
  * Shows current risk level + 48-h rain forecast.
  * Refreshes every 30 minutes automatically.
  */
+import { SkeletonWeatherWidget } from "./ui/SkeletonCard";
+
 const WeatherWidget = () => {
   const [data, setData] = useState(null);
   const [error, setError] = useState(false);
@@ -46,12 +48,7 @@ const WeatherWidget = () => {
   if (error) return null; // silent fail — don't break header layout
 
   if (!data) {
-    return (
-      <div className="weather-widget weather-widget--loading" aria-label="Loading weather">
-        <CloudRain size={14} />
-        <span>Weather…</span>
-      </div>
-    );
+    return <SkeletonWeatherWidget />;
   }
 
   const ai = data.aiInsights;
