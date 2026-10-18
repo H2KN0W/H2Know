@@ -2,6 +2,7 @@ import { supabase } from "./supabase";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import { Chart } from "chart.js/auto";
+import { toStartOfDay, toEndOfDay } from "../config/constants";
 // H2Know logo embedded as a static Base64 Data URL so PDF generation
 // never depends on async loading, bundler asset URLs, or CORS.
 // (300x300 JPEG, ~11KB source). Pass straight into pdf.addImage().
@@ -976,8 +977,8 @@ export const generateReportFile = async ({
     .from("sensor_readings")
     .select("parameter_id, value, recorded_at")
     .in("parameter_id", selectedIds)
-    .gte("recorded_at", `${form.startDate}T00:00:00`)
-    .lte("recorded_at", `${form.endDate}T23:59:59`);
+    .gte("recorded_at", toStartOfDay(form.startDate))
+    .lte("recorded_at", toEndOfDay(form.endDate));
 
   if (readingsError) throw readingsError;
 
