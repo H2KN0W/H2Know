@@ -44,6 +44,8 @@ export const REFRESH_INTERVALS = {
   FAST: 30000,   // 30s
   MEDIUM: 60000, // 1m
   SLOW: 300000,  // 5m
+  VERY_SLOW: 600000, // 10m
+  WEATHER: 30 * 60 * 1000, // 30 min
 };
 
 export const PAGE_SIZES = {
