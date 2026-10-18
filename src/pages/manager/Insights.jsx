@@ -25,6 +25,8 @@ import { buildInsights } from "../../lib/insights";
 import { fetchWeatherInsights } from "../../lib/weather";
 import WeatherWidget from "../../components/WeatherWidget";
 import ManagerSidebar from "./ManagerSidebar";
+import { PageTransition, SkeletonCard, LiveValue } from "../../components/ui";
+import Skeleton from "react-loading-skeleton";
 import "../../styles/manager/ManagerPortal.css";
 import "../../styles/manager/Insights.css";
 
@@ -185,7 +187,7 @@ const Insights = () => {
   return (
     <div className="admin-shell">
       <ManagerSidebar />
-      <main className="admin-main manager-main insights-page">
+      <PageTransition className="admin-main manager-main insights-page">
         {/* Page Header */}
         <header className="page-header page-header-with-actions">
           <div>
@@ -211,9 +213,15 @@ const Insights = () => {
 
         {/* Global Loading / Error State */}
         {loading && !updatedAt ? (
-          <section className="insights-loading" aria-live="polite">
-            <span className="spinner spinner-dark" role="status" aria-label="Loading insights" />
-            <p>Correlating live sensor readings, thresholds, and meteorological models…</p>
+          <section className="unified-analysis-panel" aria-live="polite" aria-busy="true">
+            {/* Skeleton for Executive Hero */}
+            <div className="unified-hero" style={{ pointerEvents: "none" }}>
+              <Skeleton width="100%" height={120} borderRadius={12} />
+            </div>
+            {/* Skeleton for Parameter Scorecards */}
+            <div className="unified-param-grid">
+              <SkeletonCard type="insight" count={4} />
+            </div>
           </section>
         ) : error && readings.length === 0 ? (
           <section className="insights-empty" aria-live="polite">
@@ -320,7 +328,7 @@ const Insights = () => {
 
                       <div className="unified-param-value-row">
                         <span className="unified-param-current">
-                          {reading ? formatValue(reading.value) : "—"}
+                          {reading ? <LiveValue value={formatValue(reading.value)} /> : "—"}
                         </span>
                         {reading?.parameters?.unit && (
                           <span className="unified-param-unit">{reading.parameters.unit}</span>
@@ -630,7 +638,7 @@ const Insights = () => {
             </section>
           </div>
         )}
-      </main>
+      </PageTransition>
     </div>
   );
 };
