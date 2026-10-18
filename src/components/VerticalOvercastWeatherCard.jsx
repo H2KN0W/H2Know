@@ -1,6 +1,7 @@
 import { CloudRain } from "lucide-react";
 import { getWeatherCondition } from "../lib/weatherCondition";
 import { SITE_LOCATION } from "../config/siteLocation";
+import { SkeletonWeatherCard } from "./ui/SkeletonCard";
 
 /**
  * Vertical Weather Card
@@ -9,14 +10,14 @@ import { SITE_LOCATION } from "../config/siteLocation";
  * back to the central SITE_LOCATION config (no hardcoded city strings).
  */
 export default function VerticalOvercastWeatherCard({ weatherData, loading }) {
+  if (loading && !weatherData) {
+    return <SkeletonWeatherCard />;
+  }
+
   const current = weatherData?.currentWeather;
   const weatherSummary = weatherData?.weatherSummary;
-  const location = weatherData?.location;
 
-  // Location dynamically sourced from the insights payload, falling back to
-  // the central SITE_LOCATION config (single source of truth).
-  const cityName = location?.city || SITE_LOCATION.city;
-  const subLocation = location?.name ? SITE_LOCATION.basin : `${SITE_LOCATION.river}, ${SITE_LOCATION.province}`;
+  const subLocation = `${SITE_LOCATION.river}, ${SITE_LOCATION.province}`;
 
   // Dynamic temperature & apparent temperature from Open-Meteo
   const temp = current?.temperature_2m != null ? Math.round(current.temperature_2m) : null;
@@ -52,7 +53,7 @@ export default function VerticalOvercastWeatherCard({ weatherData, loading }) {
           <span className="voc-live-dot" />
           <span>{loading ? "Syncing..." : "Live Weather"}</span>
         </div>
-        <p className="voc-city">{cityName}</p>
+        <p className="voc-city">Manolo Fortich</p>
         <span className="voc-sub">{subLocation}</span>
       </div>
 
