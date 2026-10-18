@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "../lib/supabase";
 import "../styles/Login.css";
 import H2knowLogo from "../assets/img/H2knowLogo.jpg";
+import { PageTransition, ButtonSpinner } from "../components/ui";
 
 const ResetPassword = () => {
   const navigate = useNavigate();
@@ -134,7 +135,7 @@ const ResetPassword = () => {
   }
 
   return (
-    <div className="login-page">
+    <PageTransition className="login-page">
       <div className="login-card">
         <div className="logo-wrap">
           <img src={H2knowLogo} alt="H2KNOW logo" className="logo-img" />
@@ -237,14 +238,17 @@ const ResetPassword = () => {
 
           <button type="submit" className="login-button" disabled={saving}>
             {saving ? (
-              <span className="spinner" role="status" aria-label="Saving" />
+              <>
+                <ButtonSpinner size={14} color="#ffffff" />
+                <span>Resetting...</span>
+              </>
             ) : (
               "Reset Password"
             )}
           </button>
         </form>
       </div>
-    </div>
+    </PageTransition>
   );
 };
 
