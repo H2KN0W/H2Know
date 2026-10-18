@@ -1,6 +1,7 @@
 import { CloudRain } from "lucide-react";
 import { getWeatherCondition } from "../lib/weatherCondition";
 import { SITE_LOCATION } from "../config/siteLocation";
+import { CITY_NAME } from "../config/constants";
 import { SkeletonWeatherCard } from "./ui/SkeletonCard";
 
 /**
@@ -17,6 +18,10 @@ export default function VerticalOvercastWeatherCard({ weatherData, loading }) {
   const current = weatherData?.currentWeather;
   const weatherSummary = weatherData?.weatherSummary;
 
+  // City label comes from the shared CITY_NAME constant. Coordinates stay
+  // sourced from SITE_LOCATION — never derived from reverse-geocode or API
+  // responses.
+  const cityName = CITY_NAME;
   const subLocation = `${SITE_LOCATION.river}, ${SITE_LOCATION.province}`;
 
   // Dynamic temperature & apparent temperature from Open-Meteo
@@ -53,7 +58,7 @@ export default function VerticalOvercastWeatherCard({ weatherData, loading }) {
           <span className="voc-live-dot" />
           <span>{loading ? "Syncing..." : "Live Weather"}</span>
         </div>
-        <p className="voc-city">Manolo Fortich</p>
+        <p className="voc-city">{cityName}</p>
         <span className="voc-sub">{subLocation}</span>
       </div>
 
