@@ -21,8 +21,8 @@ import ManagerSidebar from "./ManagerSidebar";
 import "../../styles/manager/ManagerPortal.css";
 import "../../styles/manager/ManagerReports.css";
 
-import { formatDateTime, formatDate } from "../../lib/formatters";
-import { PAGE_SIZES } from "../../config/constants";
+import { formatDateTime, formatDate, formatReportParameters } from "../../lib/formatters";
+import { PAGE_SIZES, filterMonitoredParameters } from "../../config/constants";
 
 const PAGE_SIZE = PAGE_SIZES.DEFAULT;
 const ALL_VALUE = "all";
@@ -52,7 +52,7 @@ const ManagerReports = () => {
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
   const [reportModal, setReportModal] = useState(null);
-  const [form, setForm] = useState({ name: "", parameterIds: [], startDate: "", endDate: "", format: "pdf" });
+  const [form, setForm] = useState({ name: "", parameterIds: [ALL_VALUE], startDate: "", endDate: "", format: "pdf" });
 
   // AI insights state for report preview & PDF embedding
   const [aiInsights, setAiInsights] = useState(null);
@@ -83,7 +83,7 @@ const ManagerReports = () => {
       supabase.from("parameters").select("id, name, unit").order("name"),
       supabase.auth.getSession()
     ]).then(async ([parameterResult, sessionResult]) => {
-      setParameters((parameterResult.data || []).filter((item) => item.name?.toLowerCase() !== "water level"));
+      setParameters(filterMonitoredParameters(parameterResult.data));
       const id = sessionResult.data.session?.user?.id;
       if (id) {
         const { data, error: profileError } = await supabase.from("profiles").select("id, full_name, role").eq("id", id).single();
@@ -127,12 +127,19 @@ const ManagerReports = () => {
     loadInsightsPreview();
   }, [loadInsightsPreview]);
 
-  const toggleParameter = (id) => setForm((current) => ({
-    ...current,
-    parameterIds: current.parameterIds.includes(id)
-      ? current.parameterIds.filter((item) => item !== id)
-      : [...current.parameterIds, id]
-  }));
+  const toggleParameter = (id) => setForm((current) => {
+    if (id === ALL_VALUE) {
+      const isCurrentlyAll = current.parameterIds.includes(ALL_VALUE);
+      return { ...current, parameterIds: isCurrentlyAll ? [] : [ALL_VALUE] };
+    }
+    const withoutAll = current.parameterIds.filter((item) => item !== ALL_VALUE);
+    const exists = withoutAll.includes(id);
+    const next = exists ? withoutAll.filter((item) => item !== id) : [...withoutAll, id];
+    if (parameters.length > 0 && next.length === parameters.length) {
+      return { ...current, parameterIds: [ALL_VALUE] };
+    }
+    return { ...current, parameterIds: next };
+  });
 
   const submit = async (event) => {
     event.preventDefault();
@@ -146,9 +153,15 @@ const ManagerReports = () => {
 
     setSaving(true);
     setReportModal({ status: "loading", name: form.name, format: form.format });
-    const parameterNames = form.parameterIds.includes(ALL_VALUE)
-      ? ["All Parameters"]
+    const isAllSelected = form.parameterIds.includes(ALL_VALUE) ||
+      (parameters.length > 0 && form.parameterIds.length === parameters.length);
+    const parameterNames = isAllSelected
+      ? parameters.map((item) => item.name)
       : parameters.filter((item) => form.parameterIds.includes(item.id)).map((item) => item.name);
+
+    const rangeStart = String(form.startDate).slice(0, 10);
+    const rangeEnd = String(form.endDate).slice(0, 10);
+    const rangeForm = { ...form, startDate: rangeStart, endDate: rangeEnd };
 
     const { data: inserted, error: insertError } = await supabase
       .from("reports")
@@ -157,8 +170,8 @@ const ManagerReports = () => {
         report_name: form.name,
         parameters: parameterNames,
         format: form.format,
-        date_range_start: form.startDate,
-        date_range_end: form.endDate,
+        date_range_start: rangeStart,
+        date_range_end: rangeEnd,
         file_url: null
       })
       .select()
@@ -173,7 +186,7 @@ const ManagerReports = () => {
     let generationSucceeded = false;
     try {
       const { url: fileUrl, blob } = await generateReportFile({
-        form,
+        form: rangeForm,
         parameters,
         reportId: inserted.id,
         authorName: currentUser.full_name || "Manager",
@@ -421,7 +434,7 @@ const ManagerReports = () => {
                         <td data-label="Name">{report.report_name || "Untitled report"}</td>
                         <td data-label="Date generated">{formatDateTime(report.created_at)}</td>
                         <td data-label="Range covered">{formatDate(report.date_range_start)} – {formatDate(report.date_range_end)}</td>
-                        <td data-label="Parameters">{report.parameters?.join(", ") || "All parameters"}</td>
+                        <td data-label="Parameters">{formatReportParameters(report.parameters)}</td>
                         <td data-label="Format">{report.format?.toUpperCase() || "PDF"}</td>
                         <td data-label="Status">
                           {report.status === "success"

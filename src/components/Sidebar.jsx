@@ -7,6 +7,7 @@ import {
   Database,
   FileText,
   Users,
+  Activity,
   Menu,
   X,
 } from "lucide-react";
@@ -19,6 +20,7 @@ const navSections = [
     label: "Main",
     items: [
       { label: "Dashboard", path: "/admin/dashboard", icon: LayoutDashboard },
+      { label: "Node Health", path: "/admin/node-health", icon: Activity },
       { label: "Alert History", path: "/admin/alert-history", icon: Bell },
       { label: "Activity Logs", path: "/admin/user-activity-logs", icon: ClipboardList },
       { label: "Data Records", path: "/admin/data-records", icon: Database },

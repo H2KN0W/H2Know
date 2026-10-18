@@ -1,6 +1,7 @@
 import { CloudRain } from "lucide-react";
 import { getWeatherCondition } from "../lib/weatherCondition";
 import { SITE_LOCATION } from "../config/siteLocation";
+import { CITY_NAME } from "../config/constants";
 
 /**
  * Vertical Weather Card
@@ -11,12 +12,12 @@ import { SITE_LOCATION } from "../config/siteLocation";
 export default function VerticalOvercastWeatherCard({ weatherData, loading }) {
   const current = weatherData?.currentWeather;
   const weatherSummary = weatherData?.weatherSummary;
-  const location = weatherData?.location;
 
-  // Location dynamically sourced from the insights payload, falling back to
-  // the central SITE_LOCATION config (single source of truth).
-  const cityName = location?.city || SITE_LOCATION.city;
-  const subLocation = location?.name ? SITE_LOCATION.basin : `${SITE_LOCATION.river}, ${SITE_LOCATION.province}`;
+  // City label is the CITY_NAME constant ("Manolo Fortich"). Coordinates stay
+  // sourced from SITE_LOCATION — never derived from reverse-geocode or API
+  // responses.
+  const cityName = CITY_NAME;
+  const subLocation = `${SITE_LOCATION.river}, ${SITE_LOCATION.province}`;
 
   // Dynamic temperature & apparent temperature from Open-Meteo
   const temp = current?.temperature_2m != null ? Math.round(current.temperature_2m) : null;
