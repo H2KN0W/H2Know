@@ -7,6 +7,7 @@ import { useSilentRefresh } from "../../hooks/useSilentRefresh";
 import Sidebar from "../../components/Sidebar";
 import WeatherWidget from "../../components/WeatherWidget";
 import { Wifi, Clock, AlertTriangle, Database, Users, Hourglass, RefreshCw } from "lucide-react";
+import { PageTransition, SkeletonCard, SkeletonTableRows, LiveValue, AnimatedRow } from "../../components/ui";
 
 /**
  * Dashboard — Admin landing page.
@@ -400,7 +401,7 @@ const Dashboard = () => {
       <Sidebar />
 
       {/* Main content */}
-      <main className="admin-main">
+      <PageTransition className="admin-main">
         <header className="page-header page-header-with-actions">
           <div>
             <h1>Dashboard</h1>
@@ -450,35 +451,39 @@ const Dashboard = () => {
         </header>
 
         <div className="summary-grid">
-          {summaryCards.map((card) => {
-            const Icon = card.icon;
-            return (
-              <div
-                className="summary-card"
-                key={card.label}
-                role="button"
-                tabIndex={0}
-                onClick={() => navigate(card.path)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" || e.key === " ") {
-                    e.preventDefault();
-                    navigate(card.path);
-                  }
-                }}
-              >
-                <div className="summary-card-body">
-                  <p className="summary-label">{card.label}</p>
-                  <p className={`summary-value tone-${card.tone}`}>
-                    {card.live && <span className="live-dot" />}
-                    {card.value}
-                  </p>
+          {loadingUsers && loadingAlerts && loadingReadings ? (
+            <SkeletonCard type="kpi" count={6} />
+          ) : (
+            summaryCards.map((card) => {
+              const Icon = card.icon;
+              return (
+                <div
+                  className="summary-card"
+                  key={card.label}
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => navigate(card.path)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      navigate(card.path);
+                    }
+                  }}
+                >
+                  <div className="summary-card-body">
+                    <p className="summary-label">{card.label}</p>
+                    <p className={`summary-value tone-${card.tone}`}>
+                      {card.live && <span className="live-dot" />}
+                      <LiveValue value={card.value} />
+                    </p>
+                  </div>
+                  <div className="summary-icon">
+                    <Icon size={20} strokeWidth={1.8} />
+                  </div>
                 </div>
-                <div className="summary-icon">
-                  <Icon size={20} strokeWidth={1.8} />
-                </div>
-              </div>
-            );
-          })}
+              );
+            })
+          )}
         </div>
 
         <div className="panel-grid">
@@ -514,11 +519,7 @@ const Dashboard = () => {
                 </thead>
                 <tbody>
                   {loadingAlerts ? (
-                    <tr>
-                      <td colSpan={5} style={{ textAlign: "center", padding: "16px", color: "var(--color-text-muted)" }}>
-                        Loading alert history...
-                      </td>
-                    </tr>
+                    <SkeletonTableRows rows={3} columns={5} />
                   ) : recentAlerts.length === 0 ? (
                     <tr>
                       <td colSpan={5} style={{ textAlign: "center", padding: "16px", color: "var(--color-text-muted)" }}>
@@ -526,7 +527,7 @@ const Dashboard = () => {
                       </td>
                     </tr>
                   ) : (
-                    recentAlerts.map((row) => {
+                    recentAlerts.map((row, idx) => {
                       const param = row.thresholds?.parameters;
                       const unit = param?.unit || "";
                       const min = row.thresholds?.min_value;
@@ -534,7 +535,7 @@ const Dashboard = () => {
                       const severity = row.thresholds?.severity_label || "Normal";
 
                       return (
-                        <tr key={row.id}>
+                        <AnimatedRow key={row.id} index={idx}>
                           <td>{formatDateTime(row.triggered_at)}</td>
                           <td>{param?.name || "—"}</td>
                           <td className="data-cell">
@@ -548,7 +549,7 @@ const Dashboard = () => {
                               {severity}
                             </span>
                           </td>
-                        </tr>
+                        </AnimatedRow>
                       );
                     })
                   )}
@@ -589,11 +590,7 @@ const Dashboard = () => {
                 </thead>
                 <tbody>
                   {loadingActivity ? (
-                    <tr>
-                      <td colSpan={5} style={{ textAlign: "center", padding: "16px", color: "var(--color-text-muted)" }}>
-                        Loading user activity...
-                      </td>
-                    </tr>
+                    <SkeletonTableRows rows={3} columns={5} />
                   ) : recentActivity.length === 0 ? (
                     <tr>
                       <td colSpan={5} style={{ textAlign: "center", padding: "16px", color: "var(--color-text-muted)" }}>
@@ -601,8 +598,8 @@ const Dashboard = () => {
                       </td>
                     </tr>
                   ) : (
-                    recentActivity.map((row) => (
-                      <tr key={row.id}>
+                    recentActivity.map((row, idx) => (
+                      <AnimatedRow key={row.id} index={idx}>
                         <td>{formatDateTime(row.created_at)}</td>
                         <td>{row.full_name || "—"}</td>
                         <td>{row.role || "—"}</td>
@@ -614,7 +611,7 @@ const Dashboard = () => {
                             {row.status || "—"}
                           </span>
                         </td>
-                      </tr>
+                      </AnimatedRow>
                     ))
                   )}
                 </tbody>
@@ -622,7 +619,7 @@ const Dashboard = () => {
             </div>
           </section>
         </div>
-      </main>
+      </PageTransition>
     </div>
   );
 };
