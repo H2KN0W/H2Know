@@ -7,6 +7,7 @@ import Sidebar from "../../components/Sidebar";
 
 import { formatDateTime } from "../../lib/formatters";
 import { PAGE_SIZES, filterMonitoredParameters } from "../../config/constants";
+import { PageTransition, SkeletonTableRows, AnimatedRow } from "../../components/ui";
 
 const PAGE_SIZE = PAGE_SIZES.DEFAULT;
 
@@ -115,7 +116,7 @@ const DataRecords = () => {
     <div className="admin-shell">
       <Sidebar />
 
-      <main className="admin-main">
+      <PageTransition className="admin-main">
         <header className="page-header">
           <h1>Data Records</h1>
           <p>Raw sensor readings from the river catchment monitoring node</p>
@@ -167,63 +168,61 @@ const DataRecords = () => {
             )}
           </div>
 
-          {loading && <p>Loading data records...</p>}
           {error && <p style={{ color: "#d64545" }}>{error}</p>}
 
-          {!loading && !error && (
-            <>
-              <div className="table-wrap">
-                <table>
-                  <thead>
-                    <tr>
-                      <th>Date &amp; Time</th>
-                      <th>Node</th>
-                      <th>Parameter</th>
-                      <th>Value</th>
-                      <th>Source</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {records.length === 0 && (
-                      <tr>
-                        <td colSpan={5}>No records match the current filters.</td>
-                      </tr>
-                    )}
-                    {records.map((row) => (
-                      <tr key={row.id}>
-                        <td>{formatDateTime(row.recorded_at)}</td>
-                        <td>{row.nodes?.device_label || "—"}</td>
-                        <td>{row.parameters?.name || "—"}</td>
-                        <td className="data-cell">
-                          {row.value ?? "—"} {row.parameters?.unit || ""}
-                        </td>
-                        <td>{row.source || "—"}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+          <div className="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Date &amp; Time</th>
+                  <th>Node</th>
+                  <th>Parameter</th>
+                  <th>Value</th>
+                  <th>Source</th>
+                </tr>
+              </thead>
+              <tbody>
+                {loading ? (
+                  <SkeletonTableRows rows={PAGE_SIZE} columns={5} />
+                ) : records.length === 0 ? (
+                  <tr>
+                    <td colSpan={5}>No records match the current filters.</td>
+                  </tr>
+                ) : (
+                  records.map((row, idx) => (
+                    <AnimatedRow key={row.id} index={idx}>
+                      <td>{formatDateTime(row.recorded_at)}</td>
+                      <td>{row.nodes?.device_label || "—"}</td>
+                      <td>{row.parameters?.name || "—"}</td>
+                      <td className="data-cell">
+                        {row.value ?? "—"} {row.parameters?.unit || ""}
+                      </td>
+                      <td>{row.source || "—"}</td>
+                    </AnimatedRow>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
 
-              {totalPages > 1 && (
-                <div className="um-pagination">
-                  <button disabled={page === 1} onClick={() => setPage((p) => p - 1)}>
-                    ‹
-                  </button>
-                  <span style={{ fontSize: "0.82rem", color: "var(--color-text-muted)" }}>
-                    Page {page} of {totalPages}
-                  </span>
-                  <button
-                    disabled={page === totalPages}
-                    onClick={() => setPage((p) => p + 1)}
-                  >
-                    ›
-                  </button>
-                </div>
-              )}
-            </>
+          {!loading && totalPages > 1 && (
+            <div className="um-pagination">
+              <button disabled={page === 1} onClick={() => setPage((p) => p - 1)}>
+                ‹
+              </button>
+              <span style={{ fontSize: "0.82rem", color: "var(--color-text-muted)" }}>
+                Page {page} of {totalPages}
+              </span>
+              <button
+                disabled={page === totalPages}
+                onClick={() => setPage((p) => p + 1)}
+              >
+                ›
+              </button>
+            </div>
           )}
         </section>
-      </main>
+      </PageTransition>
     </div>
   );
 };
