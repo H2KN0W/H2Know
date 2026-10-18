@@ -15,6 +15,12 @@ import "../../styles/manager/ManagerPortal.css";
 import "../../styles/manager/AnalyticsTrends.css";
 import { formatDateTime } from "../../lib/formatters";
 import { PAGE_SIZES, filterMonitoredParameters } from "../../config/constants";
+import {
+  PageTransition,
+  SkeletonChart,
+  SkeletonTableRows,
+  AnimatedRow,
+} from "../../components/ui";
 
 const PAGE_SIZE = PAGE_SIZES.DEFAULT;
 const ALL_VALUE = "all";
@@ -219,7 +225,7 @@ const AnalyticsTrends = () => {
   return (
     <div className="admin-shell">
       <ManagerSidebar />
-      <main className="admin-main manager-main">
+      <PageTransition className="admin-main manager-main">
         <header className="page-header">
           <h1>Analytics &amp; Trends</h1>
           <p>Explore historical sensor performance and threshold bands</p>
@@ -271,7 +277,25 @@ const AnalyticsTrends = () => {
           </div>
 
           {loading ? (
-            <p>Loading analytics...</p>
+            <>
+              <SkeletonChart isAll={isAll} />
+              <div className="table-wrap" style={{ marginTop: "24px" }}>
+                <table>
+                  <thead>
+                    <tr>
+                      {isAll && <th>Parameter</th>}
+                      <th>Date &amp; Time</th>
+                      <th>Node</th>
+                      <th>Value</th>
+                      <th>Source</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <SkeletonTableRows rows={PAGE_SIZE} columns={isAll ? 5 : 4} />
+                  </tbody>
+                </table>
+              </div>
+            </>
           ) : error ? (
             <p className="manager-error">{error}</p>
           ) : (
@@ -465,8 +489,8 @@ const AnalyticsTrends = () => {
                         </td>
                       </tr>
                     ) : (
-                      pageRows.map((row) => (
-                        <tr key={row.id}>
+                      pageRows.map((row, idx) => (
+                        <AnimatedRow key={row.id} index={idx}>
                           {isAll && <td>{row.parameters?.name || "—"}</td>}
                           <td>{formatDateTime(row.recorded_at)}</td>
                           <td>{row.nodes?.device_label || "—"}</td>
@@ -474,7 +498,7 @@ const AnalyticsTrends = () => {
                             {row.value} {row.parameters?.unit || selected?.unit || ""}
                           </td>
                           <td>{row.source || "—"}</td>
-                        </tr>
+                        </AnimatedRow>
                       ))
                     )}
                   </tbody>
@@ -503,7 +527,7 @@ const AnalyticsTrends = () => {
             </>
           )}
         </section>
-      </main>
+      </PageTransition>
     </div>
   );
 };
