@@ -6,6 +6,7 @@ import H2knowLogo from "../assets/img/H2knowLogo.jpg";
 import { logActivity } from "../lib/logActivity";
 import { Lock, CheckCircle, AlertCircle } from "lucide-react";
 import loginCoverVideo from "../assets/video/h2knowLoginCoverSide.mp4";
+import { ButtonSpinner, PageTransition } from "../components/ui";
 
 const REMEMBER_KEY = "h2know_remembered_email";
 
@@ -560,7 +561,10 @@ const Login = () => {
                 disabled={settingPassword}
               >
                 {settingPassword ? (
-                  <span className="lp-spinner lp-spinner-white" aria-label="Saving password" role="status" />
+                  <>
+                    <ButtonSpinner size={14} color="#ffffff" />
+                    <span>Saving...</span>
+                  </>
                 ) : (
                   "Save Password & Continue"
                 )}
@@ -576,7 +580,7 @@ const Login = () => {
   // RENDER: Main login screen
   // ─────────────────────────────────────────────────────────────────────────
   return (
-    <div className="lp-root">
+    <PageTransition className="lp-root">
       <BrandPanel />
 
       <div className="lp-form-panel">
@@ -699,11 +703,10 @@ const Login = () => {
               disabled={loading || googleLoading}
             >
               {loading ? (
-                <span
-                  className="lp-spinner lp-spinner-white"
-                  role="status"
-                  aria-label="Signing in"
-                />
+                <>
+                  <ButtonSpinner size={14} color="#ffffff" />
+                  <span>Signing in...</span>
+                </>
               ) : (
                 "Sign In"
               )}
@@ -723,11 +726,10 @@ const Login = () => {
             disabled={loading || googleLoading}
           >
             {googleLoading ? (
-              <span
-                className="lp-spinner lp-spinner-blue"
-                role="status"
-                aria-label="Connecting to Google"
-              />
+              <>
+                <ButtonSpinner size={14} color="#0C4C7C" />
+                <span>Connecting...</span>
+              </>
             ) : (
               <>
                 <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
@@ -754,7 +756,7 @@ const Login = () => {
           </button>
         </div>
       </div>
-    </div>
+    </PageTransition>
   );
 };
 
