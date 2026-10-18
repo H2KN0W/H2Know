@@ -7,6 +7,7 @@ import Sidebar from "../../components/Sidebar";
 
 import { formatDateTime, severityBadgeClass } from "../../lib/formatters";
 import { PAGE_SIZES, filterMonitoredParameters } from "../../config/constants";
+import { PageTransition, SkeletonTableRows, AnimatedRow } from "../../components/ui";
 
 const PAGE_SIZE = PAGE_SIZES.DEFAULT;
 
@@ -116,7 +117,7 @@ const AlertHistory = () => {
     <div className="admin-shell">
       <Sidebar />
 
-      <main className="admin-main">
+      <PageTransition className="admin-main">
         <header className="page-header">
           <h1>Alert History</h1>
           <p>Threshold breaches recorded across the monitoring node</p>
@@ -168,79 +169,77 @@ const AlertHistory = () => {
             )}
           </div>
 
-          {loading && <p>Loading alert history...</p>}
           {error && <p style={{ color: "#d64545" }}>{error}</p>}
 
-          {!loading && !error && (
-            <>
-              <div className="table-wrap">
-                <table>
-                  <thead>
-                    <tr>
-                      <th>Date &amp; Time</th>
-                      <th>Node</th>
-                      <th>Parameter</th>
-                      <th>Reading</th>
-                      <th>Threshold</th>
-                      <th>Severity</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {alerts.length === 0 && (
-                      <tr>
-                        <td colSpan={6}>No alerts match the current filters.</td>
-                      </tr>
-                    )}
-                    {alerts.map((row) => {
-                      const param = row.thresholds?.parameters;
-                      const unit = param?.unit || "";
-                      const min = row.thresholds?.min_value;
-                      const max = row.thresholds?.max_value;
-                      const severity = row.thresholds?.severity_label;
+          <div className="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Date &amp; Time</th>
+                  <th>Node</th>
+                  <th>Parameter</th>
+                  <th>Reading</th>
+                  <th>Threshold</th>
+                  <th>Severity</th>
+                </tr>
+              </thead>
+              <tbody>
+                {loading ? (
+                  <SkeletonTableRows rows={PAGE_SIZE} columns={6} />
+                ) : alerts.length === 0 ? (
+                  <tr>
+                    <td colSpan={6}>No alerts match the current filters.</td>
+                  </tr>
+                ) : (
+                  alerts.map((row, idx) => {
+                    const param = row.thresholds?.parameters;
+                    const unit = param?.unit || "";
+                    const min = row.thresholds?.min_value;
+                    const max = row.thresholds?.max_value;
+                    const severity = row.thresholds?.severity_label;
 
-                      return (
-                        <tr key={row.id}>
-                          <td>{formatDateTime(row.triggered_at)}</td>
-                          <td>{row.sensor_readings?.nodes?.device_label || "—"}</td>
-                          <td>{param?.name || "—"}</td>
-                          <td className="data-cell">
-                            {row.sensor_readings?.value ?? "—"} {unit}
-                          </td>
-                          <td className="data-cell">
-                            {min ?? "—"} – {max ?? "—"} {unit}
-                          </td>
-                          <td>
-                            <span className={`badge ${severityBadgeClass(severity)}`}>
-                              {severity || "—"}
-                            </span>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
+                    return (
+                      <AnimatedRow key={row.id} index={idx}>
+                        <td>{formatDateTime(row.triggered_at)}</td>
+                        <td>{row.sensor_readings?.nodes?.device_label || "—"}</td>
+                        <td>{param?.name || "—"}</td>
+                        <td className="data-cell">
+                          {row.sensor_readings?.value ?? "—"} {unit}
+                        </td>
+                        <td className="data-cell">
+                          {min ?? "—"} – {max ?? "—"} {unit}
+                        </td>
+                        <td>
+                          <span className={`badge ${severityBadgeClass(severity)}`}>
+                            {severity || "—"}
+                          </span>
+                        </td>
+                      </AnimatedRow>
+                    );
+                  })
+                )}
+              </tbody>
+            </table>
+          </div>
 
-              {totalPages > 1 && (
-                <div className="um-pagination">
-                  <button disabled={page === 1} onClick={() => setPage((p) => p - 1)}>
-                    ‹
-                  </button>
-                  <span style={{ fontSize: "0.82rem", color: "var(--color-text-muted)" }}>
-                    Page {page} of {totalPages}
-                  </span>
-                  <button
-                    disabled={page === totalPages}
-                    onClick={() => setPage((p) => p + 1)}
-                  >
-                    ›
-                  </button>
-                </div>
-              )}
-            </>
+          {!loading && totalPages > 1 && (
+            <div className="um-pagination">
+              <button disabled={page === 1} onClick={() => setPage((p) => p - 1)}>
+                ‹
+              </button>
+              <span style={{ fontSize: "0.82rem", color: "var(--color-text-muted)" }}>
+                Page {page} of {totalPages}
+              </span>
+              <button
+                disabled={page === totalPages}
+                onClick={() => setPage((p) => p + 1)}
+              >
+                ›
+              </button>
+            </div>
           )}
         </section>
-      </main>
+      </PageTransition>
     </div>
   );
 };
