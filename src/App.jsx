@@ -83,6 +83,7 @@ function App() {
             </ProtectedRoute>
           }
         />
+        <Route path="*" element={<Login />} />
       </Routes>
     </BrowserRouter>
   );
