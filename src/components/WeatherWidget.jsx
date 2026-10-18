@@ -1,6 +1,8 @@
 import { useEffect, useState, useCallback } from "react";
 import { CloudRain, CloudSun, AlertTriangle } from "lucide-react";
 import { fetchWeatherInsights } from "../lib/weather";
+import { useSilentRefresh } from "../hooks/useSilentRefresh";
+import { REFRESH_INTERVALS } from "../config/constants";
 
 const RISK_COLOR = {
   low: "var(--color-ok, #27ae60)",
@@ -23,21 +25,23 @@ const WeatherWidget = () => {
   const [data, setData] = useState(null);
   const [error, setError] = useState(false);
 
-  const load = useCallback(async () => {
+  const load = useCallback(async (signal) => {
     try {
       const result = await fetchWeatherInsights();
+      if (signal?.aborted) return;
       setData(result);
       setError(false);
     } catch {
+      if (signal?.aborted) return;
       setError(true);
     }
   }, []);
 
-  useEffect(() => {
-    load();
-    const t = setInterval(load, 30 * 60 * 1000);
-    return () => clearInterval(t);
-  }, [load]);
+  // Silent Refresh Hook (30 min interval)
+  useSilentRefresh(load, {
+    intervalMs: REFRESH_INTERVALS.WEATHER,
+    enabled: true,
+  });
 
   if (error) return null; // silent fail — don't break header layout
 

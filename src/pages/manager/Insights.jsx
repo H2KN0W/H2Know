@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState, useRef } from "react";
 import {
   RefreshCw,
   CloudRain,
@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 import { supabase } from "../../lib/supabase";
 import { useLogPageView } from "../../lib/useLogPageView";
+import { useSilentRefresh } from "../../hooks/useSilentRefresh";
 import { buildInsights } from "../../lib/insights";
 import { fetchWeatherInsights } from "../../lib/weather";
 import WeatherWidget from "../../components/WeatherWidget";
@@ -28,9 +29,9 @@ import "../../styles/manager/ManagerPortal.css";
 import "../../styles/manager/Insights.css";
 
 import { formatDateTime } from "../../lib/formatters";
+import { REFRESH_INTERVALS } from "../../config/constants";
 
 const HISTORY_DAYS = 14;
-const REFRESH_MS = 30 * 60 * 1000;
 
 const formatValue = (value) => Number(value).toLocaleString(undefined, { maximumFractionDigits: 2 });
 
@@ -57,6 +58,7 @@ const Insights = () => {
   const [weatherLoading, setWeatherLoading] = useState(false);
   const [weatherError, setWeatherError] = useState("");
   const [activeHorizonTab, setActiveHorizonTab] = useState("both"); // "current" | "longterm" | "both"
+  const initialLoadRef = useRef(true);
 
   const loadWeatherInsights = useCallback(async (currentReadings = []) => {
     setWeatherLoading(true);
@@ -71,7 +73,12 @@ const Insights = () => {
     }
   }, []);
 
-  const loadInsightsData = useCallback(async () => {
+  const loadInsightsData = useCallback(async (signal) => {
+    const isInitial = initialLoadRef.current;
+    if (isInitial) {
+      setLoading(true);
+    }
+
     setError("");
     try {
       const from = new Date(Date.now() - HISTORY_DAYS * 24 * 60 * 60 * 1000).toISOString();
@@ -87,6 +94,8 @@ const Insights = () => {
           .select("parameter_id, min_value, max_value, severity_label"),
       ]);
 
+      if (signal?.aborted) return;
+
       if (readingResult.error || thresholdResult.error) {
         throw readingResult.error || thresholdResult.error;
       }
@@ -100,28 +109,46 @@ const Insights = () => {
       // Trigger weather and AI correlation analysis with freshly loaded data
       loadWeatherInsights(loadedReadings);
     } catch (fetchError) {
+      if (signal?.aborted) return;
       setError(fetchError.message || "Could not load sensor readings and configured thresholds.");
       setReadings([]);
       setThresholds([]);
     } finally {
-      setLoading(false);
+      if (isInitial) {
+        setLoading(false);
+        initialLoadRef.current = false;
+      }
     }
   }, [loadWeatherInsights]);
 
   useEffect(() => {
     loadInsightsData();
-    const interval = setInterval(() => {
-      loadInsightsData();
-    }, REFRESH_MS);
+  }, [loadInsightsData]);
 
+  // Silent Refresh Hook (30 min interval)
+  const { isRefreshing } = useSilentRefresh(loadInsightsData, {
+    intervalMs: REFRESH_INTERVALS.WEATHER,
+    enabled: true,
+  });
+
+  // Debounced realtime handler
+  const realtimeDebounceRef = useRef(null);
+
+  useEffect(() => {
     const channel = supabase
       .channel("manager-insights-realtime")
-      .on("postgres_changes", { event: "*", schema: "public", table: "sensor_readings" }, () => loadInsightsData())
-      .on("postgres_changes", { event: "*", schema: "public", table: "thresholds" }, () => loadInsightsData())
+      .on("postgres_changes", { event: "*", schema: "public", table: "sensor_readings" }, () => {
+        if (realtimeDebounceRef.current) clearTimeout(realtimeDebounceRef.current);
+        realtimeDebounceRef.current = setTimeout(() => loadInsightsData(), 1500);
+      })
+      .on("postgres_changes", { event: "*", schema: "public", table: "thresholds" }, () => {
+        if (realtimeDebounceRef.current) clearTimeout(realtimeDebounceRef.current);
+        realtimeDebounceRef.current = setTimeout(() => loadInsightsData(), 1500);
+      })
       .subscribe();
 
     return () => {
-      clearInterval(interval);
+      if (realtimeDebounceRef.current) clearTimeout(realtimeDebounceRef.current);
       supabase.removeChannel(channel);
     };
   }, [loadInsightsData]);

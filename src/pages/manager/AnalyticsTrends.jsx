@@ -356,6 +356,7 @@ const AnalyticsTrends = () => {
                                   strokeWidth={2}
                                   dot={false}
                                   activeDot={{ r: 4 }}
+                                  isAnimationActive={false}
                                 />
                               </LineChart>
                             </ResponsiveContainer>
@@ -394,6 +395,7 @@ const AnalyticsTrends = () => {
                           strokeWidth={2}
                           dot={false}
                           activeDot={{ r: 4 }}
+                          isAnimationActive={false}
                         />
                       </LineChart>
                     </ResponsiveContainer>
