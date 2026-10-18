@@ -9,6 +9,11 @@ export const USER_ROLES = {
   MANAGER: "manager",
 };
 
+// Single source of truth for the displayed deployment city.
+// The Dicklum catchment coordinates stay in src/config/siteLocation.js;
+// only this label is rendered in the UI.
+export const CITY_NAME = "Manolo Fortich";
+
 export const USER_STATUS = {
   PENDING: "pending",
   APPROVED: "approved",
@@ -64,3 +69,11 @@ export const REPORT_FORMATS = {
   PDF: "pdf",
   CSV: "csv",
 };
+
+// ─── Report date-range helpers ───────────────────────────────────────────────
+// Always slice only the YYYY-MM-DD part first so callers can pass either a
+// plain date-picker value ("2026-10-17") or a full ISO timestamp
+// ("2026-10-17T00:00:00+00:00") without ever producing a double time suffix
+// like "2026-10-17T00:00:00+00:00T00:00:00" (invalid timestamptz input).
+export const toStartOfDay = (d) => `${String(d).slice(0, 10)}T00:00:00.000Z`;
+export const toEndOfDay = (d) => `${String(d).slice(0, 10)}T23:59:59.999Z`;
