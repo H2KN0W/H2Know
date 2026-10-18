@@ -46,6 +46,7 @@ import {
   inferHeartbeatInterval,
   NODE_STATUS_LABELS,
 } from "../../lib/nodeHealth";
+import { PageTransition, SlidingTabs } from "../../components/ui";
 import "../../styles/admin/NodeHealth.css";
 
 const TIME_RANGES = {
@@ -299,7 +300,7 @@ export default function NodeHealth() {
     <div className="admin-shell">
       <Sidebar />
 
-      <main className="admin-main">
+      <PageTransition className="admin-main">
         <header className="page-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: "1rem" }}>
           <div>
             <h1>Node Health & Diagnostics</h1>
@@ -379,32 +380,17 @@ export default function NodeHealth() {
         )}
 
         {/* Sub-Tabs Navigation */}
-        <nav className="nh-tabs" aria-label="Node Health Sub-tabs">
-          <button
-            type="button"
-            className={`nh-tab-btn ${activeTab === "overview" ? "active" : ""}`}
-            onClick={() => setActiveTab("overview")}
-          >
-            <Layers size={16} />
-            <span>System Overview</span>
-          </button>
-          <button
-            type="button"
-            className={`nh-tab-btn ${activeTab === "controller" ? "active" : ""}`}
-            onClick={() => setActiveTab("controller")}
-          >
-            <Server size={16} />
-            <span>Controller Node (Master)</span>
-          </button>
-          <button
-            type="button"
-            className={`nh-tab-btn ${activeTab === "sensor" ? "active" : ""}`}
-            onClick={() => setActiveTab("sensor")}
-          >
-            <Radio size={16} />
-            <span>Sensor Node (Field)</span>
-          </button>
-        </nav>
+        <SlidingTabs
+          className="nh-tabs"
+          layoutId="nhTabUnderline"
+          activeTab={activeTab}
+          onChange={setActiveTab}
+          tabs={[
+            { id: "overview", label: "System Overview", icon: Layers },
+            { id: "controller", label: "Controller Node (Master)", icon: Server },
+            { id: "sensor", label: "Sensor Node (Field)", icon: Radio },
+          ]}
+        />
 
         {/* ==================================================================== */}
         {/* SUB-TAB 1: SYSTEM OVERVIEW                                          */}
@@ -971,7 +957,7 @@ export default function NodeHealth() {
             </article>
           </div>
         )}
-      </main>
+      </PageTransition>
     </div>
   );
 }
