@@ -8,13 +8,15 @@ import {
 } from "lucide-react";
 import { getWeatherCondition } from "../lib/weatherCondition";
 import { SITE_LOCATION } from "../config/siteLocation";
+import { CITY_NAME } from "../config/constants";
 
 /**
  * WeatherDashboardSection
  * Inspired by reference layout:
  * - Left blue hero card: City, big temp, condition, skyline artwork silhouette
  * - Right grid cards: Hourly trend graph + rounded metric cards (Humidity, Wind gauge, UV Index, Feels like, Chance of rain)
- * City label is dynamic: renders weatherData.location when present, otherwise SITE_LOCATION.
+ * City label is the CITY_NAME constant ("Manolo Fortich"); coordinates stay
+ * sourced from SITE_LOCATION (Dicklum catchment).
  */
 export default function WeatherDashboardSection({ weatherData }) {
   const current = weatherData?.currentWeather;
@@ -107,7 +109,7 @@ export default function WeatherDashboardSection({ weatherData }) {
       <article className="weather-hero-card">
         <div className="weather-hero-header">
           <div className="weather-hero-location">
-            <span className="weather-hero-city">{SITE_LOCATION.city}</span>
+            <span className="weather-hero-city">{CITY_NAME}</span>
             <span className="weather-hero-sub">{SITE_LOCATION.basin}, {SITE_LOCATION.province}</span>
           </div>
           <div className="weather-hero-badge">
