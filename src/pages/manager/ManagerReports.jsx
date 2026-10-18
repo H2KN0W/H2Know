@@ -159,6 +159,10 @@ const ManagerReports = () => {
       ? parameters.map((item) => item.name)
       : parameters.filter((item) => form.parameterIds.includes(item.id)).map((item) => item.name);
 
+    const rangeStart = String(form.startDate).slice(0, 10);
+    const rangeEnd = String(form.endDate).slice(0, 10);
+    const rangeForm = { ...form, startDate: rangeStart, endDate: rangeEnd };
+
     const { data: inserted, error: insertError } = await supabase
       .from("reports")
       .insert({
@@ -166,8 +170,8 @@ const ManagerReports = () => {
         report_name: form.name,
         parameters: parameterNames,
         format: form.format,
-        date_range_start: form.startDate,
-        date_range_end: form.endDate,
+        date_range_start: rangeStart,
+        date_range_end: rangeEnd,
         file_url: null
       })
       .select()
@@ -182,7 +186,7 @@ const ManagerReports = () => {
     let generationSucceeded = false;
     try {
       const { url: fileUrl, blob } = await generateReportFile({
-        form,
+        form: rangeForm,
         parameters,
         reportId: inserted.id,
         authorName: currentUser.full_name || "Manager",
