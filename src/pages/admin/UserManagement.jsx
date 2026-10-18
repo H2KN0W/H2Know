@@ -9,6 +9,15 @@ import { Plus, Pencil, Ban, CircleCheck, Trash2 } from "lucide-react";
 
 import { formatDateTime } from "../../lib/formatters";
 import { PAGE_SIZES } from "../../config/constants";
+import {
+  PageTransition,
+  SkeletonCard,
+  SkeletonTableRows,
+  AnimatedRow,
+  AnimatedModal,
+  ButtonSpinner,
+  LiveValue,
+} from "../../components/ui";
 
 const PAGE_SIZE = PAGE_SIZES.USERS;
 
@@ -206,7 +215,7 @@ const UserManagement = () => {
     <div className="admin-shell">
       <Sidebar />
 
-      <main className="admin-main">
+      <PageTransition className="admin-main">
         <header className="page-header">
           <h1>User Management</h1>
           <p>Manage system users and their access permissions</p>
@@ -233,134 +242,144 @@ const UserManagement = () => {
         </div>
 
         <div className="summary-grid">
-          <div className="summary-card">
-            <div className="summary-card-body">
-              <p className="summary-label">Total Users</p>
-              <p className="summary-value tone-neutral">{summary.total}</p>
-            </div>
-          </div>
-          <div className="summary-card">
-            <div className="summary-card-body">
-              <p className="summary-label">Active Users</p>
-              <p className="summary-value tone-positive">{summary.active}</p>
-            </div>
-          </div>
-          <div className="summary-card">
-            <div className="summary-card-body">
-              <p className="summary-label">Disabled/Pending Users</p>
-              <p className="summary-value tone-warning">{summary.disabledPending}</p>
-            </div>
-          </div>
+          {loading ? (
+            <SkeletonCard type="kpi" count={3} />
+          ) : (
+            <>
+              <div className="summary-card">
+                <div className="summary-card-body">
+                  <p className="summary-label">Total Users</p>
+                  <p className="summary-value tone-neutral">
+                    <LiveValue value={summary.total} />
+                  </p>
+                </div>
+              </div>
+              <div className="summary-card">
+                <div className="summary-card-body">
+                  <p className="summary-label">Active Users</p>
+                  <p className="summary-value tone-positive">
+                    <LiveValue value={summary.active} />
+                  </p>
+                </div>
+              </div>
+              <div className="summary-card">
+                <div className="summary-card-body">
+                  <p className="summary-label">Disabled/Pending Users</p>
+                  <p className="summary-value tone-warning">
+                    <LiveValue value={summary.disabledPending} />
+                  </p>
+                </div>
+              </div>
+            </>
+          )}
         </div>
 
         <section className="panel">
           <h2>All Users</h2>
 
           {actionError && <p className="um-action-error">{actionError}</p>}
-          {loading && <p>Loading users...</p>}
           {error && <p className="um-action-error">{error}</p>}
 
-          {!loading && !error && (
-            <>
-              <div className="table-wrap">
-                <table>
-                  <thead>
-                    <tr>
-                      <th>Name</th>
-                      <th>Email</th>
-                      <th>Role</th>
-                      <th>Status</th>
-                      <th>Last Login</th>
-                      <th>Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {pagedProfiles.length === 0 && (
-                      <tr>
-                        <td colSpan={6}>No users match your search.</td>
-                      </tr>
-                    )}
-                    {pagedProfiles.map((p) => {
-                      const isActive = p.status === "approved";
-                      return (
-                        <tr key={p.id}>
-                          <td>{p.full_name || "—"}</td>
-                          <td>{p.email}</td>
-                          <td>{p.role === "admin" ? "Administrator" : "Manager"}</td>
-                          <td>
-                            <span
-                              className={`badge um-status-${p.status}`}
-                            >
-                              {statusToLabel(p.status)}
-                            </span>
-                          </td>
-                          <td>{formatDateTime(p.last_login)}</td>
-                          <td className="um-actions-icons">
-                            <button
-                              className="um-icon-btn um-icon-edit"
-                              title="Edit"
-                              aria-label="Edit user"
-                              onClick={() => setModalUser(p)}
-                            >
-                              <Pencil size={15} strokeWidth={2} />
-                            </button>
-                            <button
-                              className={`um-icon-btn ${isActive ? "um-icon-disable" : "um-icon-enable"}`}
-                              title={isActive ? "Disable" : "Enable"}
-                              aria-label={isActive ? "Disable user" : "Enable user"}
-                              onClick={() => handleToggleDisable(p)}
-                            >
-                              {isActive ? (
-                                <Ban size={15} strokeWidth={2} />
-                              ) : (
-                                <CircleCheck size={15} strokeWidth={2} />
-                              )}
-                            </button>
-                            <button
-                              className="um-icon-btn um-icon-danger"
-                              title="Delete"
-                              aria-label="Delete user"
-                              onClick={() => setConfirmDeleteUser(p)}
-                            >
-                              <Trash2 size={15} strokeWidth={2} />
-                            </button>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
+          <div className="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Name</th>
+                  <th>Email</th>
+                  <th>Role</th>
+                  <th>Status</th>
+                  <th>Last Login</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {loading ? (
+                  <SkeletonTableRows rows={PAGE_SIZE} columns={6} />
+                ) : pagedProfiles.length === 0 ? (
+                  <tr>
+                    <td colSpan={6}>No users match your search.</td>
+                  </tr>
+                ) : (
+                  pagedProfiles.map((p, idx) => {
+                    const isActive = p.status === "approved";
+                    return (
+                      <AnimatedRow key={p.id} index={idx}>
+                        <td>{p.full_name || "—"}</td>
+                        <td>{p.email}</td>
+                        <td>{p.role === "admin" ? "Administrator" : "Manager"}</td>
+                        <td>
+                          <span
+                            className={`badge um-status-${p.status}`}
+                          >
+                            {statusToLabel(p.status)}
+                          </span>
+                        </td>
+                        <td>{formatDateTime(p.last_login)}</td>
+                        <td className="um-actions-icons">
+                          <button
+                            className="um-icon-btn um-icon-edit"
+                            title="Edit"
+                            aria-label="Edit user"
+                            onClick={() => setModalUser(p)}
+                          >
+                            <Pencil size={15} strokeWidth={2} />
+                          </button>
+                          <button
+                            className={`um-icon-btn ${isActive ? "um-icon-disable" : "um-icon-enable"}`}
+                            title={isActive ? "Disable" : "Enable"}
+                            aria-label={isActive ? "Disable user" : "Enable user"}
+                            onClick={() => handleToggleDisable(p)}
+                          >
+                            {isActive ? (
+                              <Ban size={15} strokeWidth={2} />
+                            ) : (
+                              <CircleCheck size={15} strokeWidth={2} />
+                            )}
+                          </button>
+                          <button
+                            className="um-icon-btn um-icon-danger"
+                            title="Delete"
+                            aria-label="Delete user"
+                            onClick={() => setConfirmDeleteUser(p)}
+                          >
+                            <Trash2 size={15} strokeWidth={2} />
+                          </button>
+                        </td>
+                      </AnimatedRow>
+                    );
+                  })
+                )}
+              </tbody>
+            </table>
+          </div>
 
-              {totalPages > 1 && (
-                <div className="um-pagination">
-                  <button
-                    disabled={page === 1}
-                    onClick={() => setPage((p) => p - 1)}
-                  >
-                    ‹
-                  </button>
-                  {Array.from({ length: totalPages }, (_, i) => i + 1).map((n) => (
-                    <button
-                      key={n}
-                      className={n === page ? "um-page-active" : ""}
-                      onClick={() => setPage(n)}
-                    >
-                      {n}
-                    </button>
-                  ))}
-                  <button
-                    disabled={page === totalPages}
-                    onClick={() => setPage((p) => p + 1)}
-                  >
-                    ›
-                  </button>
-                </div>
-              )}
-            </>
+          {!loading && totalPages > 1 && (
+            <div className="um-pagination">
+              <button
+                disabled={page === 1}
+                onClick={() => setPage((p) => p - 1)}
+              >
+                ‹
+              </button>
+              {Array.from({ length: totalPages }, (_, i) => i + 1).map((n) => (
+                <button
+                  key={n}
+                  className={n === page ? "um-page-active" : ""}
+                  onClick={() => setPage(n)}
+                >
+                  {n}
+                </button>
+              ))}
+              <button
+                disabled={page === totalPages}
+                onClick={() => setPage((p) => p + 1)}
+              >
+                ›
+              </button>
+            </div>
           )}
         </section>
-      </main>
+      </PageTransition>
 
       {modalUser && (
         <UserModal
@@ -371,53 +390,49 @@ const UserManagement = () => {
         />
       )}
 
-      {confirmDeleteUser && (
-        <div
-          className="um-modal-overlay"
-          onClick={deleting ? undefined : () => setConfirmDeleteUser(null)}
-        >
-          <div className="um-modal" onClick={(e) => e.stopPropagation()}>
-            {deleted ? (
-              <div className="um-modal-success">
-                <div className="um-modal-success-check">✓</div>
-                <p>User removed successfully</p>
-              </div>
-            ) : (
-              <>
-                <h2>Remove User</h2>
-                <p>
-                  Are you sure you want to remove <strong>{confirmDeleteUser.full_name}</strong>?
-                  This action cannot be undone.
-                </p>
-                {actionError && <p className="um-action-error">{actionError}</p>}
-                <div className="um-modal-actions">
-                  <button
-                    className="um-modal-cancel"
-                    onClick={() => setConfirmDeleteUser(null)}
-                    disabled={deleting}
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    className="um-modal-danger"
-                    onClick={handleDeleteConfirmed}
-                    disabled={deleting}
-                  >
-                    {deleting ? (
-                      <span className="um-modal-save-loading">
-                        <span className="spinner" role="status" aria-label="Removing" />
-                        Removing...
-                      </span>
-                    ) : (
-                      "Remove"
-                    )}
-                  </button>
-                </div>
-              </>
-            )}
+      <AnimatedModal
+        isOpen={Boolean(confirmDeleteUser)}
+        onClose={deleting ? undefined : () => setConfirmDeleteUser(null)}
+      >
+        {deleted ? (
+          <div className="um-modal-success">
+            <div className="um-modal-success-check">✓</div>
+            <p>User removed successfully</p>
           </div>
-        </div>
-      )}
+        ) : (
+          <>
+            <h2>Remove User</h2>
+            <p>
+              Are you sure you want to remove <strong>{confirmDeleteUser?.full_name}</strong>?
+              This action cannot be undone.
+            </p>
+            {actionError && <p className="um-action-error">{actionError}</p>}
+            <div className="um-modal-actions">
+              <button
+                className="um-modal-cancel"
+                onClick={() => setConfirmDeleteUser(null)}
+                disabled={deleting}
+              >
+                Cancel
+              </button>
+              <button
+                className="um-modal-danger"
+                onClick={handleDeleteConfirmed}
+                disabled={deleting}
+              >
+                {deleting ? (
+                  <span className="um-modal-save-loading">
+                    <ButtonSpinner size={12} color="#ffffff" />
+                    Removing...
+                  </span>
+                ) : (
+                  "Remove"
+                )}
+              </button>
+            </div>
+          </>
+        )}
+      </AnimatedModal>
     </div>
   );
 };
@@ -467,86 +482,84 @@ const UserModal = ({ user, onCancel, onSave, onClose }) => {
   };
 
   return (
-    <div className="um-modal-overlay" onClick={saving ? undefined : onCancel}>
-      <div className="um-modal" onClick={(e) => e.stopPropagation()}>
-        {saved ? (
-          <div className="um-modal-success">
-            <div className="um-modal-success-check">✓</div>
-            <p>{isNewUser ? "User created successfully" : "Changes saved successfully"}</p>
-          </div>
-        ) : (
-          <>
-            <h2>{isNewUser ? "Add User" : "Edit User"}</h2>
+    <AnimatedModal isOpen={true} onClose={saving ? undefined : onCancel}>
+      {saved ? (
+        <div className="um-modal-success">
+          <div className="um-modal-success-check">✓</div>
+          <p>{isNewUser ? "User created successfully" : "Changes saved successfully"}</p>
+        </div>
+      ) : (
+        <>
+          <h2>{isNewUser ? "Add User" : "Edit User"}</h2>
 
-            {validationError && (
-              <div className="um-modal-error">
-                <span className="um-modal-error-icon">!</span>
-                <span>{validationError}</span>
-              </div>
-            )}
-
-            <label className="um-modal-label">Full Name</label>
-            <input
-              className="um-modal-input"
-              placeholder="Enter full name..."
-              value={fullName}
-              disabled={saving}
-              onChange={(e) => setFullName(e.target.value)}
-            />
-
-            <label className="um-modal-label">Email</label>
-            <input
-              className="um-modal-input"
-              placeholder="Enter email address..."
-              value={email}
-              disabled={saving}
-              onChange={(e) => setEmail(e.target.value)}
-            />
-
-            <label className="um-modal-label">Role</label>
-            <select
-              className="um-modal-input"
-              value={role}
-              disabled={saving}
-              onChange={(e) => setRole(e.target.value)}
-            >
-              <option value="admin">Admin</option>
-              <option value="manager">Manager</option>
-            </select>
-
-            {isNewUser && (
-              <>
-                <label className="um-modal-label">Password</label>
-                <input
-                  className="um-modal-input"
-                  type="password"
-                  placeholder="Enter a password for this user..."
-                  value={password}
-                  disabled={saving}
-                  onChange={(e) => setPassword(e.target.value)}
-                />
-              </>
-            )}
-
-            <div className="um-modal-actions">
-              <button className="um-modal-cancel" onClick={onCancel} disabled={saving}>
-                Cancel
-              </button>
-              <button className="um-modal-save" onClick={handleSave} disabled={saving}>
-                {saving ? (
-                  <span className="um-modal-save-loading">
-                    <span className="spinner" role="status" aria-label="Saving" />
-                    Saving...
-                  </span>
-                ) : (
-                  "Save"
-                )}
-              </button>
+          {validationError && (
+            <div className="um-modal-error">
+              <span className="um-modal-error-icon">!</span>
+              <span>{validationError}</span>
             </div>
-          </>
-        )}
-      </div>
-    </div>
+          )}
+
+          <label className="um-modal-label">Full Name</label>
+          <input
+            className="um-modal-input"
+            placeholder="Enter full name..."
+            value={fullName}
+            disabled={saving}
+            onChange={(e) => setFullName(e.target.value)}
+          />
+
+          <label className="um-modal-label">Email</label>
+          <input
+            className="um-modal-input"
+            placeholder="Enter email address..."
+            value={email}
+            disabled={saving}
+            onChange={(e) => setEmail(e.target.value)}
+          />
+
+          <label className="um-modal-label">Role</label>
+          <select
+            className="um-modal-input"
+            value={role}
+            disabled={saving}
+            onChange={(e) => setRole(e.target.value)}
+          >
+            <option value="admin">Admin</option>
+            <option value="manager">Manager</option>
+          </select>
+
+          {isNewUser && (
+            <>
+              <label className="um-modal-label">Password</label>
+              <input
+                className="um-modal-input"
+                type="password"
+                placeholder="Enter a password for this user..."
+                value={password}
+                disabled={saving}
+                onChange={(e) => setPassword(e.target.value)}
+              />
+            </>
+          )}
+
+          <div className="um-modal-actions">
+            <button className="um-modal-cancel" onClick={onCancel} disabled={saving}>
+              Cancel
+            </button>
+            <button className="um-modal-save" onClick={handleSave} disabled={saving}>
+              {saving ? (
+                <span className="um-modal-save-loading">
+                  <ButtonSpinner size={12} color="#ffffff" />
+                  Saving...
+                </span>
+              ) : (
+                "Save"
+              )}
+            </button>
+          </div>
+        </>
+      )}
+    </AnimatedModal>
   );
 };
 
