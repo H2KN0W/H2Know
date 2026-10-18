@@ -2,7 +2,6 @@ import { CloudRain } from "lucide-react";
 import { getWeatherCondition } from "../lib/weatherCondition";
 import { SITE_LOCATION } from "../config/siteLocation";
 import { CITY_NAME } from "../config/constants";
-import { SkeletonWeatherCard } from "./ui/SkeletonCard";
 
 /**
  * Vertical Weather Card
@@ -11,10 +10,6 @@ import { SkeletonWeatherCard } from "./ui/SkeletonCard";
  * back to the central SITE_LOCATION config (no hardcoded city strings).
  */
 export default function VerticalOvercastWeatherCard({ weatherData, loading }) {
-  if (loading && !weatherData) {
-    return <SkeletonWeatherCard />;
-  }
-
   const current = weatherData?.currentWeather;
   const weatherSummary = weatherData?.weatherSummary;
 
