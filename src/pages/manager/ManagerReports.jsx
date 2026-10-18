@@ -23,6 +23,13 @@ import "../../styles/manager/ManagerReports.css";
 
 import { formatDateTime, formatDate, formatReportParameters } from "../../lib/formatters";
 import { PAGE_SIZES, filterMonitoredParameters } from "../../config/constants";
+import {
+  PageTransition,
+  ButtonSpinner,
+  SkeletonTableRows,
+  AnimatedRow,
+  AnimatedModal,
+} from "../../components/ui";
 
 const PAGE_SIZE = PAGE_SIZES.DEFAULT;
 const ALL_VALUE = "all";
@@ -246,7 +253,7 @@ const ManagerReports = () => {
   return (
     <div className="admin-shell">
       <ManagerSidebar />
-      <main className="admin-main manager-main">
+      <PageTransition className="admin-main manager-main">
         <header className="page-header">
           <h1>Reports</h1>
           <p>Generate and download professional water-quality reports for institutional review</p>
@@ -305,7 +312,16 @@ const ManagerReports = () => {
                   <option value="csv">CSV — Raw Data Export</option>
                 </select>
               </label>
-              <button type="submit" disabled={saving}>{saving ? "Generating…" : "Generate report"}</button>
+              <button type="submit" disabled={saving}>
+                {saving ? (
+                  <>
+                    <ButtonSpinner size={13} color="#ffffff" />
+                    <span>Generating…</span>
+                  </>
+                ) : (
+                  "Generate report"
+                )}
+              </button>
             </form>
             {error && <p className="manager-error">{error}</p>}
           </section>
@@ -417,57 +433,53 @@ const ManagerReports = () => {
         {/* ── Report History ── */}
         <section className="manager-panel">
           <h2>Report History</h2>
-          {loading ? <p>Loading reports…</p> : (
-            <>
-              <div className="table-wrap">
-                <table className="manager-reports-table">
-                  <thead>
-                    <tr>
-                      <th>Name</th><th>Date generated</th><th>Range covered</th><th>Parameters</th><th>Format</th><th>Status</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {reports.length === 0 ? (
-                      <tr><td colSpan={6}>No reports generated yet.</td></tr>
-                    ) : reports.map((report) => (
-                      <tr key={report.id}>
-                        <td data-label="Name">{report.report_name || "Untitled report"}</td>
-                        <td data-label="Date generated">{formatDateTime(report.created_at)}</td>
-                        <td data-label="Range covered">{formatDate(report.date_range_start)} – {formatDate(report.date_range_end)}</td>
-                        <td data-label="Parameters">{formatReportParameters(report.parameters)}</td>
-                        <td data-label="Format">{report.format?.toUpperCase() || "PDF"}</td>
-                        <td data-label="Status">
-                          {report.status === "success"
-                            ? <span className="badge badge-ready">✓ Success</span>
-                            : <span className="badge badge-failed">× Failed</span>}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-              {totalPages > 1 && (
-                <div className="um-pagination">
-                  <button disabled={page === 1} onClick={() => setPage((value) => value - 1)}>‹</button>
-                  <span>Page {page} of {totalPages}</span>
-                  <button disabled={page === totalPages} onClick={() => setPage((value) => value + 1)}>›</button>
-                </div>
-              )}
-            </>
+          <div className="table-wrap">
+            <table className="manager-reports-table">
+              <thead>
+                <tr>
+                  <th>Name</th><th>Date generated</th><th>Range covered</th><th>Parameters</th><th>Format</th><th>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {loading ? (
+                  <SkeletonTableRows rows={PAGE_SIZE} columns={6} />
+                ) : reports.length === 0 ? (
+                  <tr><td colSpan={6}>No reports generated yet.</td></tr>
+                ) : reports.map((report, idx) => (
+                  <AnimatedRow key={report.id} index={idx}>
+                    <td data-label="Name">{report.report_name || "Untitled report"}</td>
+                    <td data-label="Date generated">{formatDateTime(report.created_at)}</td>
+                    <td data-label="Range covered">{formatDate(report.date_range_start)} – {formatDate(report.date_range_end)}</td>
+                    <td data-label="Parameters">{formatReportParameters(report.parameters)}</td>
+                    <td data-label="Format">{report.format?.toUpperCase() || "PDF"}</td>
+                    <td data-label="Status">
+                      {report.status === "success"
+                        ? <span className="badge badge-ready">✓ Success</span>
+                        : <span className="badge badge-failed">× Failed</span>}
+                    </td>
+                  </AnimatedRow>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          {!loading && totalPages > 1 && (
+            <div className="um-pagination">
+              <button disabled={page === 1} onClick={() => setPage((value) => value - 1)}>‹</button>
+              <span>Page {page} of {totalPages}</span>
+              <button disabled={page === totalPages} onClick={() => setPage((value) => value + 1)}>›</button>
+            </div>
           )}
         </section>
-      </main>
+      </PageTransition>
 
-      {reportModal && (
-        <div className="manager-report-modal-backdrop">
-          <section
-            className={`manager-report-modal manager-report-modal-${reportModal.status}`}
-            role="dialog"
-            aria-modal="true"
-            aria-live="polite"
-            aria-labelledby="report-modal-title"
-            aria-busy={reportModal.status === "loading"}
-          >
+      <AnimatedModal
+        isOpen={Boolean(reportModal)}
+        onClose={() => reportModal?.status !== "loading" && setReportModal(null)}
+        overlayClassName="manager-report-modal-backdrop"
+        modalClassName={`manager-report-modal manager-report-modal-${reportModal?.status}`}
+      >
+        {reportModal && (
+          <>
             <span className={`manager-report-modal-icon manager-report-modal-icon-${reportModal.status}`} aria-hidden="true">
               {reportModal.status === "loading" ? "" : reportModal.status === "success" ? "✓" : "×"}
             </span>
@@ -490,9 +502,9 @@ const ManagerReports = () => {
                 Done
               </button>
             )}
-          </section>
-        </div>
-      )}
+          </>
+        )}
+      </AnimatedModal>
     </div>
   );
 };
