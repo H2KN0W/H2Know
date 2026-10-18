@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import {
   Activity,
   Server,
@@ -32,6 +32,7 @@ import {
 import Sidebar from "../../components/Sidebar";
 import { supabase } from "../../lib/supabase";
 import { useLogPageView } from "../../lib/useLogPageView";
+import { useSilentRefresh } from "../../hooks/useSilentRefresh";
 import { formatDateTime, formatClockTime } from "../../lib/formatters";
 import { REFRESH_INTERVALS } from "../../config/constants";
 import {
@@ -62,8 +63,8 @@ export default function NodeHealth() {
   // Filters & Controls
   const [timeRange, setTimeRange] = useState("24H");
   const [refreshInterval, setRefreshInterval] = useState(REFRESH_INTERVALS.FAST);
-  const [isRefreshing, setIsRefreshing] = useState(false);
   const [checkedAt, setCheckedAt] = useState(null);
+  const initialLoadRef = useRef(true);
 
   // Data states
   const [nodes, setNodes] = useState([]);
@@ -74,8 +75,12 @@ export default function NodeHealth() {
   const [loading, setLoading] = useState(true);
 
   // 1. Fetch hardware telemetry data
-  const fetchData = useCallback(async () => {
-    setIsRefreshing(true);
+  const fetchData = useCallback(async (signal) => {
+    const isInitial = initialLoadRef.current;
+    if (isInitial) {
+      setLoading(true);
+    }
+
     setError("");
 
     try {
@@ -103,6 +108,8 @@ export default function NodeHealth() {
           .limit(10),
       ]);
 
+      if (signal?.aborted) return;
+
       if (nodesRes.error) throw nodesRes.error;
       if (statusRes.error) throw statusRes.error;
       if (rawRes.error) throw rawRes.error;
@@ -113,13 +120,16 @@ export default function NodeHealth() {
       setLatestReadings(readingsRes.data || []);
       setCheckedAt(Date.now());
     } catch (err) {
+      if (signal?.aborted) return;
       console.error("Failed to load node health telemetry:", err);
       setError(
         "Could not load node telemetry. Ensure the migration '20261018000000_node_health_policies_and_indexes.sql' has been applied in Supabase."
       );
     } finally {
-      setLoading(false);
-      setIsRefreshing(false);
+      if (isInitial) {
+        setLoading(false);
+        initialLoadRef.current = false;
+      }
     }
   }, [timeRange]);
 
@@ -127,14 +137,11 @@ export default function NodeHealth() {
     fetchData();
   }, [fetchData]);
 
-  // Auto-refresh interval timer
-  useEffect(() => {
-    if (!refreshInterval || refreshInterval <= 0) return;
-    const timer = setInterval(() => {
-      fetchData();
-    }, refreshInterval);
-    return () => clearInterval(timer);
-  }, [fetchData, refreshInterval]);
+  // Silent Refresh Hook
+  const { isRefreshing } = useSilentRefresh(fetchData, {
+    intervalMs: refreshInterval,
+    enabled: refreshInterval > 0,
+  });
 
   // Dynamic interval detection
   const inferredIntervalMs = useMemo(() => {

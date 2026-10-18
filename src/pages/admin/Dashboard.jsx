@@ -1,8 +1,9 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "../../lib/supabase";
 import "../../styles/admin/AdminDashboard.css";
 import { useLogPageView } from "../../lib/useLogPageView";
+import { useSilentRefresh } from "../../hooks/useSilentRefresh";
 import Sidebar from "../../components/Sidebar";
 import WeatherWidget from "../../components/WeatherWidget";
 import { Wifi, Clock, AlertTriangle, Database, Users, Hourglass, RefreshCw } from "lucide-react";
@@ -40,7 +41,6 @@ const Dashboard = () => {
 
   const [checkedAt, setCheckedAt] = useState(null);
   const [refreshInterval, setRefreshInterval] = useState(REFRESH_INTERVALS.FAST);
-  const [isRefreshing, setIsRefreshing] = useState(false);
 
   useEffect(() => {
     const loadProfile = async () => {
@@ -197,8 +197,7 @@ const Dashboard = () => {
   }, []);
 
   const fetchAllData = useCallback(
-    async () => {
-      setIsRefreshing(true);
+    async (signal) => {
       try {
         await Promise.allSettled([
           fetchUsers(),
@@ -207,17 +206,22 @@ const Dashboard = () => {
           fetchActivity(),
         ]);
         setCheckedAt(Date.now());
-      } finally {
-        setIsRefreshing(false);
+      } catch (err) {
+        if (signal?.aborted) return;
+        console.error("Dashboard refresh failed:", err);
       }
     },
     [fetchUsers, fetchAlerts, fetchReadings, fetchActivity]
   );
 
-  // Initial Load
-  useEffect(() => {
-    fetchAllData();
-  }, [fetchAllData]);
+  // Silent Refresh Hook
+  const { isRefreshing } = useSilentRefresh(fetchAllData, {
+    intervalMs: refreshInterval,
+    enabled: refreshInterval > 0,
+  });
+
+  // Debounced realtime handler
+  const realtimeDebounceRef = useRef(null);
 
   // Supabase Realtime Subscription (postgres_changes)
   useEffect(() => {
@@ -227,50 +231,53 @@ const Dashboard = () => {
         "postgres_changes",
         { event: "*", schema: "public", table: "sensor_readings" },
         () => {
-          fetchReadings();
-          setCheckedAt(Date.now());
+          if (realtimeDebounceRef.current) clearTimeout(realtimeDebounceRef.current);
+          realtimeDebounceRef.current = setTimeout(() => {
+            fetchReadings();
+            setCheckedAt(Date.now());
+          }, 1500);
         }
       )
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "alerts" },
         () => {
-          fetchAlerts();
-          setCheckedAt(Date.now());
+          if (realtimeDebounceRef.current) clearTimeout(realtimeDebounceRef.current);
+          realtimeDebounceRef.current = setTimeout(() => {
+            fetchAlerts();
+            setCheckedAt(Date.now());
+          }, 1500);
         }
       )
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "activity_logs" },
         () => {
-          fetchActivity();
-          setCheckedAt(Date.now());
+          if (realtimeDebounceRef.current) clearTimeout(realtimeDebounceRef.current);
+          realtimeDebounceRef.current = setTimeout(() => {
+            fetchActivity();
+            setCheckedAt(Date.now());
+          }, 1500);
         }
       )
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "profiles" },
         () => {
-          fetchUsers();
-          setCheckedAt(Date.now());
+          if (realtimeDebounceRef.current) clearTimeout(realtimeDebounceRef.current);
+          realtimeDebounceRef.current = setTimeout(() => {
+            fetchUsers();
+            setCheckedAt(Date.now());
+          }, 1500);
         }
       )
       .subscribe();
 
     return () => {
+      if (realtimeDebounceRef.current) clearTimeout(realtimeDebounceRef.current);
       supabase.removeChannel(channel);
     };
   }, [fetchReadings, fetchAlerts, fetchActivity, fetchUsers]);
-
-  // Interval Polling fallback
-  useEffect(() => {
-    if (refreshInterval <= 0) return;
-    const timer = setInterval(() => {
-      fetchAllData();
-    }, refreshInterval);
-
-    return () => clearInterval(timer);
-  }, [refreshInterval, fetchAllData]);
 
   // Compute Sensor Status Card
   const sensorStatus = (() => {

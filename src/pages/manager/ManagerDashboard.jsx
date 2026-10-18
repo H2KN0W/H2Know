@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, useCallback } from "react";
+import { useEffect, useMemo, useState, useCallback, useRef } from "react";
 import {
   Activity,
   Droplets,
@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { supabase } from "../../lib/supabase";
 import { useLogPageView } from "../../lib/useLogPageView";
+import { useSilentRefresh } from "../../hooks/useSilentRefresh";
 import ManagerSidebar from "./ManagerSidebar";
 import CatchmentMap from "./CatchmentMap";
 import SensorHealthGauge from "../../components/SensorStatusPanel";
@@ -55,6 +56,7 @@ const ManagerDashboard = () => {
   const [accountName, setAccountName] = useState("Loading...");
   const [checkedAt, setCheckedAt] = useState(null);
   const [refreshInterval, setRefreshInterval] = useState(REFRESH_INTERVALS.FAST);
+  const initialLoadRef = useRef(true);
 
   useEffect(() => {
     const loadAccountName = async () => {
@@ -80,8 +82,13 @@ const ManagerDashboard = () => {
     loadAccountName();
   }, []);
 
-  const load = useCallback(async () => {
-    setLoading(true);
+  const load = useCallback(async (signal) => {
+    const isInitial = initialLoadRef.current;
+    if (isInitial) {
+      setLoading(true);
+      setWeatherLoading(true);
+    }
+
     try {
       const [readingResult, alertResult, nodeResult, weatherResult] = await Promise.all([
         supabase
@@ -103,6 +110,8 @@ const ManagerDashboard = () => {
         fetchWeatherInsights().catch(() => null),
       ]);
 
+      if (signal?.aborted) return;
+
       const firstError =
         readingResult.error || alertResult.error || nodeResult.error;
       if (firstError) {
@@ -117,9 +126,15 @@ const ManagerDashboard = () => {
         setWeatherData(weatherResult);
       }
       setCheckedAt(Date.now());
+    } catch (err) {
+      if (signal?.aborted) return;
+      console.error("Manager dashboard refresh failed:", err);
     } finally {
-      setLoading(false);
-      setWeatherLoading(false);
+      if (isInitial) {
+        setLoading(false);
+        setWeatherLoading(false);
+        initialLoadRef.current = false;
+      }
     }
   }, []);
 
@@ -127,6 +142,15 @@ const ManagerDashboard = () => {
   useEffect(() => {
     load();
   }, [load]);
+
+  // Silent Refresh Hook
+  const { isRefreshing } = useSilentRefresh(load, {
+    intervalMs: refreshInterval,
+    enabled: refreshInterval > 0,
+  });
+
+  // Debounced realtime handler
+  const realtimeDebounceRef = useRef(null);
 
   // Supabase Realtime Subscription (postgres_changes)
   useEffect(() => {
@@ -136,39 +160,39 @@ const ManagerDashboard = () => {
         "postgres_changes",
         { event: "*", schema: "public", table: "sensor_readings" },
         () => {
-          load();
+          if (realtimeDebounceRef.current) clearTimeout(realtimeDebounceRef.current);
+          realtimeDebounceRef.current = setTimeout(() => {
+            load();
+          }, 1500);
         }
       )
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "alerts" },
         () => {
-          load();
+          if (realtimeDebounceRef.current) clearTimeout(realtimeDebounceRef.current);
+          realtimeDebounceRef.current = setTimeout(() => {
+            load();
+          }, 1500);
         }
       )
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "nodes" },
         () => {
-          load();
+          if (realtimeDebounceRef.current) clearTimeout(realtimeDebounceRef.current);
+          realtimeDebounceRef.current = setTimeout(() => {
+            load();
+          }, 1500);
         }
       )
       .subscribe();
 
     return () => {
+      if (realtimeDebounceRef.current) clearTimeout(realtimeDebounceRef.current);
       supabase.removeChannel(channel);
     };
   }, [load]);
-
-  // Interval Polling fallback
-  useEffect(() => {
-    if (refreshInterval <= 0) return;
-    const timer = setInterval(() => {
-      load();
-    }, refreshInterval);
-
-    return () => clearInterval(timer);
-  }, [refreshInterval, load]);
 
   const latestFor = (name) =>
     readings.find(
