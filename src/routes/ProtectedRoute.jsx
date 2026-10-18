@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 import { Navigate } from "react-router-dom";
 import { supabase } from "../lib/supabase";
 
+import { FullPageLoader } from "../components/ui";
+
 const ProtectedRoute = ({ children, requiredRole }) => {
   const [status, setStatus] = useState("loading"); // loading | allowed | denied
 
@@ -42,7 +44,7 @@ const ProtectedRoute = ({ children, requiredRole }) => {
     };
   }, [requiredRole]);
 
-  if (status === "loading") return <div>Loading...</div>;
+  if (status === "loading") return <FullPageLoader message="Verifying session..." />;
   if (status === "denied") return <Navigate to="/" replace />;
   return children;
 };
