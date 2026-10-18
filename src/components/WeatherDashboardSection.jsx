@@ -15,8 +15,7 @@ import { CITY_NAME } from "../config/constants";
  * Inspired by reference layout:
  * - Left blue hero card: City, big temp, condition, skyline artwork silhouette
  * - Right grid cards: Hourly trend graph + rounded metric cards (Humidity, Wind gauge, UV Index, Feels like, Chance of rain)
- * City label is the CITY_NAME constant ("Manolo Fortich"); coordinates stay
- * sourced from SITE_LOCATION (Dicklum catchment).
+ * City label is the shared CITY_NAME constant.
  */
 export default function WeatherDashboardSection({ weatherData }) {
   const current = weatherData?.currentWeather;
