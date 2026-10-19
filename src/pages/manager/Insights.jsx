@@ -109,7 +109,10 @@ const Insights = () => {
       setUpdatedAt(new Date().toISOString());
 
       // Trigger weather and AI correlation analysis with freshly loaded data
-      loadWeatherInsights(loadedReadings);
+      // Only on initial load or explicit refresh, not on every realtime update
+      if (isInitial) {
+        loadWeatherInsights(loadedReadings);
+      }
     } catch (fetchError) {
       if (signal?.aborted) return;
       setError(fetchError.message || "Could not load sensor readings and configured thresholds.");
@@ -121,11 +124,11 @@ const Insights = () => {
         initialLoadRef.current = false;
       }
     }
-  }, [loadWeatherInsights]);
+  }, []);
 
   useEffect(() => {
     loadInsightsData();
-  }, [loadInsightsData]);
+  }, []);
 
   // Silent Refresh Hook (30 min interval)
   const { isRefreshing } = useSilentRefresh(loadInsightsData, {
