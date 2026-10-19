@@ -242,11 +242,11 @@ function generateUnifiedAnalysis(
   // Current Data Interpretation (Clear narrative breakdown)
   const currentInterpretation = {
     overview: riskLevel === "low"
-      ? "Current sensor telemetry reflects a balanced, healthy river system with stable chemical baselines and minimal active stress."
+      ? "River system balanced with stable baselines."
       : riskLevel === "moderate"
-        ? "Monitoring telemetry exhibits moderate fluctuations, with early runoff or mineral indicators showing dynamic watershed response to rainfall."
-        : "River telemetry demonstrates significant environmental pressure, marked by particulate turbidity surge and watershed surface runoff.",
-    hydroChemicalStatus: `The Dicklum River is currently exhibiting ${pH ? `pH ${pH.current} (${pH.trend})` : "stable pH"}, ${turbidity ? `turbidity of ${turbidity.current} NTU (${turbidity.trend})` : "normal clarity"}, and ${tds ? `TDS of ${tds.current} ppm` : "stable TDS"}. The hydro-chemical balance indicates ${pH && pH.current >= 6.5 && pH.current <= 8.5 ? "sound buffering capacity" : "alkalinity stress"}.`,
+        ? "Moderate fluctuations due to rainfall response."
+        : "Significant pressure from turbidity surge and runoff.",
+    hydroChemicalStatus: `Dicklum River: ${pH ? `pH ${pH.current} (${pH.trend})` : "stable pH"}, ${turbidity ? `turbidity ${turbidity.current} NTU (${turbidity.trend})` : "normal clarity"}, ${tds ? `TDS ${tds.current} ppm` : "stable TDS"}.`,
     keyObservations: riskFactors.length > 0 ? riskFactors : positiveFactors,
   };
 
@@ -257,10 +257,10 @@ function generateUnifiedAnalysis(
     past7DaysRainMm: pastWeekRain,
     next7DaysRainMm: nextWeekRain,
     summary: runoffRiskLevel === "severe" || runoffRiskLevel === "high"
-      ? `Sustained weekly rainfall of ${nextWeekRain} mm over already ${soilSaturation} soil will induce extensive surface wash-off, accelerating topsoil transport into the stream channel.`
+      ? `Heavy rain (${nextWeekRain} mm) on ${soilSaturation} soil causes extensive runoff.`
       : runoffRiskLevel === "moderate"
-        ? `Forecasted weekly precipitation (${nextWeekRain} mm) is expected to trigger moderate overland flow in unpaved and agricultural tracts of the Dicklum catchment.`
-        : `With ${nextWeekRain} mm rain forecast across the next 7 days and low soil saturation, surface runoff risk remains low.`,
+        ? `Rain (${nextWeekRain} mm) triggers moderate runoff in agricultural zones.`
+        : `Low rain forecast, dry soil keeps runoff risk low.`,
   };
 
   // Long-Term (Weeks and Months) Predictive Impacts
@@ -269,43 +269,86 @@ function generateUnifiedAnalysis(
       title: "1–4 Weeks Horizon: Catchment Siltation & Runoff Dynamics",
       impacts: [
         nextWeekRain > 30 || pastWeekRain > 40
-          ? `Sustained multi-day rain is predicted to deliver cumulative sediment plumes, keeping fine suspended particles in the water column for 10–14 days post-rainfall.`
-          : `Gradual river self-cleansing and settling will maintain low turbidity levels across upcoming weeks if rainfall remains intermittent.`,
-        `Fine silt settling in lower-gradient river reaches will temporarily increase bed sediment deposition, altering micro-habitats of benthic fauna.`,
-        `Intermittent flush events followed by clear spells will cause cyclical turbidity peaks followed by swift TDS dilution and subsequent reconcentration.`,
-        `Local community and municipal water intakes will experience increased filter cake buildup and higher coagulant dosing requirements during heavy rain episodes.`,
+          ? "Sustained rain keeps sediment in water column for 10–14 days."
+          : "Intermittent rain maintains low turbidity through natural settling.",
+        "Silt settles in lower reaches, altering benthic micro-habitats.",
+        "Cyclical turbidity peaks cause TDS dilution then reconcentration.",
+        "Municipal intakes need higher coagulant dosing during heavy rain.",
       ],
     },
     monthsHorizon: {
       title: "1–3 Months Horizon: Seasonal Watershed & Ecological Trajectory",
       impacts: [
-        `Seasonal monsoonal precipitation shifts over the next 2–3 months will transition the catchment between high-volume flush regimes and low-flow dry intervals.`,
-        `Sustained topsoil erosion along agricultural margins can progressively reduce streambank stability unless vegetative riparian buffer strips are fortified.`,
-        `During forthcoming dry spells, diminished baseflow combined with solar heating will concentrate dissolved ions (elevating TDS) and lower dissolved oxygen carrying capacity.`,
-        `Cumulative seasonal nutrient runoff (phosphates and nitrates from cultivated catchment acreage) may trigger benthic algal blooms as river velocity decreases.`,
+        "Monsoon shifts between high-volume flush and low-flow dry intervals.",
+        "Topsoil erosion reduces streambank stability without buffer strips.",
+        "Dry spells concentrate ions (elevating TDS) and lower oxygen.",
+        "Nutrient runoff may trigger benthic algal blooms in slow water.",
       ],
     },
   };
 
-  // Actionable Recommendations
+  // Actionable Recommendations - structured with priority and owner
   const recommendations = {
     immediate: [
       runoffRiskLevel !== "low"
-        ? "Alert municipal and irrigation intakes to prepare for turbidity surges and schedule intake valve adjustments."
-        : "Maintain standard telemetry sampling cadence and calibrate optical turbidity sensors.",
+        ? { text: "Alert intakes for turbidity surges", priority: "High", owner: "Manager", details: "Schedule intake valve adjustments for municipal and irrigation intakes." }
+        : { text: "Calibrate turbidity sensors", priority: "Low", owner: "Maintenance", details: "Maintain standard telemetry sampling cadence." },
       (turbidity && turbidity.current > 30) || next48hRain > 20
-        ? "Pre-position flocculation / coagulant supplies at treatment filtration plants."
-        : "Verify that sensor solar charging and battery levels are adequate ahead of cloudy rainy sequences.",
+        ? { text: "Pre-position coagulant supplies", priority: "High", owner: "Maintenance", details: "Stock flocculation/coagulant at treatment filtration plants." }
+        : { text: "Check sensor battery levels", priority: "Low", owner: "Maintenance", details: "Verify solar charging before cloudy rainy sequences." },
       pH && (pH.current < 6.8 || pH.current > 8.2)
-        ? "Perform spot titration tests at upstream tributary junctions to isolate chemical discharge points."
-        : "Conduct visual shoreline spot-checks for localized bank scouring or illegal dumping.",
+        ? { text: "Test water at tributary junctions", priority: "Med", owner: "DENR-CENRO", details: "Spot titration tests to isolate chemical discharge points." }
+        : { text: "Check shoreline for dumping", priority: "Low", owner: "DENR-CENRO", details: "Visual spot-checks for bank scouring or illegal dumping." },
     ],
     strategic: [
-      "Implement riparian buffer reforestation along vulnerable agricultural segments of the Dicklum catchment boundary.",
-      "Establish seasonal silt traps and sediment retention ponds upstream of municipal abstraction points.",
-      "Collaborate with Barangay Dicklum local agricultural cooperatives to promote contour farming and cover cropping to limit rainy-season topsoil loss.",
-      "Schedule quarterly riverbed bathymetry assessments to monitor long-term silt accumulation and maintain hydrological carrying capacity.",
+      { text: "Plant riparian buffer zones", priority: "High", owner: "DENR-CENRO", details: "Reforestation along vulnerable agricultural segments of Dicklum catchment." },
+      { text: "Build sediment retention ponds", priority: "Med", owner: "Manager", details: "Establish silt traps upstream of municipal abstraction points." },
+      { text: "Promote contour farming", priority: "Med", owner: "DENR-CENRO", details: "Collaborate with cooperatives on cover cropping to limit topsoil loss." },
+      { text: "Schedule riverbed assessments", priority: "Low", owner: "Manager", details: "Quarterly bathymetry to monitor silt accumulation." },
     ],
+  };
+
+  // Dual-Horizon Predictive Analysis (24h and 3-7 days)
+  const next24h = {
+    riskLevel: next48hRain > 25 ? "high" : next48hRain > 12 ? "moderate" : "low",
+    headline: next48hRain > 25
+      ? "Heavy rain likely spikes turbidity and TDS."
+      : next48hRain > 12
+        ? "Moderate rain may increase turbidity slightly."
+        : "Dry conditions maintain stable water quality.",
+    turbidityDirection: turbidity?.trend || "stable",
+    tdsDirection: tds?.trend || "stable",
+    turbidityValue: turbidity?.current ?? null,
+    tdsValue: tds?.current ?? null,
+    rainfallAmount: next48hRain,
+    confidence: "High",
+    mainDriver: next48hRain > 10 ? `Rainfall ${next48hRain.toFixed(0)} mm expected` : "Dry weather pattern",
+    details: next48hRain > 25
+      ? "Expect 2-3x turbidity increase lasting 6-12 hours post-rain. Monitor intake filters closely."
+      : next48hRain > 12
+        ? "Minor turbidity rise possible, within normal operating range."
+        : "Stable conditions. Routine monitoring sufficient.",
+  };
+
+  const next3to7Days = {
+    riskLevel: nextWeekRain > 40 ? "high" : nextWeekRain > 20 ? "moderate" : "low",
+    headline: nextWeekRain > 40
+      ? "Sustained rain causes prolonged turbidity."
+      : nextWeekRain > 20
+        ? "Intermittent rain may trigger occasional runoff."
+        : "Low rain forecast keeps water quality stable.",
+    turbidityDirection: turbidity?.trend || "stable",
+    tdsDirection: tds?.trend || "stable",
+    turbidityValue: turbidity?.current ?? null,
+    tdsValue: tds?.current ?? null,
+    rainfallAmount: nextWeekRain,
+    confidence: "Medium",
+    mainDriver: nextWeekRain > 20 ? `Rainfall ${nextWeekRain.toFixed(0)} mm forecast` : "Soil saturation low",
+    details: nextWeekRain > 40
+      ? "Cumulative sediment plumes may persist 10-14 days. Plan for extended coagulant use."
+      : nextWeekRain > 20
+        ? "Moderate runoff expected from agricultural zones. Monitor downstream intake quality."
+        : "Favorable conditions. Self-cleansing maintains low turbidity.",
   };
 
   return {
@@ -314,6 +357,8 @@ function generateUnifiedAnalysis(
     runoffAnalysis,
     longTermPredictiveImpacts,
     recommendations,
+    next24h,
+    next3to7Days,
   };
 }
 
