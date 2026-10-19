@@ -45,7 +45,10 @@ async function fetchWeather() {
   url.searchParams.set("timezone", "Asia/Manila");
 
   const res = await fetch(url.toString());
-  if (!res.ok) throw new Error(`Open-Meteo error: ${res.status}`);
+  if (!res.ok) {
+    const errorText = await res.text().catch(() => "");
+    throw new Error(`Open-Meteo API returned ${res.status}: ${errorText || res.statusText}`);
+  }
   return res.json();
 }
 
@@ -336,6 +339,7 @@ Deno.serve(async (req) => {
     const token = authHeader.replace(/^Bearer\s+/i, "");
     const { data: { user }, error: authError } = await supabase.auth.getUser(token);
     if (authError || !user) {
+      console.error("Auth error:", authError);
       return new Response(
         JSON.stringify({ error: "Unauthorized: Invalid or expired token." }),
         { status: 401, headers: { ...CORS, "Content-Type": "application/json" } }
@@ -349,7 +353,15 @@ Deno.serve(async (req) => {
       .eq("id", user.id)
       .single();
 
-    if (profileError || !profile || profile.status !== "approved") {
+    if (profileError) {
+      console.error("Profile query error:", profileError);
+      return new Response(
+        JSON.stringify({ error: "Database error fetching profile." }),
+        { status: 500, headers: { ...CORS, "Content-Type": "application/json" } }
+      );
+    }
+
+    if (!profile || profile.status !== "approved") {
       return new Response(
         JSON.stringify({ error: "Forbidden: Account is not approved." }),
         { status: 403, headers: { ...CORS, "Content-Type": "application/json" } }
@@ -357,8 +369,14 @@ Deno.serve(async (req) => {
     }
 
     const [weather, telemetry] = await Promise.all([
-      fetchWeather().catch(() => null),
-      fetchTelemetry(supabase).catch(() => []),
+      fetchWeather().catch((err) => {
+        console.error("Weather fetch error:", err);
+        return null;
+      }),
+      fetchTelemetry(supabase).catch((err) => {
+        console.error("Telemetry fetch error:", err);
+        return [];
+      }),
     ]);
 
     const stats = statsByParam(telemetry as Reading[]);
@@ -394,6 +412,7 @@ Deno.serve(async (req) => {
     });
   } catch (err) {
     const message = err instanceof Error ? err.message : "Unknown error";
+    console.error("Weather-insights handler error:", err);
     return new Response(JSON.stringify({ error: message }), {
       status: 500,
       headers: { ...CORS, "Content-Type": "application/json" },
