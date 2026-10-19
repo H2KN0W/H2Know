@@ -58,9 +58,9 @@ const LogoutButton = () => {
         onClick={handleLogout}
         disabled={loggingOut}
         title="Logout"
-        data-tooltip="Logout"
+        aria-label="Logout"
       >
-        <LogOut size={18} className="sidebar-logout-icon" />
+        <LogOut size={20} className="sidebar-logout-icon" />
         <span className="sidebar-logout-text">{loggingOut ? "Logging out..." : "Logout"}</span>
       </button>
 
