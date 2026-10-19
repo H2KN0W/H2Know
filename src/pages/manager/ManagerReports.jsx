@@ -132,7 +132,7 @@ const ManagerReports = () => {
 
   useEffect(() => {
     loadInsightsPreview();
-  }, [loadInsightsPreview]);
+  }, []);
 
   const toggleParameter = (id) => setForm((current) => {
     if (id === ALL_VALUE) {
