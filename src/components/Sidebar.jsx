@@ -89,13 +89,13 @@ const Sidebar = () => {
                   key={path}
                   to={path}
                   title={label}
-                  data-tooltip={label}
+                  aria-label={label}
                   className={({ isActive }) =>
                     isActive ? "sidebar-link active" : "sidebar-link"
                   }
                   onClick={() => setMobileOpen(false)}
                 >
-                  <Icon size={17} strokeWidth={2} className="sidebar-link-icon" />
+                  <Icon size={20} strokeWidth={2} className="sidebar-link-icon" />
                   <span>{label}</span>
                 </NavLink>
               ))}
