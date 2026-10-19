@@ -26,9 +26,11 @@ import { SkeletonWeatherWidget } from "./ui/SkeletonCard";
 const WeatherWidget = () => {
   const [data, setData] = useState(null);
   const [error, setError] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
 
   const load = useCallback(async (signal) => {
     try {
+      setIsLoading(true);
       const result = await fetchWeatherInsights();
       if (signal?.aborted) return;
       setData(result);
@@ -36,14 +38,22 @@ const WeatherWidget = () => {
     } catch {
       if (signal?.aborted) return;
       setError(true);
+    } finally {
+      setIsLoading(false);
     }
   }, []);
 
-  // Silent Refresh Hook (30 min interval)
+  // Silent Refresh Hook (30 min interval) - disabled to prevent automatic retries
+  // User must manually refresh if data fails to load
   useSilentRefresh(load, {
     intervalMs: REFRESH_INTERVALS.WEATHER,
-    enabled: true,
+    enabled: false, // Disabled to prevent infinite retry loops
   });
+
+  // Initial load only
+  useEffect(() => {
+    load();
+  }, [load]);
 
   if (error) return null; // silent fail — don't break header layout
 
