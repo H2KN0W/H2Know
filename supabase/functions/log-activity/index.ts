@@ -35,6 +35,7 @@ Deno.serve(async (req) => {
     const token = authHeader.replace(/^Bearer\s+/i, "");
     const { data: { user }, error: authError } = await supabase.auth.getUser(token);
     if (authError || !user) {
+      console.error("Auth error:", authError);
       return new Response(
         JSON.stringify({ error: "Unauthorized: Invalid or expired token." }),
         { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -48,7 +49,15 @@ Deno.serve(async (req) => {
       .eq("id", user.id)
       .single();
 
-    if (profileError || !profile || profile.status !== "approved") {
+    if (profileError) {
+      console.error("Profile query error:", profileError);
+      return new Response(
+        JSON.stringify({ error: "Database error fetching profile." }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    if (!profile || profile.status !== "approved") {
       return new Response(
         JSON.stringify({ error: "Forbidden: Only approved users may write activity logs." }),
         { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -124,7 +133,8 @@ Deno.serve(async (req) => {
     });
 
     if (insertError) {
-      return new Response(JSON.stringify({ error: insertError.message }), {
+      console.error("Activity log insert error:", insertError);
+      return new Response(JSON.stringify({ error: "Failed to log activity." }), {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -136,8 +146,9 @@ Deno.serve(async (req) => {
     });
   } catch (err) {
     const message = err instanceof Error ? err.message : "Unknown error";
+    console.error("Log-activity handler error:", err);
     return new Response(JSON.stringify({ error: message }), {
-      status: 400,
+      status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
