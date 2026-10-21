@@ -415,7 +415,7 @@ const ManagerReports = () => {
                     <span className="mr-recs-title">Immediate Actions</span>
                     <ul className="mr-recs-list">
                       {aiInsights.recommendations.immediate.slice(0, 2).map((rec, idx) => (
-                        <li key={idx}>{rec}</li>
+                        <li key={idx}>{typeof rec === "object" && rec !== null ? rec.text : rec}</li>
                       ))}
                     </ul>
                   </div>
