@@ -917,3 +917,217 @@
   }
 }
 
+
+/* ── Node status badges & dots (Online, Delayed, Offline) ── */
+.manager-state {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.68rem;
+  font-weight: 700;
+  border-radius: 999px;
+  padding: 3px 9px;
+  width: fit-content;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.manager-state-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.manager-state.online {
+  background: rgba(26, 158, 92, 0.12);
+  color: #1a9e5c;
+}
+.manager-state.online .manager-state-dot {
+  background: #1a9e5c;
+  box-shadow: 0 0 6px rgba(26, 158, 92, 0.6);
+}
+
+.manager-state.delayed {
+  background: rgba(217, 119, 6, 0.12);
+  color: #b45309;
+}
+.manager-state.delayed .manager-state-dot {
+  background: #d97706;
+  box-shadow: 0 0 6px rgba(217, 119, 6, 0.5);
+}
+
+.manager-state.offline {
+  background: rgba(220, 38, 38, 0.12);
+  color: #dc2626;
+}
+.manager-state.offline .manager-state-dot {
+  background: #dc2626;
+}
+
+/* ── ECG Heartbeat Line Styling ── */
+.shg-heartbeat-section {
+  border-top: 1px solid rgba(0, 119, 182, 0.08);
+  padding-top: 8px;
+  margin-top: 4px;
+}
+
+.shg-heartbeat-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 4px;
+}
+
+.shg-heartbeat-title {
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #7a96a4;
+}
+
+.shg-ecg-stats {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  font-size: 0.68rem;
+  color: #5b7c88;
+  margin-bottom: 6px;
+  flex-wrap: wrap;
+}
+
+.shg-ecg-stat-item {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  white-space: nowrap;
+}
+
+.shg-ecg-stat-label {
+  color: #7a96a4;
+}
+
+.shg-ecg-stat-value {
+  color: #0a2e3d;
+  font-weight: 600;
+}
+
+.shg-ecg-chart-wrap {
+  background: rgba(0, 119, 182, 0.02);
+  border: 1px solid rgba(0, 119, 182, 0.08);
+  border-radius: 8px;
+  padding: 6px 4px 18px 4px;
+  box-sizing: border-box;
+}
+
+.shg-ecg-svg {
+  width: 100%;
+  height: 64px;
+  display: block;
+}
+
+.shg-ecg-hour-labels {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 2px;
+  height: 14px;
+  pointer-events: none;
+}
+
+.shg-ecg-hour-label {
+  position: absolute;
+  transform: translateX(-50%);
+  font-size: 0.58rem;
+  color: #7a96a4;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.shg-ecg-tooltip {
+  position: absolute;
+  top: -12px;
+  transform: translate(-50%, -100%);
+  background: #0a2e3d;
+  color: #ffffff;
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-size: 0.68rem;
+  pointer-events: none;
+  z-index: 10;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  white-space: nowrap;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.shg-ecg-tooltip::after {
+  content: "";
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border-width: 4px;
+  border-style: solid;
+  border-color: #0a2e3d transparent transparent transparent;
+}
+
+.shg-ecg-tt-time {
+  font-weight: 700;
+  color: #38bdf8;
+}
+
+.shg-ecg-tt-sub {
+  font-size: 0.6rem;
+  color: #94a3b8;
+}
+
+/* Animations and prefers-reduced-motion */
+@keyframes ecg-draw {
+  from {
+    stroke-dashoffset: 100;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes ecg-glow {
+  0% {
+    r: 4;
+    opacity: 0.8;
+  }
+  50% {
+    r: 8;
+    opacity: 1;
+    filter: drop-shadow(0 0 6px currentColor);
+  }
+  100% {
+    r: 4;
+    opacity: 0.8;
+  }
+}
+
+.shg-ecg-new-beat {
+  stroke-dasharray: 100;
+  stroke-dashoffset: 100;
+  animation: ecg-draw 600ms cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+.shg-ecg-glow-anim {
+  animation: ecg-glow 1200ms ease-in-out 2;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .shg-ecg-new-beat {
+    stroke-dasharray: none !important;
+    stroke-dashoffset: 0 !important;
+    animation: none !important;
+  }
+  .shg-ecg-glow-anim {
+    animation: none !important;
+  }
+}

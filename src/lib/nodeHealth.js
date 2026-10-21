@@ -11,14 +11,12 @@
 /** Controller heartbeat interval: 10 minutes */
 export const HEARTBEAT_INTERVAL_MS = 600000;
 
-/** Sensor sampling cycle: 20 minutes (at :00, :20, :40) */
-export const SENSOR_CYCLE_INTERVAL_MS = 1200000;
+/** Sensor sampling cycle: 30 minutes */
+export const SENSOR_CYCLE_INTERVAL_MS = 30 * 60 * 1000;
 
-/** Status evaluation multiplier thresholds (applied to expected intervals) */
-export const STATUS_THRESHOLDS = {
-  ONLINE_MULTIPLIER: 2.0,   // <= 2x interval is Online
-  DELAYED_MULTIPLIER: 5.0,  // <= 5x interval is Delayed, > 5x is Offline
-};
+/** Thresholds for Sensor Node health evaluation */
+export const ONLINE_WITHIN_MS = 40 * 60 * 1000;
+export const OFFLINE_AFTER_MS = 90 * 60 * 1000;
 
 export const NODE_STATUS_LABELS = {
   ONLINE: "Online",
@@ -29,18 +27,22 @@ export const NODE_STATUS_LABELS = {
 /**
  * Evaluates node health status given the age of the last heartbeat/packet in milliseconds.
  *
+ * Thresholds:
+ * - Online: age <= 40 min
+ * - Delayed: 40 min < age <= 90 min
+ * - Offline: age > 90 min
+ *
  * @param {number|null} ageMs Age since last seen in milliseconds
- * @param {number} baseIntervalMs Expected interval (HEARTBEAT_INTERVAL_MS or SENSOR_CYCLE_INTERVAL_MS)
  * @returns {"Online" | "Delayed" | "Offline"}
  */
-export function evaluateNodeStatus(ageMs, baseIntervalMs = HEARTBEAT_INTERVAL_MS) {
+export function evaluateNodeStatus(ageMs) {
   if (ageMs == null || !Number.isFinite(ageMs) || ageMs < 0) {
     return NODE_STATUS_LABELS.OFFLINE;
   }
-  if (ageMs <= baseIntervalMs * STATUS_THRESHOLDS.ONLINE_MULTIPLIER) {
+  if (ageMs <= ONLINE_WITHIN_MS) {
     return NODE_STATUS_LABELS.ONLINE;
   }
-  if (ageMs <= baseIntervalMs * STATUS_THRESHOLDS.DELAYED_MULTIPLIER) {
+  if (ageMs <= OFFLINE_AFTER_MS) {
     return NODE_STATUS_LABELS.DELAYED;
   }
   return NODE_STATUS_LABELS.OFFLINE;
