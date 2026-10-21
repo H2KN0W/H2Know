@@ -373,7 +373,7 @@ export default function NodeHealth() {
               <div className="nh-alert-title">Sensor Node Communication Loss</div>
               <div className="nh-alert-body">
                 The Field Sensor Node has not reported readings for {sensorAgeMs ? Math.round(sensorAgeMs / 60000) : "—"} minutes
-                (expected every 20 minutes). Check solar power rail, LoRa link line-of-sight, or river container pump relays.
+                (expected every 30 minutes). Check solar power rail, LoRa link line-of-sight, or river container pump relays.
               </div>
             </div>
           </div>
