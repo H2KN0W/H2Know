@@ -1,5 +1,5 @@
 import { evaluateNodeStatus, NODE_STATUS_LABELS } from "../../lib/nodeHealth";
-import { useEffect, useMemo, useState, useRef } from "react";
+import { useEffect, useMemo, useState, useRef, useCallback } from "react";
 import { MapContainer, TileLayer, GeoJSON, Marker, Popup, useMap, useMapEvents } from "react-leaflet";
 import {
   Copy,
@@ -11,14 +11,6 @@ import {
   RotateCcw,
   X,
   Maximize2,
-  Droplets,
-  Trees,
-  Wheat,
-  Building2,
-  Mountain,
-  Tent,
-  Waves,
-  Scan,
 } from "lucide-react";
 import L from "leaflet";
 import { SITE_MAP_FALLBACK_LABEL } from "../../config/siteLocation";
@@ -27,6 +19,8 @@ import landCoverRaw from "../../data/landCover.geojson?raw";
 import riversRaw from "../../data/riverNetwork.geojson?raw";
 import sensorRaw from "../../data/sensorLocation.geojson?raw";
 import "../../styles/manager/CatchmentMap.css";
+import MapLegendPanel from "../../components/MapLegend";
+import { LAND_COVER_COLORS, getClassByValue } from "../../components/mapLandCoverConfig";
 
 const boundaryData = JSON.parse(catchmentData);
 const landCoverData = JSON.parse(landCoverRaw);
@@ -39,6 +33,8 @@ const HOVER_STYLE = { color: "#000000", weight: 2.5, fillOpacity: 0.16 };
 
 // Original river network style and cyan color
 const RIVER_STYLE = { color: "#0891b2", weight: 1.5, opacity: 1, interactive: false };
+const RIVER_STYLE_HIGHLIGHT = { color: "#06b6d4", weight: 3, opacity: 1, interactive: false };
+const RIVER_STYLE_DIMMED = { color: "#0891b2", weight: 1, opacity: 0.35, interactive: false };
 
 // Original red sensor marker dot
 const sensorIcon = L.divIcon({
@@ -60,28 +56,52 @@ const pinIcon = L.divIcon({
   iconAnchor: [11, 11],
 });
 
-// Original Legend / fill colors for the `landuse` attribute values in landCover.geojson
-const LAND_USE_CLASSES = [
-  { value: "1", label: "Water", color: "#3F8EDB", icon: Droplets },
-  { value: "2", label: "Trees", color: "#397D49", icon: Trees },
-  { value: "5", label: "Crops", color: "#E49635", icon: Wheat },
-  { value: "7", label: "Built Area", color: "#C4281B", icon: Building2 },
-  { value: "10", label: "Bare Ground", color: "#E3E2C3", icon: Mountain, iconColor: "#8a8373" },
-  { value: "11", label: "Rangeland", color: "#E3E2C3", icon: Tent, iconColor: "#8a8373" },
-];
-
-const LAND_USE_COLORS = Object.fromEntries(LAND_USE_CLASSES.map((c) => [c.value, c.color]));
-
-const landCoverStyle = (feature) => {
+// Land-cover styling — delegates to mapLandCoverConfig.js
+// Builds the base style for a feature. Highlight overrides are applied by
+// the CatchmentMap component via ref.setStyle() without remounting.
+const makeLandCoverStyle = (feature, selectedClass) => {
   const raw = feature.properties?.landuse;
   const key = raw === undefined || raw === null ? "" : String(Number.isFinite(Number(raw)) ? Number(raw) : raw);
+  const baseColor = LAND_COVER_COLORS[key] ?? "#b0bec5";
+
+  if (selectedClass === null) {
+    // Normal view: full opacity for all polygons
+    return {
+      color: "#5f6b6f",
+      weight: 0.4,
+      opacity: 0.6,
+      fillColor: baseColor,
+      fillOpacity: 0.85,
+      interactive: true,
+      bubblingMouseEvents: true,
+    };
+  }
+
+  const isSelected = key === selectedClass;
+  if (isSelected) {
+    // Highlighted class
+    const cls = getClassByValue(key);
+    const highlight = cls ? cls.color : baseColor;
+    return {
+      color: "#1a1a2e",
+      weight: 1.8,
+      opacity: 1,
+      fillColor: highlight,
+      fillOpacity: 0.95,
+      interactive: true,
+      bubblingMouseEvents: true,
+    };
+  }
+
+  // Dimmed class
   return {
-    color: "#5f6b6f",
-    weight: 0.4,
-    opacity: 0.6,
-    fillColor: LAND_USE_COLORS[key] ?? "#b0bec5",
-    fillOpacity: 0.85,
-    interactive: false,
+    color: "transparent",
+    weight: 0,
+    opacity: 0,
+    fillColor: baseColor,
+    fillOpacity: 0.15,
+    interactive: true,
+    bubblingMouseEvents: true,
   };
 };
 
@@ -146,38 +166,6 @@ const CoordPopupContent = ({ latlng }) => {
     </div>
   );
 };
-
-const MapLegend = () => (
-  <div className="catchment-legend" aria-label="Map legend">
-    <div className="catchment-legend-title">Land Use / Land Cover</div>
-    {LAND_USE_CLASSES.map((c) => {
-      const Icon = c.icon;
-      return (
-        <div className="catchment-legend-row" key={c.value}>
-          <span className="catchment-legend-swatch" style={{ background: c.color }} />
-          <Icon size={12} className="catchment-legend-icon" style={{ color: c.iconColor || c.color }} />
-          <span className="catchment-legend-label">{c.label}</span>
-        </div>
-      );
-    })}
-    <div className="catchment-legend-divider" />
-    <div className="catchment-legend-row">
-      <span className="catchment-legend-line catchment-legend-line--river" />
-      <Waves size={12} className="catchment-legend-icon" style={{ color: "#0891b2" }} />
-      <span className="catchment-legend-label">River Network</span>
-    </div>
-    <div className="catchment-legend-row">
-      <span className="catchment-legend-line catchment-legend-line--boundary" />
-      <Scan size={12} className="catchment-legend-icon" style={{ color: "#000000" }} />
-      <span className="catchment-legend-label">Catchment Boundary</span>
-    </div>
-    <div className="catchment-legend-row">
-      <span className="catchment-legend-dot" />
-      <MapPin size={12} className="catchment-legend-icon" style={{ color: "#d62828" }} />
-      <span className="catchment-legend-label">Sensor Location</span>
-    </div>
-  </div>
-);
 
 /**
  * SensorPopupContent
@@ -606,13 +594,65 @@ const CatchmentMap = ({ readings = [], nodes = [], checkedAt = null }) => {
   const [boundaryHovered, setBoundaryHovered] = useState(false);
   const [pin, setPin] = useState(null);
   const [expandedPhoto, setExpandedPhoto] = useState(null);
+  const [selectedClass, setSelectedClass] = useState(null);
 
+  // Refs to Leaflet layer groups so we can restyle without remounting
+  const landCoverRef = useRef(null);
+  const riversRef = useRef(null);
+
+  // Boundary hover handlers (unchanged)
   const onEachFeature = useMemo(() => (feature, layer) => {
     layer.on({
       mouseover: (e) => { e.target.setStyle(HOVER_STYLE); setBoundaryHovered(true); },
       mouseout: (e) => { e.target.setStyle(BOUNDARY_STYLE); setBoundaryHovered(false); },
     });
   }, []);
+
+  // Land cover: attach tooltip + keep interactive for hover, but let clicks
+  // pass through to the map (so pin-dropping always works on polygon areas).
+  const onEachLandCover = useCallback((feature, layer) => {
+    const cls = getClassByValue(feature.properties?.landuse);
+    if (cls) {
+      layer.bindTooltip(cls.label, {
+        sticky: true,
+        direction: "top",
+        className: "lc-tooltip",
+        offset: [0, -8],
+      });
+    }
+  }, []);
+
+  // Apply highlight styles via ref when selectedClass changes
+  useEffect(() => {
+    const lcLayer = landCoverRef.current;
+    if (lcLayer) {
+      lcLayer.eachLayer((layer) => {
+        const style = makeLandCoverStyle(layer.feature, selectedClass);
+        layer.setStyle(style);
+      });
+    }
+    const rvLayer = riversRef.current;
+    if (rvLayer) {
+      const isRiverHighlight =
+        selectedClass === "__rivers__" ||
+        (selectedClass === "1"); // Water highlights rivers too
+      rvLayer.setStyle(
+        selectedClass === null
+          ? RIVER_STYLE
+          : isRiverHighlight
+            ? RIVER_STYLE_HIGHLIGHT
+            : RIVER_STYLE_DIMMED
+      );
+    }
+  }, [selectedClass]);
+
+  // Compute the selected class label for the chip
+  const selectedLabel = useMemo(() => {
+    if (selectedClass === null) return null;
+    if (selectedClass === "__rivers__") return "Rivers";
+    const cls = getClassByValue(selectedClass);
+    return cls ? cls.label : null;
+  }, [selectedClass]);
 
   return (
     <div className="catchment-map-wrap">
@@ -622,9 +662,20 @@ const CatchmentMap = ({ readings = [], nodes = [], checkedAt = null }) => {
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
           maxZoom={19}
         />
-        <GeoJSON data={landCoverData} style={landCoverStyle} />
+        <GeoJSON
+          key="land-cover"
+          data={landCoverData}
+          style={(feature) => makeLandCoverStyle(feature, null)}
+          onEachFeature={onEachLandCover}
+          ref={landCoverRef}
+        />
         <GeoJSON data={boundaryData} style={BOUNDARY_STYLE} onEachFeature={onEachFeature} />
-        <GeoJSON data={riversData} style={RIVER_STYLE} />
+        <GeoJSON
+          key="rivers"
+          data={riversData}
+          style={RIVER_STYLE}
+          ref={riversRef}
+        />
 
         {/* Dynamic sensor markers with live reactive popups */}
         {sensorData.features.map((feature, idx) => {
@@ -668,7 +719,28 @@ const CatchmentMap = ({ readings = [], nodes = [], checkedAt = null }) => {
           </>
         )}
       </MapContainer>
-      <MapLegend />
+
+      {/* "Showing: X" chip */}
+      {selectedLabel && (
+        <div className="lc-showing-chip">
+          <span>Showing: {selectedLabel}</span>
+          <button
+            type="button"
+            className="lc-showing-chip-x"
+            onClick={() => setSelectedClass(null)}
+            aria-label="Clear filter"
+          >
+            <X size={12} />
+          </button>
+        </div>
+      )}
+
+      {/* Interactive legend panel */}
+      <MapLegendPanel
+        selectedClass={selectedClass}
+        onSelect={setSelectedClass}
+      />
+
       {boundaryHovered && <span className="catchment-map-hint">Dicklum River Catchment Boundary</span>}
 
       {/* Modern Photo Lightbox with Smooth Zoom Controls */}
@@ -679,5 +751,4 @@ const CatchmentMap = ({ readings = [], nodes = [], checkedAt = null }) => {
     </div>
   );
 };
-
 export default CatchmentMap;
