@@ -290,12 +290,15 @@ const Dashboard = () => {
     }
     const pingTime = new Date(latestPing).getTime();
     const diffMs = checkedAt ? checkedAt - pingTime : 0;
-    const isOnline = diffMs <= 5 * 60 * 1000;
+    const status = evaluateNodeStatus(diffMs);
 
-    if (isOnline) {
+    if (status === NODE_STATUS_LABELS.ONLINE) {
       return { value: "Online", tone: "positive", live: true };
     }
-    return { value: "Offline", tone: "warning", live: false };
+    if (status === NODE_STATUS_LABELS.DELAYED) {
+      return { value: "Delayed", tone: "warning", live: false };
+    }
+    return { value: "Offline", tone: "danger", live: false };
   })();
 
   // Compute Last Data Received Card
