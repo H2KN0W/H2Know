@@ -1,3 +1,4 @@
+import { evaluateNodeStatus, NODE_STATUS_LABELS } from "../../lib/nodeHealth";
 import { useEffect, useMemo, useState, useRef } from "react";
 import { MapContainer, TileLayer, GeoJSON, Marker, Popup, useMap, useMapEvents } from "react-leaflet";
 import {
@@ -242,11 +243,12 @@ const SensorPopupContent = ({ feature, readings = [], nodes = [], checkedAt = nu
     return readings[0]?.recorded_at ?? null;
   }, [matchedNode, readings]);
 
-  // Real-time online check: synced within the last 5 minutes (sync live with SensorStatusPanel)
-  const online = useMemo(
-    () => !!lastSync && !!checkedAt && (checkedAt - new Date(lastSync).getTime()) <= 5 * 60 * 1000,
-    [lastSync, checkedAt]
-  );
+  // Real-time online check: synced within threshold (sync live with SensorStatusPanel)
+  const online = useMemo(() => {
+    if (!lastSync || !checkedAt) return false;
+    const ageMs = checkedAt - new Date(lastSync).getTime();
+    return evaluateNodeStatus(ageMs) === NODE_STATUS_LABELS.ONLINE;
+  }, [lastSync, checkedAt]);
 
   // Dynamic parameters extraction from latest readings
   const dynamicParams = useMemo(() => {
