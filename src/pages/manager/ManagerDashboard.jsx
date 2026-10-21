@@ -17,6 +17,7 @@ import { useSilentRefresh } from "../../hooks/useSilentRefresh";
 import ManagerSidebar from "./ManagerSidebar";
 import CatchmentMap from "./CatchmentMap";
 import SensorHealthGauge from "../../components/SensorStatusPanel";
+import { evaluateNodeStatus, NODE_STATUS_LABELS, ONLINE_WITHIN_MS } from "../../lib/nodeHealth";
 import WeatherWidget from "../../components/WeatherWidget";
 import VerticalOvercastWeatherCard from "../../components/VerticalOvercastWeatherCard";
 import { fetchWeatherInsights } from "../../lib/weather";
@@ -248,7 +249,9 @@ const ManagerDashboard = () => {
       const lastSync = readings.find(
         (reading) => reading.nodes?.id === node.id
       )?.recorded_at;
-      return !lastSync || checkedAt - new Date(lastSync).getTime() > 5 * 60 * 1000;
+      if (!lastSync) return true;
+      const ageMs = checkedAt - new Date(lastSync).getTime();
+      return evaluateNodeStatus(ageMs) === NODE_STATUS_LABELS.OFFLINE;
     });
 
     if (condition !== "unknown" && nodes.length > 0 && hasOfflineNode) {
@@ -396,7 +399,7 @@ const ManagerDashboard = () => {
               <article className="manager-panel">
                 <div className="manager-panel-heading">
                   <h2>Sensor Status</h2>
-                  <span>Online if synced in last 5m</span>
+                  <span>{`Online if synced within the last ${ONLINE_WITHIN_MS / 60000} min`}</span>
                 </div>
                 {nodes.length === 0 ? (
                   <p style={{ color: "var(--color-text-muted)", fontSize: "0.84rem" }}>
