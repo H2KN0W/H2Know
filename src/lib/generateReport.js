@@ -640,7 +640,8 @@ const buildExecutiveSummaryPage = async (doc, form, readings, paramNames, parame
       doc.setFont(undefined, "normal");
       setColor(doc, C.black, "text");
       immediateRecs.slice(0, 2).forEach((rec) => {
-        const lines = doc.splitTextToSize(`→ ${rec}`, CONTENT_W - 5);
+        const recText = typeof rec === "object" && rec !== null ? rec.text : rec;
+        const lines = doc.splitTextToSize(`→ ${recText}`, CONTENT_W - 5);
         doc.text(lines, MARGIN + 3, y);
         y += lines.length * 5 + 1;
       });
