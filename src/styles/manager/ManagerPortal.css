@@ -44,7 +44,7 @@
   display: grid;
   grid-template-columns: 240px 1.55fr 1fr;
   gap: 18px;
-  align-items: stretch;
+  align-items: start;
 }
 
 .manager-two-column .manager-panel,
