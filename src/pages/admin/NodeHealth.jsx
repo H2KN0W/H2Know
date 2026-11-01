@@ -36,14 +36,11 @@ import { formatDateTime, formatClockTime } from "../../lib/formatters";
 import { REFRESH_INTERVALS } from "../../config/constants";
 import {
   HEARTBEAT_INTERVAL_MS,
-  SENSOR_CYCLE_INTERVAL_MS,
-  evaluateNodeStatus,
   decodeQualityFlags,
   decodeSensorResetFlags,
   decodeControllerResetReason,
   calculatePacketLoss,
   inferHeartbeatInterval,
-  NODE_STATUS_LABELS,
 } from "../../lib/nodeHealth";
 import { PageTransition, SlidingTabs } from "../../components/ui";
 import "../../styles/admin/NodeHealth.css";
@@ -67,7 +64,6 @@ export default function NodeHealth() {
   const initialLoadRef = useRef(true);
 
   // Data states
-  const [nodes, setNodes] = useState([]);
   const [nodeStatuses, setNodeStatuses] = useState([]);
   const [rawReadings, setRawReadings] = useState([]);
   const [latestReadings, setLatestReadings] = useState([]);
@@ -87,8 +83,7 @@ export default function NodeHealth() {
       const hours = TIME_RANGES[timeRange].hours;
       const sinceIso = new Date(Date.now() - hours * 3600 * 1000).toISOString();
 
-      const [nodesRes, statusRes, rawRes, readingsRes] = await Promise.all([
-        supabase.from("nodes").select("*"),
+      const [statusRes, rawRes, readingsRes] = await Promise.all([
         supabase
           .from("node_status")
           .select("*")
@@ -110,11 +105,9 @@ export default function NodeHealth() {
 
       if (signal?.aborted) return;
 
-      if (nodesRes.error) throw nodesRes.error;
       if (statusRes.error) throw statusRes.error;
       if (rawRes.error) throw rawRes.error;
 
-      setNodes(nodesRes.data || []);
       setNodeStatuses(statusRes.data || []);
       setRawReadings(rawRes.data || []);
       setLatestReadings(readingsRes.data || []);
@@ -153,26 +146,11 @@ export default function NodeHealth() {
   const latestRaw = rawReadings[0] || null;
   const latestSensorReading = latestReadings[0] || null;
 
-  // Station identification
-  const masterNode = nodes.find((n) => n.node_type === "master") || nodes[0] || {
-    device_label: "Controller Node (Master)",
-    id: "821333d5-602d-478e-accc-12fbecb39203",
-  };
-
-  const fieldNode = nodes.find((n) => n.node_type === "field") || {
-    device_label: "Sensor Node (Field)",
-    id: "field-node-station",
-  };
-
   // Controller Health calculation
   const controllerLastSeen = latestStatus?.recorded_at ? new Date(latestStatus.recorded_at) : null;
   const controllerAgeMs = controllerLastSeen ? Date.now() - controllerLastSeen.getTime() : null;
-  const controllerStatus = evaluateNodeStatus(controllerAgeMs, inferredIntervalMs);
 
   // Field Sensor Health calculation
-  // The field node is considered online if:
-  // 1) Controller received a LoRa packet recently (sensor_last_seen_s <= 2 * CYCLE)
-  // 2) Or raw readings arrived recently
   const sensorLastSeenTime = useMemo(() => {
     if (latestStatus?.sensor_last_seen_s != null && latestStatus.sensor_last_seen_s >= 0 && controllerLastSeen) {
       return new Date(controllerLastSeen.getTime() - latestStatus.sensor_last_seen_s * 1000);
@@ -187,7 +165,6 @@ export default function NodeHealth() {
   }, [latestStatus, controllerLastSeen, latestRaw, latestSensorReading]);
 
   const sensorAgeMs = sensorLastSeenTime ? Date.now() - sensorLastSeenTime.getTime() : null;
-  const sensorStatus = evaluateNodeStatus(sensorAgeMs, SENSOR_CYCLE_INTERVAL_MS);
 
   // Packet Loss calculation
   const packetStats = useMemo(() => {
@@ -364,20 +341,6 @@ export default function NodeHealth() {
           </div>
         )}
 
-        {/* Paper-Aligned Field Health Warning */}
-        {sensorStatus === NODE_STATUS_LABELS.OFFLINE && (
-          <div className="nh-alert-banner warning">
-            <AlertTriangle size={18} style={{ flexShrink: 0, marginTop: "2px" }} />
-            <div>
-              <div className="nh-alert-title">Sensor Node Communication Loss</div>
-              <div className="nh-alert-body">
-                The Field Sensor Node has not reported readings for {sensorAgeMs ? Math.round(sensorAgeMs / 60000) : "—"} minutes
-                (expected every 30 minutes). Check solar power rail, LoRa link line-of-sight, or river container pump relays.
-              </div>
-            </div>
-          </div>
-        )}
-
         {/* Sub-Tabs Navigation */}
         <SlidingTabs
           className="nh-tabs"
@@ -400,20 +363,6 @@ export default function NodeHealth() {
             <div className="nh-nodes-grid">
               {/* Controller Node Card */}
               <article className="nh-node-card">
-                <div className="nh-node-card-header">
-                  <div className="nh-node-card-title">
-                    <Server size={20} color="#0284c7" />
-                    <div>
-                      <div className="nh-node-name">{masterNode.device_label || "Controller Node"}</div>
-                      <div className="nh-node-type">Master Node · ESP32 Gateway</div>
-                    </div>
-                  </div>
-                  <span className={`nh-badge nh-badge-${controllerStatus.toLowerCase()}`}>
-                    <span className="nh-dot" />
-                    {controllerStatus}
-                  </span>
-                </div>
-
                 <div className="nh-node-vitals">
                   <div className="nh-vital-item">
                     <span className="nh-vital-label">Last Heartbeat</span>
@@ -457,20 +406,6 @@ export default function NodeHealth() {
 
               {/* Sensor Node Card */}
               <article className="nh-node-card">
-                <div className="nh-node-card-header">
-                  <div className="nh-node-card-title">
-                    <Radio size={20} color="#16a34a" />
-                    <div>
-                      <div className="nh-node-name">{fieldNode.device_label || "Sensor Node"}</div>
-                      <div className="nh-node-type">Field Node · ATmega2560 Transceiver</div>
-                    </div>
-                  </div>
-                  <span className={`nh-badge nh-badge-${sensorStatus.toLowerCase()}`}>
-                    <span className="nh-dot" />
-                    {sensorStatus}
-                  </span>
-                </div>
-
                 <div className="nh-node-vitals">
                   <div className="nh-vital-item">
                     <span className="nh-vital-label">Last Sample Sync</span>
