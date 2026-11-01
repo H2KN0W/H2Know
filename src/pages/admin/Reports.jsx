@@ -3,7 +3,11 @@ import { supabase } from "../../lib/supabase";
 import "../../styles/admin/AdminDashboard.css";
 import "../../styles/admin/Reports.css";
 import { useLogPageView } from "../../lib/useLogPageView";
+import { logActivity } from "../../lib/logActivity";
 import Sidebar from "../../components/Sidebar";
+import ReportActions from "../../components/ReportActions";
+import ReportPreviewModal from "../../components/ReportPreviewModal";
+import { fetchReportBlob, downloadReportBlob } from "../../lib/reportStorage";
 
 import { formatDateTime, formatDate, formatReportParameters } from "../../lib/formatters";
 import { PAGE_SIZES } from "../../config/constants";
@@ -21,6 +25,47 @@ const Reports = () => {
   const [error, setError] = useState("");
   const [page, setPage] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
+
+  // History action state
+  const [downloadingReportId, setDownloadingReportId] = useState(null);
+  const [previewReport, setPreviewReport] = useState(null);
+  const [actionError, setActionError] = useState("");
+
+  const handleDownloadReport = async (report) => {
+    if (!report || report.status !== "success") return;
+    setDownloadingReportId(report.id);
+    setActionError("");
+    try {
+      const blob = await fetchReportBlob(report);
+      downloadReportBlob(blob, report.report_name, report.format);
+      try {
+        await logActivity({
+          activity: `Re-downloaded ${report.format?.toUpperCase() || "PDF"} report: ${report.report_name}`,
+          status: "Success",
+        });
+      } catch (logErr) {
+        console.warn("Failed to log admin report re-download activity:", logErr);
+      }
+    } catch (err) {
+      console.error("Admin re-download failed:", err);
+      setActionError(err.message || "The report file is no longer available. Please generate a new report.");
+    } finally {
+      setDownloadingReportId(null);
+    }
+  };
+
+  const handleOpenPreview = async (report) => {
+    if (!report || report.status !== "success") return;
+    setPreviewReport(report);
+    try {
+      await logActivity({
+        activity: `Previewed ${report.format?.toUpperCase() || "PDF"} report: ${report.report_name}`,
+        status: "Success",
+      });
+    } catch (logErr) {
+      console.warn("Failed to log admin report preview activity:", logErr);
+    }
+  };
 
   const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
 
@@ -96,6 +141,7 @@ const Reports = () => {
             </select>
           </div>
 
+          {actionError && <p style={{ color: "#d64545", marginBottom: "14px" }}>{actionError}</p>}
           {error && <p style={{ color: "#d64545" }}>{error}</p>}
 
           <div className="table-wrap">
@@ -109,14 +155,15 @@ const Reports = () => {
                   <th>Parameters</th>
                   <th>Format</th>
                   <th>Status</th>
+                  <th>Actions</th>
                 </tr>
               </thead>
               <tbody>
                 {loading ? (
-                  <SkeletonTableRows rows={PAGE_SIZE} columns={7} />
+                  <SkeletonTableRows rows={PAGE_SIZE} columns={8} />
                 ) : reports.length === 0 ? (
                   <tr>
-                    <td colSpan={7}>{creatorId ? "No reports match this creator." : "No reports have been generated yet."}</td>
+                    <td colSpan={8}>{creatorId ? "No reports match this creator." : "No reports have been generated yet."}</td>
                   </tr>
                 ) : (
                   reports.map((row, idx) => (
@@ -132,9 +179,19 @@ const Reports = () => {
                       <td>
                         {row.status === "success" ? (
                           <span className="badge badge-normal">✓ Success</span>
+                        ) : row.status === "pending" ? (
+                          <span className="badge badge-pending">⋯ Pending</span>
                         ) : (
                           <span className="badge badge-failed">× Failed</span>
                         )}
+                      </td>
+                      <td>
+                        <ReportActions
+                          report={row}
+                          onDownload={handleDownloadReport}
+                          onPreview={handleOpenPreview}
+                          isDownloading={downloadingReportId === row.id}
+                        />
                       </td>
                     </AnimatedRow>
                   ))
@@ -161,6 +218,18 @@ const Reports = () => {
           )}
         </section>
       </PageTransition>
+
+      <ReportPreviewModal
+        report={previewReport}
+        isOpen={Boolean(previewReport)}
+        onClose={() => setPreviewReport(null)}
+        onDownloaded={(rep) => {
+          logActivity({
+            activity: `Re-downloaded ${rep.format?.toUpperCase() || "PDF"} report: ${rep.report_name}`,
+            status: "Success",
+          }).catch((e) => console.warn("Failed to log activity:", e));
+        }}
+      />
     </div>
   );
 };
