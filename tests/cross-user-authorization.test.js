@@ -94,6 +94,37 @@ function makeClient({ callerId, callerRole = "manager", callerStatus = "approved
         then(resolve) { return this._resolve().then(resolve); },
       };
     },
+    storage: {
+      from(bucket) {
+        return {
+          download: async (path) => {
+            if (bucket !== "reports") {
+              return { data: null, error: { message: "Unknown bucket" } };
+            }
+            // Parse report id from path: `reports/<reportId>.<ext>` or `<reportId>.<ext>`
+            const match = path.match(/(?:reports\/)?([a-z0-9-]+)\.(pdf|csv)/i);
+            const reportId = match ? match[1] : null;
+
+            // Report ownership mapping:
+            // "report-owned-by-a" belongs to USER_A_ID
+            // "report-owned-by-b" belongs to USER_B_ID
+            const reportOwners = {
+              "report-owned-by-a": USER_A_ID,
+              "report-owned-by-b": USER_B_ID,
+            };
+
+            const owner = reportOwners[reportId];
+            const isAdmin = callerRole === "admin" && callerStatus === "approved";
+
+            if (isAdmin || (owner && owner === callerId)) {
+              return { data: Buffer.from("mock-report-file-content"), error: null };
+            }
+
+            return { data: null, error: { message: "Object not found or unauthorized (storage RLS)" } };
+          },
+        };
+      },
+    },
     functions: {
       invoke: async (name, { body } = {}) => {
         if (name === "log-activity") {
@@ -254,4 +285,53 @@ test("Pending user is denied access even with a valid session", async () => {
   const isAllowed = profile && profile.status === "approved";
   assert.equal(isAllowed, false,
     "A pending user must not pass the ProtectedRoute status check");
+});
+
+// 9. Storage RLS: Manager can download own report file, cannot download another manager's, Admin can download any
+test("Manager can download their own report file from storage", async () => {
+  const clientA = makeClient({ callerId: USER_A_ID, callerRole: "manager" });
+  const { data, error } = await clientA.storage.from("reports").download("reports/report-owned-by-a.pdf");
+
+  assert.equal(error, null);
+  assert.ok(data, "Manager A should be able to download their own report file");
+});
+
+test("Manager cannot download another manager's report file from storage", async () => {
+  const clientA = makeClient({ callerId: USER_A_ID, callerRole: "manager" });
+  const { data, error } = await clientA.storage.from("reports").download("reports/report-owned-by-b.pdf");
+
+  assert.ok(error, "Storage RLS must deny Manager A downloading Manager B's file");
+  assert.equal(data, null);
+});
+
+test("Admin can download any manager's report file from storage", async () => {
+  const adminClient = makeClient({ callerId: "admin-id-9999", callerRole: "admin", callerStatus: "approved" });
+  const { data, error } = await adminClient.storage.from("reports").download("reports/report-owned-by-b.pdf");
+
+  assert.equal(error, null);
+  assert.ok(data, "Admin must be able to download any report file");
+});
+
+// 10. Storage migration enforces generated_by = auth.uid() or admin check
+test("Reports storage RLS migration enforces ownership or admin check", async () => {
+  const { readFileSync } = await import("node:fs");
+  const { fileURLToPath } = await import("node:url");
+  const { join, dirname } = await import("node:path");
+
+  const __dirname = dirname(fileURLToPath(import.meta.url));
+  const migrationPath = join(
+    __dirname,
+    "../supabase/migrations/20261101000000_reports_storage_policies.sql"
+  );
+
+  let sql;
+  try {
+    sql = readFileSync(migrationPath, "utf-8");
+  } catch {
+    assert.fail("Migration file 20261101000000_reports_storage_policies.sql not found");
+  }
+
+  assert.match(sql, /bucket_id\s*=\s*'reports'/, "Migration must target 'reports' bucket");
+  assert.match(sql, /r\.generated_by\s*=\s*auth\.uid\(\)/, "Migration must verify report ownership via generated_by = auth.uid()");
+  assert.match(sql, /is_admin\(\)/, "Migration must allow admin access");
 });
