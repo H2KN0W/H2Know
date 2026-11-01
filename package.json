@@ -11,7 +11,8 @@
     "supabase": "supabase",
     "test": "node --test tests/insights.test.js",
     "test:security": "node --test tests/cross-user-authorization.test.js",
-    "test:all": "node --test tests/insights.test.js tests/cross-user-authorization.test.js"
+    "test:reports": "node --test tests/reports-features.test.js",
+    "test:all": "node --test tests/insights.test.js tests/cross-user-authorization.test.js tests/reports-features.test.js"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.110.2",
