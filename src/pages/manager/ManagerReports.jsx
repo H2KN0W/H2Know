@@ -17,6 +17,9 @@ import { useLogPageView } from "../../lib/useLogPageView";
 import { logActivity } from "../../lib/logActivity";
 import { generateReportFile } from "../../lib/generateReport";
 import { fetchWeatherInsights } from "../../lib/weather";
+import { fetchReportBlob, downloadReportBlob } from "../../lib/reportStorage";
+import ReportPreviewModal from "../../components/ReportPreviewModal";
+import ReportActions from "../../components/ReportActions";
 import ManagerSidebar from "./ManagerSidebar";
 import "../../styles/manager/ManagerPortal.css";
 import "../../styles/manager/ManagerReports.css";
@@ -65,6 +68,47 @@ const ManagerReports = () => {
   const [aiInsights, setAiInsights] = useState(null);
   const [weatherSummary, setWeatherSummary] = useState(null);
   const [insightsLoading, setInsightsLoading] = useState(false);
+
+  // History action state
+  const [downloadingReportId, setDownloadingReportId] = useState(null);
+  const [previewReport, setPreviewReport] = useState(null);
+  const [historyError, setHistoryError] = useState("");
+
+  const handleDownloadReport = async (report) => {
+    if (!report || report.status !== "success") return;
+    setDownloadingReportId(report.id);
+    setHistoryError("");
+    try {
+      const blob = await fetchReportBlob(report);
+      downloadReportBlob(blob, report.report_name, report.format);
+      try {
+        await logActivity({
+          activity: `Re-downloaded ${report.format?.toUpperCase() || "PDF"} report: ${report.report_name}`,
+          status: "Success",
+        });
+      } catch (logErr) {
+        console.warn("Failed to log report re-download activity:", logErr);
+      }
+    } catch (err) {
+      console.error("Re-download failed:", err);
+      setHistoryError(err.message || "The report file is no longer available. Please generate a new report.");
+    } finally {
+      setDownloadingReportId(null);
+    }
+  };
+
+  const handleOpenPreview = async (report) => {
+    if (!report || report.status !== "success") return;
+    setPreviewReport(report);
+    try {
+      await logActivity({
+        activity: `Previewed ${report.format?.toUpperCase() || "PDF"} report: ${report.report_name}`,
+        status: "Success",
+      });
+    } catch (logErr) {
+      console.warn("Failed to log report preview activity:", logErr);
+    }
+  };
 
   const fetchReports = useCallback(async (userId) => {
     if (!userId) return;
@@ -433,18 +477,23 @@ const ManagerReports = () => {
         {/* ── Report History ── */}
         <section className="manager-panel">
           <h2>Report History</h2>
+          {historyError && (
+            <div className="manager-error" style={{ marginBottom: "12px" }}>
+              {historyError}
+            </div>
+          )}
           <div className="table-wrap">
             <table className="manager-reports-table">
               <thead>
                 <tr>
-                  <th>Name</th><th>Date generated</th><th>Range covered</th><th>Parameters</th><th>Format</th><th>Status</th>
+                  <th>Name</th><th>Date generated</th><th>Range covered</th><th>Parameters</th><th>Format</th><th>Status</th><th>Actions</th>
                 </tr>
               </thead>
               <tbody>
                 {loading ? (
-                  <SkeletonTableRows rows={PAGE_SIZE} columns={6} />
+                  <SkeletonTableRows rows={PAGE_SIZE} columns={7} />
                 ) : reports.length === 0 ? (
-                  <tr><td colSpan={6}>No reports generated yet.</td></tr>
+                  <tr><td colSpan={7}>No reports generated yet.</td></tr>
                 ) : reports.map((report, idx) => (
                   <AnimatedRow key={report.id} index={idx}>
                     <td data-label="Name">{report.report_name || "Untitled report"}</td>
@@ -455,7 +504,17 @@ const ManagerReports = () => {
                     <td data-label="Status">
                       {report.status === "success"
                         ? <span className="badge badge-ready">✓ Success</span>
+                        : report.status === "pending"
+                        ? <span className="badge badge-pending">⋯ Pending</span>
                         : <span className="badge badge-failed">× Failed</span>}
+                    </td>
+                    <td data-label="Actions">
+                      <ReportActions
+                        report={report}
+                        onDownload={handleDownloadReport}
+                        onPreview={handleOpenPreview}
+                        isDownloading={downloadingReportId === report.id}
+                      />
                     </td>
                   </AnimatedRow>
                 ))}
@@ -471,6 +530,18 @@ const ManagerReports = () => {
           )}
         </section>
       </PageTransition>
+
+      <ReportPreviewModal
+        report={previewReport}
+        isOpen={Boolean(previewReport)}
+        onClose={() => setPreviewReport(null)}
+        onDownloaded={(rep) => {
+          logActivity({
+            activity: `Re-downloaded ${rep.format?.toUpperCase() || "PDF"} report: ${rep.report_name}`,
+            status: "Success",
+          }).catch((e) => console.warn("Failed to log activity:", e));
+        }}
+      />
 
       <AnimatedModal
         isOpen={Boolean(reportModal)}
