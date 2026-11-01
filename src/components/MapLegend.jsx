@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { X } from "lucide-react";
+import { X, Map as MapIcon, ChevronDown } from "lucide-react";
 import L from "leaflet";
 import { LAND_COVER_CLASSES, RIVERS_CLASS } from "./mapLandCoverConfig";
 
@@ -7,8 +7,8 @@ import { LAND_COVER_CLASSES, RIVERS_CLASS } from "./mapLandCoverConfig";
  * MapLegend
  *
  * Interactive legend panel for the Catchment Map.
- * - Desktop: compact card pinned to map corner (always visible)
- * - Mobile (< 640 px): collapses to a "Legend" button; opens as a bottom sheet
+ * - Desktop: starts collapsed as a small "Legend" button; can be expanded into card.
+ * - Mobile (< 640 px): collapses to a "Legend" button; opens as a bottom sheet.
  *
  * Clicks, double-clicks, and scrolls on the legend are isolated from the map
  * using L.DomEvent helpers so interacting with the legend never drops a pin or
@@ -20,16 +20,18 @@ import { LAND_COVER_CLASSES, RIVERS_CLASS } from "./mapLandCoverConfig";
  *   className      – optional extra CSS class on the root element
  */
 export default function MapLegend({ selectedClass, onSelect, className = "" }) {
+  const [desktopOpen, setDesktopOpen] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
 
   // Refs for L.DomEvent isolation
   const desktopRef = useRef(null);
+  const desktopToggleRef = useRef(null);
   const sheetRef = useRef(null);
-  const toggleRef = useRef(null);
+  const mobileToggleRef = useRef(null);
 
   // Isolate the legend from map events
   useEffect(() => {
-    const nodes = [desktopRef.current, sheetRef.current, toggleRef.current].filter(Boolean);
+    const nodes = [desktopRef.current, desktopToggleRef.current, sheetRef.current, mobileToggleRef.current].filter(Boolean);
     nodes.forEach((el) => {
       L.DomEvent.disableClickPropagation(el);
       L.DomEvent.disableScrollPropagation(el);
@@ -43,13 +45,18 @@ export default function MapLegend({ selectedClass, onSelect, className = "" }) {
     }
   }, [selectedClass]);
 
-  // Close mobile sheet on Esc
+  // Close mobile sheet or desktop card on Esc
   useEffect(() => {
-    if (!mobileOpen) return;
-    const onKey = (e) => { if (e.key === "Escape") setMobileOpen(false); };
+    if (!mobileOpen && !desktopOpen) return;
+    const onKey = (e) => {
+      if (e.key === "Escape") {
+        setMobileOpen(false);
+        setDesktopOpen(false);
+      }
+    };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [mobileOpen]);
+  }, [mobileOpen, desktopOpen]);
 
   const handleRowClick = (value) => {
     onSelect(selectedClass === value ? null : value);
@@ -59,19 +66,30 @@ export default function MapLegend({ selectedClass, onSelect, className = "" }) {
 
   const legendContent = (
     <div className="ml-content">
-      {/* Title + Show all */}
+      {/* Title + Show all + Desktop close */}
       <div className="ml-header">
-        <span className="ml-title">Land Cover</span>
-        {selectedClass !== null && (
-          <button
-            type="button"
-            className="ml-show-all"
-            onClick={() => onSelect(null)}
-            aria-label="Show all classes"
-          >
-            Show all
-          </button>
-        )}
+        <div className="ml-header-left">
+          <span className="ml-title">Land Cover</span>
+          {selectedClass !== null && (
+            <button
+              type="button"
+              className="ml-show-all"
+              onClick={() => onSelect(null)}
+              aria-label="Show all classes"
+            >
+              Show all
+            </button>
+          )}
+        </div>
+        <button
+          type="button"
+          className="ml-desktop-close"
+          onClick={() => setDesktopOpen(false)}
+          title="Collapse legend"
+          aria-label="Collapse legend"
+        >
+          <X size={14} />
+        </button>
       </div>
 
       {/* Class rows */}
@@ -145,29 +163,48 @@ export default function MapLegend({ selectedClass, onSelect, className = "" }) {
 
   return (
     <>
-      {/* ── Desktop legend (always visible) ── */}
-      <div
-        ref={desktopRef}
-        className={`map-legend map-legend--desktop ${className}`}
-        aria-label="Map legend"
-      >
-        {legendContent}
-      </div>
+      {/* ── Desktop: Collapsed Toggle Button (starts collapsed) ── */}
+      {!desktopOpen && (
+        <button
+          ref={desktopToggleRef}
+          type="button"
+          className={`map-legend-toggle map-legend-toggle--desktop ${className}`}
+          onClick={() => setDesktopOpen(true)}
+          aria-expanded={false}
+          aria-label="Expand land cover legend"
+        >
+          <MapIcon size={14} className="map-legend-toggle-icon" />
+          <span>Legend</span>
+          {selectedClass !== null && <span className="map-legend-toggle-dot" />}
+        </button>
+      )}
 
-      {/* ── Mobile: toggle button ── */}
+      {/* ── Desktop: Expanded Card ── */}
+      {desktopOpen && (
+        <div
+          ref={desktopRef}
+          className={`map-legend map-legend--desktop ${className}`}
+          aria-label="Map legend"
+        >
+          {legendContent}
+        </div>
+      )}
+
+      {/* ── Mobile: Toggle Button ── */}
       <button
-        ref={toggleRef}
+        ref={mobileToggleRef}
         type="button"
-        className="map-legend-toggle"
+        className="map-legend-toggle map-legend-toggle--mobile"
         onClick={() => setMobileOpen(true)}
         aria-expanded={mobileOpen}
         aria-haspopup="dialog"
       >
-        Legend
+        <MapIcon size={14} className="map-legend-toggle-icon" />
+        <span>Legend</span>
         {selectedClass !== null && <span className="map-legend-toggle-dot" />}
       </button>
 
-      {/* ── Mobile: bottom sheet ── */}
+      {/* ── Mobile: Bottom Sheet ── */}
       {mobileOpen && (
         <>
           <div
