@@ -1,0 +1,366 @@
+/* ═══════════════════════════════════════════════════════════════
+   ReportPreviewModal.css — Responsive In-App Report Preview Modal
+   ═══════════════════════════════════════════════════════════════ */
+
+.rpm-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(10, 46, 61, 0.65);
+  backdrop-filter: blur(5px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 24px;
+}
+
+.rpm-modal {
+  background: #ffffff;
+  border-radius: 20px;
+  box-shadow: 0 20px 45px rgba(10, 46, 61, 0.28), 0 2px 8px rgba(10, 46, 61, 0.08);
+  width: 100%;
+  max-width: 1020px;
+  height: 88vh;
+  max-height: 880px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border: 1px solid rgba(0, 119, 182, 0.16);
+}
+
+.rpm-container {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+}
+
+/* ── Header ─────────────────────────────────────────────────── */
+.rpm-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 16px 22px;
+  background: #ffffff;
+  border-bottom: 1px solid rgba(0, 119, 182, 0.12);
+  flex-shrink: 0;
+}
+
+.rpm-header-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.rpm-title-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.rpm-file-icon {
+  color: #0c4c7c;
+  flex-shrink: 0;
+}
+
+.rpm-title {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--color-text, #0a2e3d);
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.rpm-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  flex-shrink: 0;
+  text-transform: uppercase;
+}
+
+.rpm-badge-pdf {
+  background: rgba(220, 38, 38, 0.1);
+  color: #b91c1c;
+  border: 1px solid rgba(220, 38, 38, 0.2);
+}
+
+.rpm-badge-csv {
+  background: rgba(16, 185, 129, 0.12);
+  color: #047857;
+  border: 1px solid rgba(16, 185, 129, 0.22);
+}
+
+.rpm-sub-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  font-size: 0.78rem;
+  color: var(--color-text-muted, #5b7c88);
+}
+
+.rpm-sub-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.rpm-sub-params {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 360px;
+}
+
+.rpm-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+.rpm-close-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  border: 1px solid rgba(0, 119, 182, 0.15);
+  background: #f8fafc;
+  color: var(--color-text-muted, #5b7c88);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.rpm-close-btn:hover {
+  background: #e2e8f0;
+  color: var(--color-text, #0a2e3d);
+}
+
+/* ── Buttons ────────────────────────────────────────────────── */
+.rpm-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border-radius: 999px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+
+.rpm-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.rpm-btn-primary {
+  background: #0c4c7c;
+  color: #ffffff;
+  box-shadow: 0 2px 6px rgba(12, 76, 124, 0.2);
+}
+
+.rpm-btn-primary:hover:not(:disabled) {
+  background: #08385c;
+  transform: translateY(-1px);
+}
+
+.rpm-btn-secondary {
+  background: #e8f4fb;
+  color: #0c4c7c;
+  border: 1px solid rgba(12, 76, 124, 0.18);
+}
+
+.rpm-btn-secondary:hover:not(:disabled) {
+  background: #d4eaf7;
+}
+
+/* ── Body ───────────────────────────────────────────────────── */
+.rpm-body {
+  flex: 1;
+  position: relative;
+  background: #f8fafc;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+/* State boxes */
+.rpm-state-box {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 32px 24px;
+  text-align: center;
+  gap: 12px;
+}
+
+.rpm-state-heading {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--color-text, #0a2e3d);
+}
+
+.rpm-state-text {
+  margin: 0;
+  font-size: 0.86rem;
+  color: var(--color-text-muted, #5b7c88);
+  max-width: 440px;
+  line-height: 1.5;
+}
+
+.rpm-state-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 10px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.rpm-error-box {
+  background: #fff8f8;
+}
+
+.rpm-error-icon {
+  color: #dc2626;
+}
+
+.rpm-fallback-box {
+  background: #ffffff;
+}
+
+.rpm-fallback-icon {
+  color: #0c4c7c;
+}
+
+/* PDF iframe wrap */
+.rpm-pdf-frame-wrap {
+  width: 100%;
+  height: 100%;
+  flex: 1;
+  background: #525659;
+}
+
+.rpm-pdf-iframe {
+  width: 100%;
+  height: 100%;
+  border: none;
+  display: block;
+}
+
+/* CSV preview table wrap */
+.rpm-csv-wrap {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  background: #ffffff;
+}
+
+.rpm-csv-banner {
+  padding: 8px 16px;
+  background: #e8f4fb;
+  border-bottom: 1px solid rgba(0, 119, 182, 0.15);
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #0c4c7c;
+  flex-shrink: 0;
+}
+
+.rpm-csv-table-scroll {
+  flex: 1;
+  overflow: auto;
+  position: relative;
+}
+
+.rpm-csv-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.8rem;
+  text-align: left;
+}
+
+.rpm-csv-table th {
+  position: sticky;
+  top: 0;
+  background: #f1f5f9;
+  color: #0a2e3d;
+  font-weight: 700;
+  padding: 10px 14px;
+  border-bottom: 2px solid #cbd5e1;
+  white-space: nowrap;
+  z-index: 10;
+}
+
+.rpm-csv-table td {
+  padding: 8px 14px;
+  border-bottom: 1px solid #e2e8f0;
+  color: #334155;
+  white-space: nowrap;
+}
+
+.rpm-csv-table tr:hover td {
+  background: #f8fafc;
+}
+
+.rpm-csv-row-num {
+  font-family: monospace;
+  font-size: 0.72rem;
+  color: #94a3b8;
+  width: 36px;
+  text-align: center;
+  background: #fafafa;
+}
+
+/* ── Mobile & Responsive Breakpoints ────────────────────────── */
+@media (max-width: 640px) {
+  .rpm-overlay {
+    padding: 0;
+  }
+
+  .rpm-modal {
+    max-width: 100%;
+    height: 100vh;
+    max-height: 100vh;
+    border-radius: 0;
+    border: none;
+  }
+
+  .rpm-header {
+    padding: 12px 14px;
+  }
+
+  .rpm-title {
+    font-size: 0.95rem;
+  }
+
+  .rpm-sub-params {
+    display: none;
+  }
+
+  .rpm-btn span {
+    display: none;
+  }
+
+  .rpm-btn {
+    padding: 8px;
+  }
+}
