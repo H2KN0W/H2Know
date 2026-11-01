@@ -1,0 +1,80 @@
+/* ═══════════════════════════════════════════════════════════════
+   ReportActions.css — Shared Action Buttons for Report Tables
+   ═══════════════════════════════════════════════════════════════ */
+
+.report-actions-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+}
+
+.report-action-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  padding: 6px 11px;
+  border-radius: 999px;
+  font-size: 0.76rem;
+  font-weight: 600;
+  border: 1px solid transparent;
+  cursor: pointer;
+  background: #ffffff;
+  color: #0c4c7c;
+  transition: all 0.15s ease;
+  line-height: 1;
+}
+
+/* Preview button */
+.report-action-preview {
+  background: rgba(0, 119, 182, 0.08);
+  color: #0077b6;
+  border-color: rgba(0, 119, 182, 0.18);
+}
+
+.report-action-preview:hover:not(:disabled) {
+  background: rgba(0, 119, 182, 0.16);
+  border-color: rgba(0, 119, 182, 0.32);
+  transform: translateY(-1px);
+}
+
+/* Download button */
+.report-action-download {
+  background: #0c4c7c;
+  color: #ffffff;
+  border-color: #0c4c7c;
+  box-shadow: 0 1px 4px rgba(12, 76, 124, 0.2);
+}
+
+.report-action-download:hover:not(:disabled) {
+  background: #08385c;
+  border-color: #08385c;
+  transform: translateY(-1px);
+}
+
+/* Disabled state */
+.report-action-btn:disabled {
+  opacity: 0.42;
+  cursor: not-allowed;
+  transform: none !important;
+  box-shadow: none !important;
+  background: #f1f5f9;
+  color: #94a3b8;
+  border-color: #e2e8f0;
+}
+
+.report-action-icon {
+  flex-shrink: 0;
+}
+
+/* Responsive collapse to icons on smaller screens */
+@media (max-width: 900px) {
+  .report-action-label {
+    display: none;
+  }
+  .report-action-btn {
+    padding: 6px 8px;
+    border-radius: 8px;
+  }
+}
