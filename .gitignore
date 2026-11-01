@@ -29,3 +29,8 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Arduino firmware secrets — never commit credentials in header files
+firmware/**/secrets.h
+firmware/**/credentials.h
+firmware/**/*.secret.*

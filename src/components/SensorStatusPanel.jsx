@@ -606,7 +606,7 @@ export default function SensorHealthGauge({ node, readings = [], alerts = [], ch
       {/* Heartbeat ECG Line */}
       <div className="shg-heartbeat-section">
         <div className="shg-heartbeat-header">
-          <span className="shg-heartbeat-title">Heartbeat (12h)</span>
+          <span className="shg-heartbeat-title">Recent Readings (12 h window)</span>
         </div>
         <HeartbeatLine
           timestamps={distinctTimestamps}

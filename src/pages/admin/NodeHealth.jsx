@@ -8,12 +8,11 @@ import {
   RefreshCw,
   Clock,
   Layers,
-  BatteryCharging,
+  Zap,
   Cpu,
   AlertTriangle,
   CheckCircle,
   HelpCircle,
-  Flame,
 } from "lucide-react";
 import {
   ResponsiveContainer,
@@ -791,7 +790,7 @@ export default function NodeHealth() {
               {/* Battery / 5V Supply Rail Voltage */}
               <article className="nh-chart-card" style={{ marginBottom: 0 }}>
                 <h3 className="nh-chart-title">
-                  <BatteryCharging size={18} color="#16a34a" />
+                  <Zap size={18} color="#16a34a" />
                   Field 5V Supply Voltage Under Pump Load (mV)
                 </h3>
                 <p className="nh-chart-desc">
