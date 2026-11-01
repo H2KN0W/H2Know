@@ -11,6 +11,7 @@ import {
   RotateCcw,
   X,
   Maximize2,
+  Video,
 } from "lucide-react";
 import L from "leaflet";
 import { SITE_MAP_FALLBACK_LABEL } from "../../config/siteLocation";
@@ -20,6 +21,7 @@ import riversRaw from "../../data/riverNetwork.geojson?raw";
 import sensorRaw from "../../data/sensorLocation.geojson?raw";
 import "../../styles/manager/CatchmentMap.css";
 import MapLegendPanel from "../../components/MapLegend";
+import SurroundingsViewerModal from "../../components/SurroundingsViewerModal";
 import { LAND_COVER_COLORS, getClassByValue } from "../../components/mapLandCoverConfig";
 
 const boundaryData = JSON.parse(catchmentData);
@@ -36,12 +38,12 @@ const RIVER_STYLE = { color: "#0891b2", weight: 1.5, opacity: 1, interactive: fa
 const RIVER_STYLE_HIGHLIGHT = { color: "#06b6d4", weight: 3, opacity: 1, interactive: false };
 const RIVER_STYLE_DIMMED = { color: "#0891b2", weight: 1, opacity: 0.35, interactive: false };
 
-// Original red sensor marker dot
+// Red sensor marker dot ~1.3x larger (26x26px, anchor 13x13px)
 const sensorIcon = L.divIcon({
   className: "sensor-marker-icon",
   html: `<div class="sensor-marker-dot" title="Click to view sensor details"></div>`,
-  iconSize: [20, 20],
-  iconAnchor: [10, 10],
+  iconSize: [26, 26],
+  iconAnchor: [13, 13],
 });
 
 // Pin icon for user-dropped markers
@@ -115,6 +117,61 @@ const FitBounds = ({ data }) => {
   return null;
 };
 
+/**
+ * RecenterControl
+ *
+ * Adds a "Reset view" button underneath the Leaflet zoom controls.
+ * Calls fitBounds on the catchment boundary with the same [16, 16] padding.
+ */
+const RecenterControl = ({ data }) => {
+  const map = useMap();
+
+  useEffect(() => {
+    const CustomControl = L.Control.extend({
+      options: { position: "topleft" },
+      onAdd: () => {
+        const container = L.DomUtil.create("div", "leaflet-bar leaflet-control leaflet-control-recenter");
+        const btn = L.DomUtil.create("a", "leaflet-control-recenter-btn", container);
+        btn.href = "#";
+        btn.role = "button";
+        btn.title = "Reset view to full catchment boundary";
+        btn.setAttribute("aria-label", "Reset view to full catchment boundary");
+
+        // Simple recenter icon SVG
+        btn.innerHTML = `
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
+            <path d="M3 3v5h5"/>
+          </svg>
+        `;
+
+        L.DomEvent.disableClickPropagation(container);
+        L.DomEvent.disableScrollPropagation(container);
+
+        L.DomEvent.on(btn, "click", (e) => {
+          L.DomEvent.preventDefault(e);
+          const layer = L.geoJSON(data);
+          const bounds = layer.getBounds();
+          if (bounds.isValid()) {
+            map.fitBounds(bounds, { padding: [16, 16] });
+          }
+        });
+
+        return container;
+      },
+    });
+
+    const control = new CustomControl();
+    map.addControl(control);
+
+    return () => {
+      map.removeControl(control);
+    };
+  }, [map, data]);
+
+  return null;
+};
+
 const ClickToPin = ({ onPick }) => {
   useMapEvents({ click: (e) => onPick(e.latlng) });
   return null;
@@ -171,10 +228,19 @@ const CoordPopupContent = ({ latlng }) => {
  * SensorPopupContent
  *
  * Reactive React popup content component.
- * Synchronizes online/offline status live with SensorStatusPanel & ManagerDashboard
- * and dynamically displays parameters without redundant labels or last sync.
+ * Synchronizes online/offline status live with SensorStatusPanel & ManagerDashboard.
+ * Compact and clean presentation without readings table for optimal responsive map viewing.
  */
-const SensorPopupContent = ({ feature, readings = [], nodes = [], checkedAt = null, onExpandPhoto = null }) => {
+const SensorPopupContent = ({
+  feature,
+  readings = [],
+  nodes = [],
+  checkedAt = null,
+  popupWidth = 275,
+  maxBodyHeight = 340,
+  onExpandPhoto = null,
+  onOpenSurroundings = null,
+}) => {
   const p = feature.properties || {};
   const sensorId = p.id;
   const sensorName = p.name || "";
@@ -186,6 +252,7 @@ const SensorPopupContent = ({ feature, readings = [], nodes = [], checkedAt = nu
   const gmapsUrl = `https://www.google.com/maps?q=${lat},${lng}`;
   const osmUrl = `https://www.openstreetmap.org/?mlat=${lat}&mlon=${lng}#map=16/${lat}/${lng}`;
   const photoSrc = p.photo || "/assets/img/location.jpg";
+  const surroundings = p.surroundings || null;
 
   // Robust matching to node across all scenarios (exact id, device_label / name similarity, reading node, or single station)
   const matchedNode = useMemo(() => {
@@ -238,31 +305,6 @@ const SensorPopupContent = ({ feature, readings = [], nodes = [], checkedAt = nu
     return evaluateNodeStatus(ageMs) === NODE_STATUS_LABELS.ONLINE;
   }, [lastSync, checkedAt]);
 
-  // Dynamic parameters extraction from latest readings
-  const dynamicParams = useMemo(() => {
-    const nodeReadings = matchedNode
-      ? readings.filter((r) => r.nodes?.id === matchedNode.id)
-      : readings;
-    const sourceReadings = nodeReadings.length > 0 ? nodeReadings : readings;
-
-    const paramMap = new Map();
-    sourceReadings.forEach((r) => {
-      const paramName = r.parameters?.name;
-      if (paramName) {
-        const key = paramName.toLowerCase();
-        if (!paramMap.has(key)) {
-          paramMap.set(key, {
-            name: paramName,
-            value: r.value,
-            unit: r.parameters?.unit || "",
-          });
-        }
-      }
-    });
-
-    return Array.from(paramMap.values());
-  }, [matchedNode, readings]);
-
   const handleOpenPhoto = () => {
     onExpandPhoto?.({
       src: photoSrc,
@@ -273,8 +315,24 @@ const SensorPopupContent = ({ feature, readings = [], nodes = [], checkedAt = nu
     });
   };
 
+  const handleOpenSurroundings = () => {
+    if (!surroundings?.video) return;
+    onOpenSurroundings?.({
+      surroundings,
+      title: p.name || `Sensor Node #${sensorId}`,
+      location: p.location || SITE_MAP_FALLBACK_LABEL,
+    });
+  };
+
   return (
-    <div className="sensor-map-popup">
+    <div
+      className="sensor-map-popup"
+      style={{
+        width: `${popupWidth}px`,
+        maxWidth: `${popupWidth}px`,
+        "--smp-max-body-height": `${maxBodyHeight}px`,
+      }}
+    >
       <div
         className="smp-photo-wrap"
         title="Click to expand photo"
@@ -290,23 +348,43 @@ const SensorPopupContent = ({ feature, readings = [], nodes = [], checkedAt = nu
           }}
         />
         <div className="smp-photo-tag">{p.location ? p.location.split(",")[0] : "River Basin"}</div>
-        <button
-          type="button"
-          className="smp-photo-expand-btn"
-          aria-label="Expand photo"
-          onClick={(e) => {
-            e.stopPropagation();
-            handleOpenPhoto();
-          }}
-        >
-          <Maximize2 size={12} />
-          <span>Expand</span>
-        </button>
+        <div className="smp-photo-actions-overlay">
+          {surroundings && (
+            <button
+              type="button"
+              className="smp-photo-tool-btn smp-surroundings-btn"
+              aria-label="View surroundings 360-style viewer"
+              title={surroundings.video ? "View surroundings" : "Surroundings view coming soon"}
+              disabled={!surroundings.video}
+              onClick={(e) => {
+                e.stopPropagation();
+                handleOpenSurroundings();
+              }}
+            >
+              <Video size={12} />
+              <span>Surroundings</span>
+            </button>
+          )}
+          <button
+            type="button"
+            className="smp-photo-tool-btn smp-photo-expand-btn"
+            aria-label="Expand photo"
+            onClick={(e) => {
+              e.stopPropagation();
+              handleOpenPhoto();
+            }}
+          >
+            <Maximize2 size={12} />
+            <span>Expand</span>
+          </button>
+        </div>
       </div>
 
-      <div className="smp-body">
+      <div className="smp-body" style={{ maxHeight: `${maxBodyHeight}px` }}>
         <div className="smp-header">
-          <strong className="smp-name">{p.name || `Sensor #${sensorId}`}</strong>
+          <strong className="smp-name" title={p.name || `Sensor #${sensorId}`}>
+            {p.name || `Sensor #${sensorId}`}
+          </strong>
           <span className={`smp-status ${online ? "online" : "offline"}`}>
             <span className="smp-status-dot" />
             {online ? "Online" : "Offline"}
@@ -315,20 +393,14 @@ const SensorPopupContent = ({ feature, readings = [], nodes = [], checkedAt = nu
 
         {p.description && <p className="smp-desc">{p.description}</p>}
 
-        <table className="smp-table">
-          <tbody>
-            <tr>
-              <td className="smp-param">Location</td>
-              <td className="smp-val">{p.location || `${lat}, ${lng}`}</td>
-            </tr>
-            {dynamicParams.map((param) => (
-              <tr key={param.name}>
-                <td className="smp-param">{param.name}</td>
-                <td className="smp-val">{param.value} {param.unit}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        {p.location && (
+          <div className="smp-location-row">
+            <MapPin size={13} className="smp-location-pin" />
+            <span className="smp-location-text" title={p.location}>
+              {p.location}
+            </span>
+          </div>
+        )}
 
         <div className="smp-actions">
           <a
@@ -338,7 +410,7 @@ const SensorPopupContent = ({ feature, readings = [], nodes = [], checkedAt = nu
             className="smp-btn smp-btn-gmaps"
             title="Open in Google Maps"
           >
-            <span>Open in Google Maps</span>
+            <span>Google Maps</span>
             <ExternalLink size={11} />
           </a>
           <a
@@ -354,6 +426,87 @@ const SensorPopupContent = ({ feature, readings = [], nodes = [], checkedAt = nu
         </div>
       </div>
     </div>
+  );
+};
+
+/**
+ * SensorMarkerWithResponsivePopup
+ *
+ * Inner component to access map dimensions via useMap() and dynamically compute:
+ * - popup width = Math.min(280, Math.max(220, mapWidth - 32))
+ * - maxBodyHeight = Math.max(140, mapHeight - 195)
+ * - autoPanPadding = responsive [16, 16] on narrow maps, [40, 40] on desktop
+ */
+const SensorMarkerWithResponsivePopup = ({
+  feature,
+  position,
+  readings,
+  nodes,
+  checkedAt,
+  onExpandPhoto,
+  onOpenSurroundings,
+}) => {
+  const map = useMap();
+  const [mapDimensions, setMapDimensions] = useState(() => {
+    const size = map.getSize();
+    return { width: size.x || 320, height: size.y || 400 };
+  });
+
+  useEffect(() => {
+    const updateSize = () => {
+      const size = map.getSize();
+      setMapDimensions({ width: size.x || 320, height: size.y || 400 });
+    };
+
+    map.on("resize", updateSize);
+    updateSize();
+
+    return () => {
+      map.off("resize", updateSize);
+    };
+  }, [map]);
+
+  const popupWidth = useMemo(() => {
+    return Math.min(280, Math.max(220, mapDimensions.width - 32));
+  }, [mapDimensions.width]);
+
+  const maxBodyHeight = useMemo(() => {
+    // Reserve ~195px for popup tip, header/photo banner (~115px), and margins
+    return Math.max(140, mapDimensions.height - 195);
+  }, [mapDimensions.height]);
+
+  const autoPanPadding = useMemo(() => {
+    if (mapDimensions.width <= 360) {
+      return [16, 16];
+    }
+    if (mapDimensions.width <= 480) {
+      return [24, 24];
+    }
+    return [40, 40];
+  }, [mapDimensions.width]);
+
+  return (
+    <Marker position={position} icon={sensorIcon}>
+      <Popup
+        className="sensor-popup-wrapper"
+        maxWidth={popupWidth}
+        minWidth={popupWidth}
+        autoPan={true}
+        autoPanPaddingTopLeft={autoPanPadding}
+        autoPanPaddingBottomRight={autoPanPadding}
+      >
+        <SensorPopupContent
+          feature={feature}
+          readings={readings}
+          nodes={nodes}
+          checkedAt={checkedAt}
+          popupWidth={popupWidth}
+          maxBodyHeight={maxBodyHeight}
+          onExpandPhoto={onExpandPhoto}
+          onOpenSurroundings={onOpenSurroundings}
+        />
+      </Popup>
+    </Marker>
   );
 };
 
@@ -594,6 +747,7 @@ const CatchmentMap = ({ readings = [], nodes = [], checkedAt = null }) => {
   const [boundaryHovered, setBoundaryHovered] = useState(false);
   const [pin, setPin] = useState(null);
   const [expandedPhoto, setExpandedPhoto] = useState(null);
+  const [surroundingsData, setSurroundingsData] = useState(null);
   const [selectedClass, setSelectedClass] = useState(null);
 
   // Refs to Leaflet layer groups so we can restyle without remounting
@@ -683,25 +837,21 @@ const CatchmentMap = ({ readings = [], nodes = [], checkedAt = null }) => {
           if (!coords || coords.length < 2) return null;
           const [lng, lat] = coords;
           return (
-            <Marker
+            <SensorMarkerWithResponsivePopup
               key={feature.properties?.id ?? idx}
+              feature={feature}
               position={[lat, lng]}
-              icon={sensorIcon}
-            >
-              <Popup className="sensor-popup-wrapper" maxWidth={290} minWidth={260}>
-                <SensorPopupContent
-                  feature={feature}
-                  readings={readings}
-                  nodes={nodes}
-                  checkedAt={checkedAt}
-                  onExpandPhoto={setExpandedPhoto}
-                />
-              </Popup>
-            </Marker>
+              readings={readings}
+              nodes={nodes}
+              checkedAt={checkedAt}
+              onExpandPhoto={setExpandedPhoto}
+              onOpenSurroundings={setSurroundingsData}
+            />
           );
         })}
 
         <FitBounds data={boundaryData} />
+        <RecenterControl data={boundaryData} />
         <ClickToPin onPick={setPin} />
         {pin && (
           <>
@@ -748,7 +898,18 @@ const CatchmentMap = ({ readings = [], nodes = [], checkedAt = null }) => {
         photo={expandedPhoto}
         onClose={() => setExpandedPhoto(null)}
       />
+
+      {/* Interactive Surroundings 360-style Viewer Modal */}
+      {surroundingsData && (
+        <SurroundingsViewerModal
+          surroundings={surroundingsData.surroundings}
+          title={surroundingsData.title}
+          location={surroundingsData.location}
+          onClose={() => setSurroundingsData(null)}
+        />
+      )}
     </div>
   );
 };
+
 export default CatchmentMap;
