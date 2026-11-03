@@ -4,6 +4,9 @@ import { SITE_LOCATION } from "../config/siteLocation";
 const LAT = SITE_LOCATION.lat;
 const LON = SITE_LOCATION.lon;
 
+// Easy toggle to exclude turbidity when sensor is offline or malfunctioning
+export const EXCLUDE_TURBIDITY = false;
+
 /**
  * Summarize Open-Meteo weather data for runoff and precipitation modeling.
  */
@@ -114,7 +117,7 @@ export function generateHydrologicalAnalysis(telemetryStats, weatherSummary) {
   }
 
   // Parameter Diagnostics
-  if (turbidity) {
+  if (turbidity && !EXCLUDE_TURBIDITY) {
     const val = turbidity.current ?? turbidity.avg ?? 0;
     if (val > 50) {
       observations.push(
@@ -245,9 +248,9 @@ export function generateHydrologicalAnalysis(telemetryStats, weatherSummary) {
       : next48hRain > 12
         ? "Moderate rain may increase turbidity slightly."
         : "Dry conditions maintain stable water quality.",
-    turbidityDirection: turbidity?.trend || "stable",
+    turbidityDirection: !EXCLUDE_TURBIDITY ? (turbidity?.trend || "stable") : null,
     tdsDirection: tds?.trend || "stable",
-    turbidityValue: turbidity?.current ?? null,
+    turbidityValue: !EXCLUDE_TURBIDITY ? (turbidity?.current ?? null) : null,
     tdsValue: tds?.current ?? null,
     rainfallAmount: next48hRain,
     confidence: "High",
@@ -266,9 +269,9 @@ export function generateHydrologicalAnalysis(telemetryStats, weatherSummary) {
       : nextWeekRain > 20
         ? "Intermittent rain may trigger occasional runoff."
         : "Low rain forecast keeps water quality stable.",
-    turbidityDirection: turbidity?.trend || "stable",
+    turbidityDirection: !EXCLUDE_TURBIDITY ? (turbidity?.trend || "stable") : null,
     tdsDirection: tds?.trend || "stable",
-    turbidityValue: turbidity?.current ?? null,
+    turbidityValue: !EXCLUDE_TURBIDITY ? (turbidity?.current ?? null) : null,
     tdsValue: tds?.current ?? null,
     rainfallAmount: nextWeekRain,
     confidence: "Medium",
@@ -335,6 +338,7 @@ export async function fetchWeatherInsights(clientReadings = []) {
   for (const r of clientReadings) {
     const name = r.parameters?.name;
     if (!name) continue;
+    if (EXCLUDE_TURBIDITY && name.toLowerCase() === "turbidity") continue;
     const v = Number(r.value);
     if (!Number.isFinite(v)) continue;
     if (!statsMap[name]) statsMap[name] = [];
