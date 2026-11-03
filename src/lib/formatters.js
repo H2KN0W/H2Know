@@ -74,6 +74,17 @@ export const severityBadgeClass = (severity) => {
   return "badge-normal";
 };
 
+
+/**
+ * Maps alert status to badge CSS classes.
+ */
+export const statusBadgeClass = (status) => {
+  const s = String(status || '').toLowerCase();
+  if (s === 'active') return 'badge-failed';
+  if (s === 'resolved') return 'badge-approved';
+  if (s === 'reviewed') return 'badge-pending';
+  return 'badge-normal';
+};
 /**
  * Format report parameters array for display (handles canonical array, legacy string, or empty)
  */

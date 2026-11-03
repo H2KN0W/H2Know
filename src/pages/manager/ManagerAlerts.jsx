@@ -6,13 +6,11 @@ import "../../styles/manager/ManagerPortal.css";
 import "../../styles/manager/ManagerAlerts.css";
 import {
   PageTransition,
-  SlidingTabs,
   SkeletonTableRows,
   AnimatedRow,
-  ButtonSpinner,
 } from "../../components/ui";
 
-import { formatDateTime, severityBadgeClass } from "../../lib/formatters";
+import { formatDateTime, severityBadgeClass, statusBadgeClass } from "../../lib/formatters";
 import { PAGE_SIZES, filterMonitoredParameters } from "../../config/constants";
 
 const PAGE_SIZE = PAGE_SIZES.DEFAULT;
@@ -22,8 +20,6 @@ const ManagerAlerts = () => {
   useLogPageView("Viewed Manager Alerts");
   const [parameters, setParameters] = useState([]);
   const [alerts, setAlerts] = useState([]);
-  const [counts, setCounts] = useState({ active: 0, reviewed: 0, resolved: 0 });
-  const [tab, setTab] = useState("active");
   const [parameterId, setParameterId] = useState("");
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
@@ -31,7 +27,6 @@ const ManagerAlerts = () => {
   const [totalCount, setTotalCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [updatingId, setUpdatingId] = useState(null);
 
   useEffect(() => {
     supabase
@@ -49,81 +44,32 @@ const ManagerAlerts = () => {
     let query = supabase
       .from("alerts")
       .select(
-        "id, message, status, triggered_at, reviewed_at, thresholds!inner ( min_value, max_value, severity_label, parameter_id, parameters!inner ( name, unit ) ), sensor_readings ( value, nodes ( device_label ) )",
+        "id, message, status, triggered_at, thresholds!inner ( min_value, max_value, severity_label, parameter_id, parameters!inner ( name, unit ) ), sensor_readings!alerts_reading_id_fkey ( value, nodes ( device_label ) )",
         { count: "exact" }
-      )
-      .eq("status", tab);
+      );
 
     if (parameterId) query = query.eq("thresholds.parameter_id", parameterId);
     if (dateFrom) query = query.gte("triggered_at", `${dateFrom}T00:00:00`);
     if (dateTo) query = query.lte("triggered_at", `${dateTo}T23:59:59`);
 
-    const [{ data, error: fetchError, count }, countResults] = await Promise.all([
-      query.order("triggered_at", { ascending: false }).range(from, from + PAGE_SIZE - 1),
-      Promise.all(
-        ["active", "reviewed", "resolved"].map((status) =>
-          supabase.from("alerts").select("id", { count: "exact", head: true }).eq("status", status)
-        )
-      ),
-    ]);
+    const { data, error: fetchError, count } = await query
+      .order("triggered_at", { ascending: false })
+      .range(from, from + PAGE_SIZE - 1);
 
     if (fetchError) {
-      setError(
-        "Could not load alerts. Apply the manager portal migration before using alert status actions."
-      );
+      setError("Could not load alerts.");
     } else {
       setAlerts(data || []);
       setTotalCount(count || 0);
-      setCounts(
-        Object.fromEntries(
-          ["active", "reviewed", "resolved"].map((status, index) => [
-            status,
-            countResults[index].count || 0,
-          ])
-        )
-      );
     }
     setLoading(false);
   };
 
-  // fetchAlerts intentionally refreshes after manager actions as well as filters.
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     fetchAlerts();
-  }, [tab, parameterId, dateFrom, dateTo, page]);
-
-  const updateStatus = async (alert, status) => {
-    setUpdatingId(alert.id);
-    try {
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
-      const { error: updateError } = await supabase
-        .from("alerts")
-        .update({
-          status,
-          reviewed_at: new Date().toISOString(),
-          reviewed_by: session?.user?.id || null,
-        })
-        .eq("id", alert.id);
-
-      if (updateError) {
-        setError(updateError.message);
-      } else {
-        await fetchAlerts();
-      }
-    } finally {
-      setUpdatingId(null);
-    }
-  };
+  }, [parameterId, dateFrom, dateTo, page]);
 
   const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
-
-  const alertTabs = [
-    { id: "active", label: "Active", badge: counts.active },
-    { id: "reviewed", label: "Reviewed", badge: counts.reviewed },
-    { id: "resolved", label: "Resolved", badge: counts.resolved },
-  ];
 
   return (
     <div className="admin-shell">
@@ -131,20 +77,10 @@ const ManagerAlerts = () => {
       <PageTransition className="admin-main manager-main">
         <header className="page-header">
           <h1>Alerts</h1>
-          <p>Review and resolve water-quality threshold breaches</p>
+          <p>Real-time and historical water-quality threshold breaches</p>
         </header>
 
         <section className="manager-panel">
-          <SlidingTabs
-            tabs={alertTabs}
-            activeTab={tab}
-            onChange={(newTab) => {
-              setTab(newTab);
-              setPage(1);
-            }}
-            layoutId="managerAlertsTabIndicator"
-          />
-
           <div className="manager-filters">
             <select
               value={parameterId}
@@ -211,7 +147,7 @@ const ManagerAlerts = () => {
                   <th>Reading</th>
                   <th>Threshold</th>
                   <th>Severity</th>
-                  <th>Action</th>
+                  <th>Status</th>
                 </tr>
               </thead>
               <tbody>
@@ -219,15 +155,14 @@ const ManagerAlerts = () => {
                   <SkeletonTableRows rows={PAGE_SIZE} columns={7} />
                 ) : alerts.length === 0 ? (
                   <tr>
-                    <td colSpan={7}>No {tab} alerts match the current filters.</td>
+                    <td colSpan={7}>No alerts match the current filters.</td>
                   </tr>
                 ) : (
                   alerts.map((alert, idx) => {
                     const threshold = alert.thresholds;
-                    const isProcessing = updatingId === alert.id;
 
                     return (
-                      <AnimatedRow key={alert.id} index={idx} isNew={tab === "active"}>
+                      <AnimatedRow key={alert.id} index={idx} isNew={alert.status === "active"}>
                         <td>{formatDateTime(alert.triggered_at)}</td>
                         <td>{alert.sensor_readings?.nodes?.device_label || "—"}</td>
                         <td>{threshold?.parameters?.name || "—"}</td>
@@ -243,35 +178,10 @@ const ManagerAlerts = () => {
                             {threshold?.severity_label || "—"}
                           </span>
                         </td>
-                        <td className="manager-actions">
-                          {tab === "active" && (
-                            <>
-                              <button
-                                disabled={isProcessing}
-                                onClick={() => updateStatus(alert, "reviewed")}
-                              >
-                                {isProcessing && <ButtonSpinner size={11} />}
-                                Review
-                              </button>
-                              <button
-                                disabled={isProcessing}
-                                onClick={() => updateStatus(alert, "resolved")}
-                              >
-                                {isProcessing && <ButtonSpinner size={11} />}
-                                Resolve
-                              </button>
-                            </>
-                          )}
-                          {tab === "reviewed" && (
-                            <button
-                              disabled={isProcessing}
-                              onClick={() => updateStatus(alert, "resolved")}
-                            >
-                              {isProcessing && <ButtonSpinner size={11} />}
-                              Resolve
-                            </button>
-                          )}
-                          {tab === "resolved" && <span>Resolved</span>}
+                        <td>
+                          <span className={"badge " + statusBadgeClass(alert.status || "active")}>
+                            {alert.status ? (alert.status.charAt(0).toUpperCase() + alert.status.slice(1)) : "Active"}
+                          </span>
                         </td>
                       </AnimatedRow>
                     );

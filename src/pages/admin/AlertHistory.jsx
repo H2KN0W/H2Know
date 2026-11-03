@@ -5,7 +5,7 @@ import "../../styles/admin/AlertHistory.css";
 import { useLogPageView } from "../../lib/useLogPageView";
 import Sidebar from "../../components/Sidebar";
 
-import { formatDateTime, severityBadgeClass } from "../../lib/formatters";
+import { formatDateTime, severityBadgeClass, statusBadgeClass } from "../../lib/formatters";
 import { PAGE_SIZES, filterMonitoredParameters } from "../../config/constants";
 import { PageTransition, SkeletonTableRows, AnimatedRow } from "../../components/ui";
 
@@ -56,10 +56,10 @@ const AlertHistory = () => {
       let query = supabase
         .from("alerts")
         .select(
-          `id, message, triggered_at,
+          `id, message, status, triggered_at,
            thresholds!inner ( min_value, max_value, severity_label, parameter_id,
              parameters!inner ( name, unit ) ),
-           sensor_readings ( value, recorded_at, nodes ( device_label ) )`,
+           sensor_readings!alerts_reading_id_fkey ( value, recorded_at, nodes ( device_label ) )`,
           { count: "exact" }
         );
 
@@ -181,14 +181,15 @@ const AlertHistory = () => {
                   <th>Reading</th>
                   <th>Threshold</th>
                   <th>Severity</th>
+                  <th>Status</th>
                 </tr>
               </thead>
               <tbody>
                 {loading ? (
-                  <SkeletonTableRows rows={PAGE_SIZE} columns={6} />
+                  <SkeletonTableRows rows={PAGE_SIZE} columns={7} />
                 ) : alerts.length === 0 ? (
                   <tr>
-                    <td colSpan={6}>No alerts match the current filters.</td>
+                    <td colSpan={7}>No alerts match the current filters.</td>
                   </tr>
                 ) : (
                   alerts.map((row, idx) => {
@@ -212,6 +213,11 @@ const AlertHistory = () => {
                         <td>
                           <span className={`badge ${severityBadgeClass(severity)}`}>
                             {severity || "—"}
+                          </span>
+                        </td>
+                        <td>
+                          <span className={"badge " + statusBadgeClass(row.status || "active")}>
+                            {row.status ? (row.status.charAt(0).toUpperCase() + row.status.slice(1)) : "Active"}
                           </span>
                         </td>
                       </AnimatedRow>

@@ -559,7 +559,7 @@ export default function SensorHealthGauge({ node, readings = [], alerts = [], ch
   const alertCount = useMemo(() => {
     if (!node) return null;
     const nodeReadingIds = new Set(nodeReadings.map((r) => r.id));
-    return alerts.filter((a) => nodeReadingIds.has(a.sensor_readings?.id)).length;
+    return alerts.filter((a) => (a.status ? a.status.toLowerCase() === 'active' : true) && nodeReadingIds.has(a.sensor_readings?.id)).length;
   }, [alerts, node, nodeReadings]);
 
   const { score, factors } = useMemo(
