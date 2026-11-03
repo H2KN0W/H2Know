@@ -26,6 +26,7 @@ import { useSilentRefresh } from "../../hooks/useSilentRefresh";
 import { buildInsights } from "../../lib/insights";
 import { fetchWeatherInsights, EXCLUDE_TURBIDITY } from "../../lib/weather";
 import WeatherWidget from "../../components/WeatherWidget";
+import SensorSummaryCard from "../../components/SensorSummaryCard";
 import ManagerSidebar from "./ManagerSidebar";
 import { PageTransition, SkeletonCard, LiveValue } from "../../components/ui";
 import Skeleton from "react-loading-skeleton";
@@ -496,9 +497,19 @@ const Insights = () => {
               </div>
             </section>
 
-            {/* Dual-Horizon Predictive Analysis */}
-            <section className="horizon-section" aria-label="Predictive analysis">
-              <h2 className="section-title">Predictive Analysis</h2>
+            {/* Primary Ground Truth: Sensor Summary & Dynamic Baseline Analysis */}
+            <SensorSummaryCard
+              readings={readings}
+              thresholds={thresholds}
+              excludeTurbidity={EXCLUDE_TURBIDITY}
+            />
+
+            {/* Secondary Layer: Dual-Horizon Predictive Decision Support */}
+            <section className="horizon-section" aria-label="Secondary predictive decision support">
+              <h2 className="section-title">Decision Support: Predictive Outlook (Forecast)</h2>
+              <p className="section-subtitle-secondary">
+                Forward-looking models incorporating real-time weather forecasts to guide preemptive maintenance and field planning.
+              </p>
               <div className="horizon-cards">
                 {/* Next 24 Hours Card */}
                 {next24h && (

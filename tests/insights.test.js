@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {
   buildInsights,
+  buildSensorSummary,
   classifyInsightReading,
   validateInsightReading,
 } from "../src/lib/insights.js";
@@ -153,4 +154,55 @@ test("withholds forecasts when observations are irregular", () => {
   const result = buildInsights(rows, thresholds, now);
   assert.equal(result.prediction.available, false);
   assert.match(result.prediction.message, /pH readings are not consistently spaced/);
+});
+
+test("buildSensorSummary computes dynamic statistics across selectable historical windows", () => {
+  const dynamicThresholds = [
+    { parameter_id: "parameter-0", min_value: 6.5, max_value: 8.5, severity_label: "safe" }, // pH
+    { parameter_id: "parameter-1", min_value: 0, max_value: 500, severity_label: "safe" },    // TDS
+    { parameter_id: "parameter-2", min_value: 0, max_value: 10, severity_label: "safe" },     // Turbidity
+    { parameter_id: "parameter-3", min_value: 20, max_value: 32, severity_label: "safe" },    // Temperature
+  ];
+
+  const rows = [];
+  // 5 days of data: 1 reading every 1 hour
+  const totalHours = 5 * 24;
+  for (let h = totalHours; h >= 0; h--) {
+    const timestamp = now - h * 60 * 60 * 1000;
+    rows.push(makeReading("pH", 7.2, timestamp, 0));
+    rows.push(makeReading("TDS", 120, timestamp, 1));
+    rows.push(makeReading("Turbidity", 3.5, timestamp, 2));
+    rows.push(makeReading("Temperature", 26.5, timestamp, 3));
+  }
+
+  // 3-day window (3 days * 24h = 72h + 1 reading = 73 readings)
+  const summary3d = buildSensorSummary(rows, dynamicThresholds, 3, now);
+  assert.equal(summary3d.windowDays, 3);
+  assert.equal(summary3d.overallBadge, "optimal");
+  assert.equal(summary3d.parameterStats["pH"].count, 3 * 24 + 1);
+  assert.equal(summary3d.parameterStats["pH"].mean.toFixed(2), "7.20");
+  assert.equal(summary3d.parameterStats["Turbidity"].mean.toFixed(2), "3.50");
+
+  // 5-day window (5 days * 24h = 120h + 1 reading = 121 readings)
+  const summary5d = buildSensorSummary(rows, dynamicThresholds, 5, now);
+  assert.equal(summary5d.windowDays, 5);
+  assert.equal(summary5d.overallBadge, "optimal");
+  assert.equal(summary5d.parameterStats["pH"].count, 5 * 24 + 1);
+});
+
+test("buildSensorSummary generates cross-parameter runoff warning dynamically", () => {
+  const rows = [];
+  // Turbidity elevated, TDS rising
+  for (let h = 24; h >= 0; h--) {
+    const timestamp = now - h * 60 * 60 * 1000;
+    rows.push(makeReading("pH", 7.0, timestamp));
+    rows.push(makeReading("Turbidity", 15.0, timestamp));
+    rows.push(makeReading("TDS", 200 + (24 - h) * 10, timestamp)); // Rising TDS
+    rows.push(makeReading("Temperature", 25.0, timestamp));
+  }
+
+  const summary = buildSensorSummary(rows, thresholds, 3, now);
+  const runoffInterp = summary.interpretations.find((i) => i.id === "turbidity-tds-runoff");
+  assert.ok(runoffInterp, "Should trigger turbidity + TDS runoff interpretation");
+  assert.match(runoffInterp.text, /particulate runoff/i);
 });

@@ -483,3 +483,213 @@ const buildPrediction = (validReadings, thresholds, now) => {
     message: `Each estimate is 30 minutes beyond that parameter’s latest valid reading. Backtest errors use observed values and are shown as mean absolute error in the parameter’s unit. Estimates are not measurements.`,
   };
 };
+
+/**
+ * Computes dynamic descriptive statistics and rule-based cross-parameter interpretations
+ * over an arbitrary historical window (e.g. 3, 5, 7, 14, 21 days).
+ *
+ * @param {Array} readings - Raw sensor readings from Supabase
+ * @param {Array} thresholds - Threshold configuration rows
+ * @param {number} windowDays - Window duration in days (default 5)
+ * @param {number} [customNow] - Optional anchor timestamp (epoch ms)
+ */
+export const buildSensorSummary = (readings, thresholds, windowDays = 5, customNow = Date.now()) => {
+  const windowMs = windowDays * 24 * 60 * 60 * 1000;
+  const cutoff = customNow - windowMs;
+
+  const validRows = (readings || [])
+    .filter((r) => {
+      if (validateInsightReading(r, customNow)) return false;
+      const t = new Date(r.recorded_at).getTime();
+      return t >= cutoff && t <= customNow;
+    })
+    .sort((a, b) => new Date(a.recorded_at) - new Date(b.recorded_at));
+
+  // Compute stats per canonical parameter
+  const parameterStats = {};
+  for (const param of INSIGHT_PARAMETERS) {
+    const rows = validRows.filter((r) => canonicalParameterName(r.parameters?.name) === param);
+    if (!rows.length) {
+      parameterStats[param] = {
+        hasData: false,
+        count: 0,
+        current: null,
+        mean: null,
+        min: null,
+        max: null,
+        unit: "",
+        complianceRate: null,
+        exceedanceCount: 0,
+        trend: "insufficient",
+        driftPercent: null,
+        state: "insufficient",
+      };
+      continue;
+    }
+
+    const values = rows.map((r) => Number(r.value));
+    const count = values.length;
+    const current = values[values.length - 1];
+    const unit = rows[rows.length - 1].parameters?.unit || (param === "pH" ? "" : param === "TDS" ? "ppm" : param === "Turbidity" ? "NTU" : "°C");
+    const sum = values.reduce((acc, val) => acc + val, 0);
+    const mean = sum / count;
+    const min = Math.min(...values);
+    const max = Math.max(...values);
+
+    // Compute compliance against threshold bands
+    let compliantCount = 0;
+    for (const r of rows) {
+      const classification = classifyInsightReading(r, thresholds);
+      if (classification.state === "within" || classification.state === "unconfigured") {
+        compliantCount++;
+      }
+    }
+    const complianceRate = count > 0 ? (compliantCount / count) * 100 : 0;
+    const exceedanceCount = count - compliantCount;
+
+    // Baseline drift: compare current reading to window mean
+    const drift = current - mean;
+    const driftPercent = mean !== 0 ? (drift / Math.abs(mean)) * 100 : 0;
+
+    // Determine direction
+    let trend = "stable";
+    if (Math.abs(driftPercent) > 5) {
+      trend = drift > 0 ? "rising" : "falling";
+    }
+
+    // Single parameter state
+    let state = "normal";
+    if (complianceRate < 70) {
+      state = "critical";
+    } else if (complianceRate < 95) {
+      state = "warning";
+    }
+
+    parameterStats[param] = {
+      hasData: true,
+      count,
+      current,
+      mean,
+      min,
+      max,
+      unit,
+      complianceRate,
+      exceedanceCount,
+      trend,
+      driftPercent,
+      state,
+    };
+  }
+
+  // Cross-parameter rule syntheses (Concise, punchy ground truth insights)
+  const interpretations = [];
+  const phStats = parameterStats["pH"];
+  const turbidityStats = parameterStats["Turbidity"];
+  const tdsStats = parameterStats["TDS"];
+  const tempStats = parameterStats["Temperature"];
+
+  // 1. Cross: Turbidity + TDS (Runoff vs. Mineral Dissolution)
+  if (turbidityStats.hasData && tdsStats.hasData) {
+    if (turbidityStats.mean > 8 && tdsStats.trend === "rising") {
+      interpretations.push({
+        id: "turbidity-tds-runoff",
+        type: "warning",
+        title: "Surface Runoff Washout",
+        text: `Elevated turbidity (avg ${turbidityStats.mean.toFixed(1)} ${turbidityStats.unit}) coinciding with rising TDS suggests particulate runoff and sediment transport into the stream.`,
+      });
+    } else if (turbidityStats.mean <= 5 && tdsStats.mean <= 400) {
+      interpretations.push({
+        id: "clarity-solids-healthy",
+        type: "positive",
+        title: "Water Clarity & Sediment Balance",
+        text: `Water clarity is stable with both turbidity (${turbidityStats.mean.toFixed(1)} ${turbidityStats.unit}) and dissolved solids within normal Class C bounds.`,
+      });
+    }
+  }
+
+  // 2. Cross: Temperature + pH (Biological & Chemical activity)
+  if (tempStats.hasData && phStats.hasData) {
+    if (tempStats.mean > 29 && phStats.max > 8.5) {
+      interpretations.push({
+        id: "temp-ph-algae",
+        type: "warning",
+        title: "Thermal & pH Stress",
+        text: `Elevated stream temperatures (avg ${tempStats.mean.toFixed(1)}°C) paired with alkaline pH spikes (peak ${phStats.max.toFixed(2)}) indicate potential diurnal algal activity.`,
+      });
+    } else if (tempStats.hasData && phStats.mean >= 6.5 && phStats.mean <= 8.5) {
+      interpretations.push({
+        id: "temp-ph-buffered",
+        type: "positive",
+        title: "Acid-Base Equilibrium",
+        text: `pH buffering is resilient (avg ${phStats.mean.toFixed(2)}) across the ambient thermal window (${tempStats.min.toFixed(1)}–${tempStats.max.toFixed(1)}°C).`,
+      });
+    }
+  }
+
+  // 3. Isolated Parameter Insights if not covered by cross-rules
+  if (turbidityStats.hasData && turbidityStats.complianceRate < 90 && !interpretations.some(i => i.id.startsWith("turbidity"))) {
+    interpretations.push({
+      id: "turbidity-isolated-high",
+      type: "warning",
+      title: "Turbidity Drift",
+      text: `Turbidity exceeded baseline in ${(100 - turbidityStats.complianceRate).toFixed(0)}% of measurements over this ${windowDays}-day window.`,
+    });
+  }
+
+  if (tdsStats.hasData && tdsStats.complianceRate < 90 && !interpretations.some(i => i.id.startsWith("turbidity-tds"))) {
+    interpretations.push({
+      id: "tds-isolated-high",
+      type: "warning",
+      title: "Elevated Ionic Load",
+      text: `TDS shows sustained accumulation with peak observed values reaching ${tdsStats.max.toFixed(0)} ppm.`,
+    });
+  }
+
+  if (phStats.hasData && (phStats.min < 6.5 || phStats.max > 9.0)) {
+    interpretations.push({
+      id: "ph-range-deviation",
+      type: "warning",
+      title: "pH Threshold Excursion",
+      text: `Observed pH ranged between ${phStats.min.toFixed(2)} and ${phStats.max.toFixed(2)}, drifting outside standard DENR baseline limits.`,
+    });
+  }
+
+  // If no warnings triggered, provide a reassuring empirical status
+  if (interpretations.length === 0) {
+    interpretations.push({
+      id: "overall-nominal",
+      type: "positive",
+      title: "Compliant Watershed Condition",
+      text: `All observed telemetry across the past ${windowDays} days maintained safe operating thresholds with steady ionic and physical stability.`,
+    });
+  }
+
+  // Overall Watershed Status Grade
+  const activeParams = Object.values(parameterStats).filter((p) => p.hasData);
+  let overallCondition = "Insufficient Telemetry";
+  let overallBadge = "neutral";
+
+  if (activeParams.length >= 2) {
+    const avgCompliance = activeParams.reduce((sum, p) => sum + p.complianceRate, 0) / activeParams.length;
+    if (avgCompliance >= 95) {
+      overallCondition = "Optimal / Highly Compliant";
+      overallBadge = "optimal";
+    } else if (avgCompliance >= 80) {
+      overallCondition = "Moderate / Minor Drift";
+      overallBadge = "moderate";
+    } else {
+      overallCondition = "Frequent Outliers / Stressed";
+      overallBadge = "stressed";
+    }
+  }
+
+  return {
+    windowDays,
+    cutoffIso: new Date(cutoff).toISOString(),
+    totalReadingsInWindow: validRows.length,
+    parameterStats,
+    interpretations,
+    overallCondition,
+    overallBadge,
+  };
+};

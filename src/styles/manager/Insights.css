@@ -1612,3 +1612,331 @@
   color: #d97706;
   flex-shrink: 0;
 }
+
+/* ═══════════════════════════════════════════════════════════════
+   SensorSummaryCard — Ground Truth Observation Panel
+   ═══════════════════════════════════════════════════════════════ */
+
+.sensor-summary-card {
+  background: var(--insights-surface, #ffffff);
+  border: 1px solid var(--insights-rule, rgba(0, 119, 182, 0.1));
+  border-radius: var(--insights-radius, 20px);
+  padding: 24px 28px;
+  box-shadow: var(--insights-shadow, 0 1px 3px rgba(10, 46, 61, 0.04), 0 8px 24px rgba(0, 119, 182, 0.07));
+  margin-bottom: 28px;
+}
+
+.summary-card-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.summary-card-badge-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 6px;
+}
+
+.summary-card-eyebrow {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--insights-accent, #0c4c7c);
+  background: var(--insights-accent-soft, #eaf3f6);
+  padding: 3px 8px;
+  border-radius: 6px;
+}
+
+.summary-status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.76rem;
+  font-weight: 700;
+  padding: 3px 10px;
+  border-radius: 9999px;
+}
+
+.summary-status-badge.badge-optimal {
+  background: var(--insights-ok-bg, #e3f7ea);
+  color: #14532d;
+  border: 1px solid var(--insights-ok-line, #b8e6c4);
+}
+
+.summary-status-badge.badge-moderate {
+  background: var(--insights-warn-bg, #fff2d9);
+  color: #854d0e;
+  border: 1px solid var(--insights-warn-line, #f6dfa0);
+}
+
+.summary-status-badge.badge-stressed {
+  background: var(--insights-alert-bg, #fdecec);
+  color: #991b1b;
+  border: 1px solid var(--insights-alert-line, #f3b8b8);
+}
+
+.summary-card-title {
+  font-size: 1.22rem;
+  font-weight: 700;
+  color: var(--insights-ink, #0a2e3d);
+  margin: 0 0 4px 0;
+  letter-spacing: -0.01em;
+}
+
+.summary-card-subtitle {
+  font-size: 0.85rem;
+  color: var(--insights-ink-muted, #5b7c88);
+  margin: 0;
+}
+
+/* Window Duration Switcher */
+.summary-window-selector {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: #f1f5f9;
+  padding: 4px 6px;
+  border-radius: 12px;
+  border: 1px solid rgba(0, 0, 0, 0.04);
+}
+
+.summary-window-selector .calendar-icon {
+  color: #64748b;
+  margin-left: 4px;
+}
+
+.summary-window-selector .window-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #64748b;
+  margin-right: 4px;
+}
+
+.window-pill-btn {
+  border: none;
+  background: transparent;
+  padding: 5px 12px;
+  border-radius: 8px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #475569;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.window-pill-btn:hover {
+  color: var(--insights-accent, #0c4c7c);
+  background: rgba(255, 255, 255, 0.7);
+}
+
+.window-pill-btn.active {
+  background: #ffffff;
+  color: var(--insights-accent, #0c4c7c);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  font-weight: 700;
+}
+
+/* Interpretation Insights Strip */
+.summary-interpretations-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 22px;
+}
+
+.interpretation-bubble {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 14px;
+  border-radius: 10px;
+  font-size: 0.85rem;
+  line-height: 1.45;
+}
+
+.interpretation-bubble.type-positive {
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  color: #166534;
+}
+
+.interpretation-bubble.type-warning {
+  background: #fffbeb;
+  border: 1px solid #fef08a;
+  color: #854d0e;
+}
+
+.interpretation-icon-wrap {
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.interpretation-title {
+  font-weight: 700;
+  margin-right: 6px;
+}
+
+.interpretation-text {
+  font-weight: 400;
+}
+
+/* Parameters Baseline Grid */
+.summary-parameters-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 16px;
+}
+
+.param-stat-cell {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.param-stat-cell:hover {
+  background: #ffffff;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04);
+}
+
+.param-stat-cell.state-warning {
+  border-left: 4px solid #f59e0b;
+}
+
+.param-stat-cell.state-critical {
+  border-left: 4px solid #ef4444;
+}
+
+.param-stat-cell.state-normal {
+  border-left: 4px solid #10b981;
+}
+
+.param-stat-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.param-name {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: #1e293b;
+}
+
+.param-status-pill {
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 9999px;
+  letter-spacing: 0.02em;
+}
+
+.param-status-pill.pill-normal {
+  background: #ecfdf5;
+  color: #047857;
+}
+
+.param-status-pill.pill-warning {
+  background: #fffbeb;
+  color: #b45309;
+}
+
+.param-status-pill.pill-critical {
+  background: #fef2f2;
+  color: #b91c1c;
+}
+
+.param-status-pill.pill-empty {
+  background: #f1f5f9;
+  color: #64748b;
+}
+
+.param-stat-metrics {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.param-metric-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.8rem;
+}
+
+.param-metric-item .metric-label {
+  color: #64748b;
+  font-weight: 500;
+}
+
+.param-metric-item .metric-val {
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.param-metric-item .range-val {
+  font-weight: 600;
+  color: #334155;
+  font-size: 0.77rem;
+}
+
+.drift-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-weight: 700;
+  font-size: 0.78rem;
+}
+
+.param-standard-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.72rem;
+  color: #94a3b8;
+  padding-top: 8px;
+  border-top: 1px solid #f1f5f9;
+}
+
+.param-standard-ref {
+  font-weight: 500;
+}
+
+.param-sample-count {
+  font-variant-numeric: tabular-nums;
+}
+
+.param-stat-cell.is-empty {
+  opacity: 0.75;
+}
+
+.param-empty-hint {
+  font-size: 0.8rem;
+  color: #94a3b8;
+  font-style: italic;
+}
+
+/* Secondary Section Subtitle Styling */
+.section-subtitle-secondary {
+  font-size: 0.82rem;
+  font-weight: 500;
+  color: #64748b;
+  margin-top: -6px;
+  margin-bottom: 16px;
+}
+
