@@ -110,7 +110,6 @@ const Dashboard = () => {
       const { count, error: countErr } = await supabase
         .from("alerts")
         .select("id", { count: "exact", head: true })
-        .eq("status", "active");
 
       if (!countErr && count !== null) {
         setActiveAlertsCount(count);
@@ -124,7 +123,7 @@ const Dashboard = () => {
           `id, message, status, triggered_at,
            thresholds ( min_value, max_value, severity_label,
              parameters ( name, unit ) ),
-           sensor_readings ( value, recorded_at, nodes ( device_label ) )`
+           sensor_readings!alerts_reading_id_fkey ( value, recorded_at, nodes ( device_label ) )`
         )
         .order("triggered_at", { ascending: false })
         .limit(5);
@@ -319,10 +318,10 @@ const Dashboard = () => {
       return { value: "Checking...", tone: "neutral" };
     }
     if (activeAlertsCount === 0) {
-      return { value: "0 Active", tone: "positive" };
+      return { value: "0", tone: "positive" };
     }
     return {
-      value: `${activeAlertsCount} Active`,
+      value: `${activeAlertsCount}`,
       tone: "warning",
     };
   })();
@@ -371,7 +370,7 @@ const Dashboard = () => {
       path: "/admin/data-records",
     },
     {
-      label: "Active Alerts",
+      label: "Alerts",
       value: activeAlertsCard.value,
       tone: activeAlertsCard.tone,
       icon: AlertTriangle,
