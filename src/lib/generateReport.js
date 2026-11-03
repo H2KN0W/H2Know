@@ -3,6 +3,7 @@ import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import { Chart } from "chart.js/auto";
 import { toStartOfDay, toEndOfDay } from "../config/constants";
+import { buildSensorSummary } from "./insights";
 // H2Know logo embedded as a static Base64 Data URL so PDF generation
 // never depends on async loading, bundler asset URLs, or CORS.
 // (300x300 JPEG, ~11KB source). Pass straight into pdf.addImage().
@@ -536,9 +537,18 @@ const buildCoverPage = (doc, form, authorName, logoBase64) => {
   hRule(doc, PAGE_H - MARGIN, C.primary, 0.8);
 };
 
-// ─── Page 2: Executive Summary & Watershed Analysis (Stacked Layout) ───────
+// ─── Page 2: Executive Summary & Watershed Compliance Audit (Stacked Layout) ───
 
-const buildExecutiveSummaryPage = async (doc, form, readings, paramNames, parameterMap, unitMap, aiInsights, weatherSummary, logoBase64) => {
+const buildExecutiveSummaryPage = async (
+  doc,
+  form,
+  readings,
+  paramNames,
+  parameterMap,
+  unitMap,
+  thresholds,
+  logoBase64
+) => {
   doc.addPage();
   let y = MARGIN;
 
@@ -548,7 +558,7 @@ const buildExecutiveSummaryPage = async (doc, form, readings, paramNames, parame
   setColor(doc, C.white, "text");
   doc.setFontSize(13);
   doc.setFont(undefined, "bold");
-  doc.text("EXECUTIVE SUMMARY & WATERSHED ANALYSIS", MARGIN + 4, y + 8);
+  doc.text("EXECUTIVE SUMMARY & WATERSHED COMPLIANCE AUDIT", MARGIN + 4, y + 8);
   resetTextColor(doc);
 
   // Add small logo in header (static embed — never async, never CORS-blocked)
@@ -642,104 +652,76 @@ const buildExecutiveSummaryPage = async (doc, form, readings, paramNames, parame
 
   y += CHART_H + 10;
 
-  // ── AI Watershed Analysis Block ──
-  if (aiInsights) {
-    // AI Insights title banner
-    setColor(doc, C.accent, "fill");
-    doc.rect(MARGIN, y, CONTENT_W, 8, "F");
-    setColor(doc, C.white, "text");
-    doc.setFontSize(10);
-    doc.setFont(undefined, "bold");
-    doc.text("AI-POWERED WATERSHED ANALYSIS", MARGIN + 4, y + 5.5);
-    resetTextColor(doc);
-    y += 13;
+  // ── Deterministic Empirical Compliance & Baseline Audit Block ──
+  // Replaced volatile AI predictions with verified mathematical statistics and cross-parameter rules
+  const summaryDays = totalDays > 0 ? totalDays : 7;
+  const empiricalSummary = buildSensorSummary(readings, thresholds || [], summaryDays);
 
-    // Overview text
-    if (aiInsights.currentInterpretation?.overview) {
-      doc.setFontSize(9);
-      doc.setFont(undefined, "normal");
-      setColor(doc, C.black, "text");
-      const lines = doc.splitTextToSize(aiInsights.currentInterpretation.overview, CONTENT_W - 5);
-      doc.text(lines, MARGIN, y);
-      y += lines.length * 5 + 5;
-    }
+  // Compliance Banner
+  setColor(doc, C.primary, "fill");
+  doc.rect(MARGIN, y, CONTENT_W, 8, "F");
+  setColor(doc, C.white, "text");
+  doc.setFontSize(10);
+  doc.setFont(undefined, "bold");
+  doc.text("WATERSHED COMPLIANCE & EMPIRICAL BASELINE AUDIT", MARGIN + 4, y + 5.5);
+  resetTextColor(doc);
+  y += 13;
 
-    // Runoff risk badge
-    const riskLevel = (aiInsights.riskLevel || "").toUpperCase();
-    let riskColor = C.safe;
-    if (riskLevel === "HIGH" || riskLevel === "SEVERE") riskColor = C.danger;
-    else if (riskLevel === "MODERATE") riskColor = C.warning;
+  // Status & Telemetry Audit Line
+  doc.setFontSize(9);
+  doc.setFont(undefined, "bold");
+  setColor(doc, C.black, "text");
+  doc.text("Overall Condition:", MARGIN, y);
 
+  const conditionText = (empiricalSummary.overallCondition || "Compliant").toUpperCase();
+  let badgeColor = C.safe;
+  if (empiricalSummary.overallBadge === "stressed") badgeColor = C.danger;
+  else if (empiricalSummary.overallBadge === "moderate") badgeColor = C.warning;
+
+  const badgeX = MARGIN + 32;
+  const badgeW = doc.getTextWidth(conditionText) + 6;
+  setColor(doc, badgeColor, "fill");
+  doc.roundedRect(badgeX, y - 4.5, badgeW, 6, 1.5, 1.5, "F");
+  setColor(doc, C.white, "text");
+  doc.setFontSize(8);
+  doc.text(conditionText, badgeX + 3, y - 0.3);
+  resetTextColor(doc);
+
+  // Sample Audit Count
+  doc.setFontSize(8.5);
+  doc.setFont(undefined, "normal");
+  setColor(doc, C.muted, "text");
+  doc.text(`Samples Audited: ${readings.length} verified readings across ${summaryDays} days`, PAGE_W - MARGIN - 4, y, { align: "right" });
+  resetTextColor(doc);
+  y += 9;
+
+  // Rule-Based Cross-Parameter Environmental Observations
+  const interpretations = empiricalSummary.interpretations || [];
+  if (interpretations.length > 0) {
     doc.setFontSize(9);
     doc.setFont(undefined, "bold");
+    setColor(doc, C.primary, "text");
+    doc.text("Diagnostic Telemetry Observations (DENR Class C Baseline):", MARGIN, y);
+    y += 5;
+    doc.setFont(undefined, "normal");
     setColor(doc, C.black, "text");
-    doc.text("Runoff Risk:", MARGIN, y);
-    const badgeX = MARGIN + 24;
-    const labelW = doc.getTextWidth(riskLevel) + 6;
-    setColor(doc, riskColor, "fill");
-    doc.roundedRect(badgeX, y - 4.5, labelW, 6, 1.5, 1.5, "F");
-    setColor(doc, C.white, "text");
-    doc.setFontSize(8);
-    doc.text(riskLevel || "—", badgeX + 3, y - 0.3);
-    resetTextColor(doc);
-    y += 9;
-
-    // Key observations
-    const observations = aiInsights.currentInterpretation?.keyObservations || [];
-    if (observations.length > 0) {
-      doc.setFontSize(9);
-      doc.setFont(undefined, "bold");
-      setColor(doc, C.primary, "text");
-      doc.text("Key Observations:", MARGIN, y);
-      y += 5;
-      doc.setFont(undefined, "normal");
-      setColor(doc, C.black, "text");
-      observations.slice(0, 3).forEach((obs) => {
-        const lines = doc.splitTextToSize(`• ${obs}`, CONTENT_W - 5);
-        doc.text(lines, MARGIN + 3, y);
-        y += lines.length * 5 + 1;
-      });
-      y += 3;
-    }
-
-    // Weather forecast
-    if (weatherSummary) {
-      doc.setFontSize(9);
-      doc.setFont(undefined, "bold");
-      setColor(doc, C.primary, "text");
-      doc.text("7-Day Forecast:", MARGIN, y);
-      doc.setFont(undefined, "normal");
-      setColor(doc, C.black, "text");
-      y += 5;
-      const rainMm = weatherSummary.next7DaysRainMm ?? "—";
-      const precipProb = weatherSummary.next7DaysPrecipProbMax ?? "—";
-      doc.text(
-        `Expected Rainfall: ${rainMm} mm | Max Precipitation Probability: ${precipProb}%`,
-        MARGIN, y
-      );
-      y += 8;
-    }
-
-    // Immediate recommendations
-    const immediateRecs = aiInsights.recommendations?.immediate || [];
-    if (immediateRecs.length > 0) {
-      doc.setFontSize(9);
-      doc.setFont(undefined, "bold");
-      setColor(doc, C.primary, "text");
-      doc.text("Immediate Recommendations:", MARGIN, y);
-      y += 5;
-      doc.setFont(undefined, "normal");
-      setColor(doc, C.black, "text");
-      immediateRecs.slice(0, 2).forEach((rec) => {
-        const recText = typeof rec === "object" && rec !== null ? rec.text : rec;
-        const lines = doc.splitTextToSize(`→ ${recText}`, CONTENT_W - 5);
-        doc.text(lines, MARGIN + 3, y);
-        y += lines.length * 5 + 1;
-      });
-    }
-
-    resetTextColor(doc);
+    interpretations.slice(0, 3).forEach((interp) => {
+      const textLine = `• [${interp.title}] ${interp.text}`;
+      const lines = doc.splitTextToSize(textLine, CONTENT_W - 5);
+      doc.text(lines, MARGIN + 3, y);
+      y += lines.length * 4.8 + 1.5;
+    });
+    y += 2;
   }
+
+  // Quality & Verification Footnote (Legal Defense)
+  doc.setFontSize(7.5);
+  doc.setFont(undefined, "italic");
+  setColor(doc, C.muted, "text");
+  const legalNote = "Data Verification Standard: Telemetry evaluated against DAO 2016-08 / DAO 2021-19 water quality criteria. Transient outliers exceeding plausibility margins are segregated to prevent statistical distortion.";
+  const noteLines = doc.splitTextToSize(legalNote, CONTENT_W - 5);
+  doc.text(noteLines, MARGIN + 3, y);
+  resetTextColor(doc);
 };
 
 // ─── Page 3: Parameter Comparison & Aggregated Summaries ──────────────────────
@@ -1022,7 +1004,16 @@ const buildCsv = (readings, parameterMap, unitMap, paramNames) => {
 
 // ─── Main PDF builder ─────────────────────────────────────────────────────────
 
-const buildPdf = async (form, readings, paramNames, parameterMap, unitMap, authorName, aiInsights, weatherSummary, logoBase64 = LOGO_BASE64) => {
+const buildPdf = async (
+  form,
+  readings,
+  paramNames,
+  parameterMap,
+  unitMap,
+  authorName,
+  thresholds = [],
+  logoBase64 = LOGO_BASE64
+) => {
   const doc = new jsPDF({ unit: "mm", format: "a4" });
 
   // Logo is a static Base64 constant — no async load, no CORS, no bundler URL.
@@ -1031,8 +1022,17 @@ const buildPdf = async (form, readings, paramNames, parameterMap, unitMap, autho
   // Page 1 — Cover
   buildCoverPage(doc, form, authorName, finalLogoBase64);
 
-  // Page 2 — Executive Summary & Watershed Analysis (Stacked Layout)
-  await buildExecutiveSummaryPage(doc, form, readings, paramNames, parameterMap, unitMap, aiInsights, weatherSummary, finalLogoBase64);
+  // Page 2 — Executive Summary & Watershed Compliance Audit (Stacked Layout)
+  await buildExecutiveSummaryPage(
+    doc,
+    form,
+    readings,
+    paramNames,
+    parameterMap,
+    unitMap,
+    thresholds,
+    finalLogoBase64
+  );
 
   // Page 3 — Parameter Comparison & Aggregated Summaries
   await buildParameterComparisonPage(doc, form, readings, paramNames, parameterMap, unitMap);
@@ -1054,8 +1054,7 @@ export const generateReportFile = async ({
   parameters,
   reportId,
   authorName,
-  aiInsights,
-  weatherSummary,
+  thresholds = [],
 }) => {
   const selectedIds = form.parameterIds.includes("all")
     ? parameters.map((p) => p.id)
@@ -1089,8 +1088,7 @@ export const generateReportFile = async ({
       parameterMap,
       unitMap,
       authorName,
-      aiInsights ?? null,
-      weatherSummary ?? null,
+      thresholds,
       null // logoBase64 will be loaded internally
     );
     extension = "pdf";
