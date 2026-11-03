@@ -24,7 +24,7 @@ import { supabase } from "../../lib/supabase";
 import { useLogPageView } from "../../lib/useLogPageView";
 import { useSilentRefresh } from "../../hooks/useSilentRefresh";
 import { buildInsights } from "../../lib/insights";
-import { fetchWeatherInsights } from "../../lib/weather";
+import { fetchWeatherInsights, EXCLUDE_TURBIDITY } from "../../lib/weather";
 import WeatherWidget from "../../components/WeatherWidget";
 import ManagerSidebar from "./ManagerSidebar";
 import { PageTransition, SkeletonCard, LiveValue } from "../../components/ui";
@@ -408,6 +408,13 @@ const Insights = () => {
           </div>
         </header>
 
+        {EXCLUDE_TURBIDITY && (
+          <div className="insights-turbidity-banner" role="status">
+            <AlertTriangle size={16} className="insights-turbidity-banner-icon" aria-hidden="true" />
+            <span>Turbidity sensor offline: risk derived from rainfall forecast and remaining sensors.</span>
+          </div>
+        )}
+
         {/* Global Loading / Error State */}
         {loading && !updatedAt ? (
           <section className="unified-analysis-panel" aria-live="polite" aria-busy="true">
@@ -444,7 +451,7 @@ const Insights = () => {
                 <div className="summary-tile-value" style={{ color: RISK_COLORS[riskLevel] }}>
                   {riskLevel.toUpperCase()}
                 </div>
-                {summarySparklines.turbidity && summarySparklines.turbidity.length > 1 && (
+                {!EXCLUDE_TURBIDITY && summarySparklines.turbidity && summarySparklines.turbidity.length > 1 && (
                   <Sparkline data={summarySparklines.turbidity} color={RISK_COLORS[riskLevel]} height={30} />
                 )}
               </div>
@@ -464,10 +471,10 @@ const Insights = () => {
               <div className="summary-tile">
                 <div className="summary-tile-label">Turbidity</div>
                 <div className="summary-tile-value">
-                  {turbidityCurrent != null ? `${turbidityCurrent.toFixed(1)} NTU` : "—"}
-                  <span className="summary-tile-sub">/ 5 Class C</span>
+                  {EXCLUDE_TURBIDITY ? "Offline" : (turbidityCurrent != null ? `${turbidityCurrent.toFixed(1)} NTU` : "—")}
+                  {!EXCLUDE_TURBIDITY && <span className="summary-tile-sub">/ 5 Class C</span>}
                 </div>
-                {next24h && (
+                {!EXCLUDE_TURBIDITY && next24h && next24h.turbidityDirection && (
                   <div className="summary-tile-trend">
                     <DirectionArrow direction={next24h.turbidityDirection} />
                     <span>{next24h.turbidityDirection}</span>
@@ -505,12 +512,14 @@ const Insights = () => {
                     <RiskMeter riskLevel={next24h.riskLevel} />
                     <p className="horizon-headline">{truncate(next24h.headline, 12)}</p>
                     <div className="horizon-params">
+                      {!EXCLUDE_TURBIDITY && (
                       <div className="horizon-param">
                         <Waves size={14} />
                         <span>Turbidity: </span>
                         <DirectionArrow direction={next24h.turbidityDirection} />
                         <span>{next24h.turbidityValue != null ? `${next24h.turbidityValue.toFixed(1)} NTU` : "—"}</span>
                       </div>
+                      )}
                       <div className="horizon-param">
                         <Gauge size={14} />
                         <span>TDS: </span>
@@ -551,12 +560,14 @@ const Insights = () => {
                     <RiskMeter riskLevel={next3to7Days.riskLevel} />
                     <p className="horizon-headline">{truncate(next3to7Days.headline, 12)}</p>
                     <div className="horizon-params">
+                      {!EXCLUDE_TURBIDITY && (
                       <div className="horizon-param">
                         <Waves size={14} />
                         <span>Turbidity: </span>
                         <DirectionArrow direction={next3to7Days.turbidityDirection} />
                         <span>{next3to7Days.turbidityValue != null ? `${next3to7Days.turbidityValue.toFixed(1)} NTU` : "—"}</span>
                       </div>
+                      )}
                       <div className="horizon-param">
                         <Gauge size={14} />
                         <span>TDS: </span>
