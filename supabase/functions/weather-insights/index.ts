@@ -23,6 +23,9 @@ const SITE_LOCATION = {
 const LAT = SITE_LOCATION.lat;
 const LON = SITE_LOCATION.lon;
 
+// Easy toggle to exclude turbidity when sensor is offline or malfunctioning
+const EXCLUDE_TURBIDITY = false;
+
 // ── Open-Meteo Forecast & Historical Rainfall ────────────────────────────────
 async function fetchWeather() {
   const url = new URL("https://api.open-meteo.com/v1/forecast");
@@ -62,7 +65,8 @@ async function fetchTelemetry(supabase: ReturnType<typeof createClient>) {
     .order("recorded_at", { ascending: false })
     .limit(3000);
   if (error) throw error;
-  return data ?? [];
+  const rows = data ?? [];
+  return EXCLUDE_TURBIDITY ? rows.filter((r: any) => r.parameters?.name?.toLowerCase() !== 'turbidity') : rows;
 }
 
 type Reading = { value: number | string; recorded_at: string; parameters: { name: string; unit: string } | null };
@@ -197,7 +201,7 @@ function generateUnifiedAnalysis(
   }
 
   // Parameter Diagnostics
-  if (turbidity) {
+  if (turbidity && !EXCLUDE_TURBIDITY) {
     if (turbidity.current > 50 || turbidity.avg > 40) {
       riskFactors.push(`Turbidity is significantly elevated (${turbidity.current} NTU), showing heavy suspended solids in the water column.`);
       if (riskLevel === "low" || riskLevel === "moderate") riskLevel = "high";
@@ -316,9 +320,9 @@ function generateUnifiedAnalysis(
       : next48hRain > 12
         ? "Moderate rain may increase turbidity slightly."
         : "Dry conditions maintain stable water quality.",
-    turbidityDirection: turbidity?.trend || "stable",
+    turbidityDirection: !EXCLUDE_TURBIDITY ? (turbidity?.trend || "stable") : null,
     tdsDirection: tds?.trend || "stable",
-    turbidityValue: turbidity?.current ?? null,
+    turbidityValue: !EXCLUDE_TURBIDITY ? (turbidity?.current ?? null) : null,
     tdsValue: tds?.current ?? null,
     rainfallAmount: next48hRain,
     confidence: "High",
@@ -337,9 +341,9 @@ function generateUnifiedAnalysis(
       : nextWeekRain > 20
         ? "Intermittent rain may trigger occasional runoff."
         : "Low rain forecast keeps water quality stable.",
-    turbidityDirection: turbidity?.trend || "stable",
+    turbidityDirection: !EXCLUDE_TURBIDITY ? (turbidity?.trend || "stable") : null,
     tdsDirection: tds?.trend || "stable",
-    turbidityValue: turbidity?.current ?? null,
+    turbidityValue: !EXCLUDE_TURBIDITY ? (turbidity?.current ?? null) : null,
     tdsValue: tds?.current ?? null,
     rainfallAmount: nextWeekRain,
     confidence: "Medium",
