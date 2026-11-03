@@ -103,9 +103,8 @@ const ManagerDashboard = () => {
         supabase
           .from("alerts")
           .select(
-            "id, status, triggered_at, thresholds!inner ( min_value, max_value, severity_label, parameters!inner ( name, unit ) ), sensor_readings ( id, value )"
+            "id, status, triggered_at, thresholds!inner ( min_value, max_value, severity_label, parameters!inner ( name, unit ) ), sensor_readings!alerts_reading_id_fkey ( id, value )"
           )
-          .eq("status", "active")
           .order("triggered_at", { ascending: false })
           .limit(10),
         supabase.from("nodes").select("id, device_label"),
@@ -443,7 +442,7 @@ const ManagerDashboard = () => {
                       alerts.map((alert, idx) => {
                         const threshold = alert.thresholds;
                         return (
-                          <AnimatedRow key={alert.id} index={idx} isNew={alert.status === "active"}>
+                          <AnimatedRow key={alert.id} index={idx}>
                             <td>{formatDateTime(alert.triggered_at)}</td>
                             <td>{threshold?.parameters?.name || "—"}</td>
                             <td className="data-cell">
