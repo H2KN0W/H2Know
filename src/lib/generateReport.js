@@ -4,6 +4,14 @@ import autoTable from "jspdf-autotable";
 import { Chart } from "chart.js/auto";
 import { toStartOfDay, toEndOfDay } from "../config/constants";
 import { buildSensorSummary } from "./insights";
+import {
+  runDataQualityQC,
+  evaluateReportCompliance,
+  generateReportNarratives,
+  getStatusBadgeStyle,
+  toCanonicalParam,
+} from "./reportAnalytics";
+import { STATUS_CODES } from "../config/reportQualityConfig";
 // H2Know logo embedded as a static Base64 Data URL so PDF generation
 // never depends on async loading, bundler asset URLs, or CORS.
 // (300x300 JPEG, ~11KB source). Pass straight into pdf.addImage().
@@ -76,7 +84,7 @@ const parseCalendarDateParts = (dateStr) => {
  * - Computed from calendar midnights only, with inclusive duration (start == end -> 1 day).
  * - Graceful fallback on invalid/missing dates.
  */
-export const formatDateRange = (startDate, endDate) => {
+export const formatDateRange = (startDate, endDate, actualHours = null) => {
   const startParts = parseCalendarDateParts(startDate);
   const endParts = parseCalendarDateParts(endDate);
 
@@ -423,7 +431,7 @@ const writeFooters = (doc, totalPages) => {
 
 // ─── Page 1: Modern Minimalist Cover Page ─────────────────────────────────────
 
-const buildCoverPage = (doc, form, authorName, logoBase64) => {
+const buildCoverPage = (doc, form, authorName, logoBase64, actualHours = null) => {
   // Subtle background tint (top to bottom gradient simulation)
   setColor(doc, C.lightBg, "fill");
   doc.rect(0, 0, PAGE_W, PAGE_H, "F");
@@ -547,9 +555,9 @@ const buildExecutiveSummaryPage = async (
   parameterMap,
   unitMap,
   thresholds,
-  logoBase64
+  logoBase64,
+  evaluation
 ) => {
-  doc.addPage();
   let y = MARGIN;
 
   // Page Header Banner with Logo
@@ -570,24 +578,27 @@ const buildExecutiveSummaryPage = async (
 
   y += 17;
 
-  // Sub-header
-  const { rangeLabel, totalDays } = formatDateRange(form.startDate, form.endDate);
+  // Sub-header with true data coverage metrics
+  const { rangeLabel, totalDays } = formatDateRange(form.startDate, form.endDate, evaluation?.coverage?.coverageHours);
   const periodText = totalDays > 0 ? rangeLabel.replace("Reporting Period: ", "") : `${form.startDate} to ${form.endDate}`;
 
   doc.setFontSize(8.5);
   doc.setFont(undefined, "normal");
   setColor(doc, C.muted, "text");
+  const covHrs = evaluation?.coverage?.coverageHours ?? 0;
+  const validCnt = evaluation?.coverage?.validReadings ?? 0;
+  const totalCnt = evaluation?.coverage?.totalReadings ?? 0;
   doc.text(
-    `Period: ${periodText}   |   Parameters: ${paramNames.length}   |   Total Readings: ${readings.length}`,
+    `Period: ${periodText}   |   Parameters: ${paramNames.length}   |   Duration: ${covHrs}h   |   Valid: ${validCnt}/${totalCnt}`,
     MARGIN, y
   );
   resetTextColor(doc);
   y += 10;
 
-  // ── Key Metrics Banner (Top) ──
-  const stats = calculateStats(readings, paramNames, parameterMap, unitMap);
+  // ── Key Metrics Banner (Top) - Dynamically Evaluated ──
   const firstParam = paramNames[0];
-  const firstStats = stats[firstParam];
+  const firstCanonical = toCanonicalParam(firstParam);
+  const firstStats = evaluation?.parameterResults?.[firstCanonical];
 
   setColor(doc, C.primary, "fill");
   doc.roundedRect(MARGIN, y, CONTENT_W, 25, 3, 3, "F");
@@ -605,57 +616,64 @@ const buildExecutiveSummaryPage = async (
     metricsY += 7;
     doc.setFontSize(8);
     doc.setFont(undefined, "normal");
-    doc.text(`${firstParam} — Latest Reading`, MARGIN + 4, metricsY);
+    doc.text(`${firstParam} — Latest Valid Reading`, MARGIN + 4, metricsY);
 
     // Additional stats on the right side
-    const rightX = MARGIN + 70;
+    const rightX = MARGIN + 68;
     doc.setFontSize(7);
-    doc.text(`Avg: ${firstStats.avg} ${firstStats.unit}`, rightX, y + 10);
-    doc.text(`Min: ${firstStats.min} ${firstStats.unit}`, rightX, y + 17);
-    doc.text(`Max: ${firstStats.max} ${firstStats.unit}`, rightX, y + 24);
+    doc.text(`Avg: ${firstStats.avg} ${firstStats.unit}`, rightX, y + 9);
+    doc.text(`Min: ${firstStats.min} ${firstStats.unit}  |  Max: ${firstStats.max} ${firstStats.unit}`, rightX, y + 15);
+    doc.text(`Valid: ${firstStats.validCount}/${firstStats.totalCount} (Excl: ${firstStats.excludedCount})`, rightX, y + 21);
 
-    // Status badge
-    const statusColor = C.safe;
+    // Dynamic Status Badge matching actual computed status
+    const badgeStyle = getStatusBadgeStyle(firstStats.status);
     const badgeX = MARGIN + 130;
-    const badgeW = 28;
-    setColor(doc, statusColor, "fill");
-    doc.roundedRect(badgeX, y + 12, badgeW, 8, 2, 2, "F");
-    setColor(doc, C.white, "text");
+    const badgeW = 34;
+    setColor(doc, badgeStyle.bg, "fill");
+    doc.roundedRect(badgeX, y + 10, badgeW, 10, 2, 2, "F");
+    setColor(doc, badgeStyle.text, "text");
     doc.setFontSize(7);
     doc.setFont(undefined, "bold");
-    doc.text("NORMAL", badgeX + badgeW / 2, y + 17, { align: "center" });
+    doc.text(badgeStyle.label, badgeX + badgeW / 2, y + 16.5, { align: "center" });
   }
 
   resetTextColor(doc);
   y += 32;
+  // ── Full-Width Parameter Trend Charts ──
+  for (let i = 0; i < paramNames.length; i++) {
+    const pName = paramNames[i];
+    if (i > 0) {
+      if (y + CHART_H + 10 > PAGE_H - MARGIN) {
+        doc.addPage();
+        y = MARGIN;
+      }
+    }
 
-  // ── Full-Width Parameter Trend Chart ──
-  setColor(doc, C.rule, "draw");
-  doc.setLineWidth(0.5);
-  doc.rect(MARGIN, y, CONTENT_W, CHART_H);
-  doc.setLineWidth(0.2);
-  setColor(doc, C.black, "draw");
+    setColor(doc, C.rule, "draw");
+    doc.setLineWidth(0.5);
+    doc.rect(MARGIN, y, CONTENT_W, CHART_H);
+    doc.setLineWidth(0.2);
+    setColor(doc, C.black, "draw");
 
-  doc.setFontSize(10);
-  doc.setFont(undefined, "bold");
-  setColor(doc, C.primary, "text");
-  doc.text("Primary Parameter Trend", MARGIN + 4, y + 6);
-  resetTextColor(doc);
+    doc.setFontSize(10);
+    doc.setFont(undefined, "bold");
+    setColor(doc, C.primary, "text");
+    doc.text(`${pName} Trend`, MARGIN + 4, y + 6);
+    resetTextColor(doc);
 
-  // Render first parameter chart with full width
-  if (paramNames.length > 0) {
-    const chartImage = await renderSingleChart(readings, paramNames[0], parameterMap);
+    const chartImage = await renderSingleChart(readings, pName, parameterMap, unitMap);
     if (chartImage) {
       doc.addImage(chartImage, "PNG", MARGIN + 4, y + 10, CONTENT_W - 8, CHART_H - 14);
     }
+
+    y += CHART_H + 10;
   }
 
-  y += CHART_H + 10;
-
   // ── Deterministic Empirical Compliance & Baseline Audit Block ──
-  // Replaced volatile AI predictions with verified mathematical statistics and cross-parameter rules
-  const summaryDays = totalDays > 0 ? totalDays : 7;
-  const empiricalSummary = buildSensorSummary(readings, thresholds || [], summaryDays);
+  if (y + 60 > PAGE_H - MARGIN) {
+    doc.addPage();
+    y = MARGIN;
+  }
 
   // Compliance Banner
   setColor(doc, C.primary, "fill");
@@ -667,58 +685,73 @@ const buildExecutiveSummaryPage = async (
   resetTextColor(doc);
   y += 13;
 
-  // Status & Telemetry Audit Line
+  // Overall Condition Badge
   doc.setFontSize(9);
   doc.setFont(undefined, "bold");
   setColor(doc, C.black, "text");
   doc.text("Overall Condition:", MARGIN, y);
 
-  const conditionText = (empiricalSummary.overallCondition || "Compliant").toUpperCase();
-  let badgeColor = C.safe;
-  if (empiricalSummary.overallBadge === "stressed") badgeColor = C.danger;
-  else if (empiricalSummary.overallBadge === "moderate") badgeColor = C.warning;
-
-  const badgeX = MARGIN + 32;
-  const badgeW = doc.getTextWidth(conditionText) + 6;
-  setColor(doc, badgeColor, "fill");
-  doc.roundedRect(badgeX, y - 4.5, badgeW, 6, 1.5, 1.5, "F");
-  setColor(doc, C.white, "text");
+  const overallStyle = getStatusBadgeStyle(evaluation?.overallStatus);
+  const badgeX = MARGIN + 34;
+  const badgeW = doc.getTextWidth(overallStyle.label) + 8;
+  setColor(doc, overallStyle.bg, "fill");
+  doc.roundedRect(badgeX, y - 4.5, badgeW, 6.5, 1.5, 1.5, "F");
+  setColor(doc, overallStyle.text, "text");
   doc.setFontSize(8);
-  doc.text(conditionText, badgeX + 3, y - 0.3);
+  doc.text(overallStyle.label, badgeX + 4, y - 0.2);
   resetTextColor(doc);
 
-  // Sample Audit Count
-  doc.setFontSize(8.5);
+  // Accurate sample audit count split into valid and excluded with proper pluralization
+  const daysCount = totalDays > 0 ? totalDays : 1;
+  const daysPlural = daysCount === 1 ? "1 day" : `${daysCount} days`;
+  doc.setFontSize(8);
   doc.setFont(undefined, "normal");
   setColor(doc, C.muted, "text");
-  doc.text(`Samples Audited: ${readings.length} verified readings across ${summaryDays} days`, PAGE_W - MARGIN - 4, y, { align: "right" });
+  const totReadings = evaluation?.coverage?.totalReadings ?? readings.length;
+  const valReadings = evaluation?.coverage?.validReadings ?? 0;
+  const exclReadings = evaluation?.coverage?.excludedReadings ?? 0;
+  doc.text(
+    `Samples Audited: ${totReadings} total (${valReadings} valid, ${exclReadings} excluded) across ${daysPlural}`,
+    PAGE_W - MARGIN - 4, y, { align: "right" }
+  );
   resetTextColor(doc);
   y += 9;
 
-  // Rule-Based Cross-Parameter Environmental Observations
-  const interpretations = empiricalSummary.interpretations || [];
-  if (interpretations.length > 0) {
+  // Render Computed Dynamic Narrative Findings
+  const narratives = evaluation ? generateReportNarratives(evaluation) : [];
+  if (narratives.length > 0) {
     doc.setFontSize(9);
     doc.setFont(undefined, "bold");
     setColor(doc, C.primary, "text");
-    doc.text("Diagnostic Telemetry Observations (DENR Class C Baseline):", MARGIN, y);
+    doc.text("Computed Telemetry Observations & QC Findings (DAO 2016-08 / 2021-19 Class C):", MARGIN, y);
     y += 5;
     doc.setFont(undefined, "normal");
     setColor(doc, C.black, "text");
-    interpretations.slice(0, 3).forEach((interp) => {
-      const textLine = `• [${interp.title}] ${interp.text}`;
-      const lines = doc.splitTextToSize(textLine, CONTENT_W - 5);
-      doc.text(lines, MARGIN + 3, y);
-      y += lines.length * 4.8 + 1.5;
-    });
+
+    for (const item of narratives) {
+      if (y + 16 > PAGE_H - MARGIN) {
+        doc.addPage();
+        y = MARGIN;
+      }
+      const textLine = `• [${item.title}] ${item.text}`;
+      const textLines = doc.splitTextToSize(textLine, CONTENT_W - 5);
+      doc.text(textLines, MARGIN + 3, y);
+      y += textLines.length * 4.6 + 2;
+    }
     y += 2;
   }
 
-  // Quality & Verification Footnote (Legal Defense)
+  // Quality & Verification Footnote with actual segregated count
+  if (y + 12 > PAGE_H - MARGIN) {
+    doc.addPage();
+    y = MARGIN;
+  }
   doc.setFontSize(7.5);
   doc.setFont(undefined, "italic");
   setColor(doc, C.muted, "text");
-  const legalNote = "Data Verification Standard: Telemetry evaluated against DAO 2016-08 / DAO 2021-19 water quality criteria. Transient outliers exceeding plausibility margins are segregated to prevent statistical distortion.";
+  const legalNote = exclReadings > 0
+    ? `Data Verification Standard: ${exclReadings} anomalous readings were segregated from statistical baselines under automated QC rules. Valid telemetry evaluated against DAO 2016-08 / DAO 2021-19 Class C criteria.`
+    : "Data Verification Standard: Telemetry evaluated against DAO 2016-08 / DAO 2021-19 Class C criteria. 100% of collected readings satisfied plausibility and data-quality standards.";
   const noteLines = doc.splitTextToSize(legalNote, CONTENT_W - 5);
   doc.text(noteLines, MARGIN + 3, y);
   resetTextColor(doc);
@@ -726,7 +759,7 @@ const buildExecutiveSummaryPage = async (
 
 // ─── Page 3: Parameter Comparison & Aggregated Summaries ──────────────────────
 
-const buildParameterComparisonPage = async (doc, form, readings, paramNames, parameterMap, unitMap) => {
+const buildParameterComparisonPage = async (doc, form, readings, paramNames, parameterMap, unitMap, evaluation) => {
   doc.addPage();
   let y = MARGIN;
 
@@ -829,156 +862,6 @@ const buildParameterComparisonPage = async (doc, form, readings, paramNames, par
   resetTextColor(doc);
 };
 
-// ─── Page 4: Regional Certification & Sign-Off Block ─────────────────────────
-
-const buildCertificationPage = (doc, form, authorName, logoBase64) => {
-  doc.addPage();
-  let y = MARGIN;
-
-  // Page header banner
-  setColor(doc, C.primary, "fill");
-  doc.rect(MARGIN, y, CONTENT_W, 12, "F");
-  setColor(doc, C.white, "text");
-  doc.setFontSize(13);
-  doc.setFont(undefined, "bold");
-  doc.text("REGIONAL CERTIFICATION & SIGN-OFF", MARGIN + 4, y + 8);
-  resetTextColor(doc);
-
-  // Add small logo in header (static embed — never async, never CORS-blocked)
-  try {
-    doc.addImage(logoBase64 || LOGO_BASE64, "JPEG", PAGE_W - MARGIN - 12, y + 2, 8, 8);
-  } catch (logoErr) {
-    console.warn("Header logo embed skipped:", logoErr?.message);
-  }
-
-  y += 17;
-
-  // Title
-  doc.setFontSize(12);
-  doc.setFont(undefined, "bold");
-  setColor(doc, C.primary, "text");
-  doc.text("Official Certification and Acknowledgment", PAGE_W / 2, y, { align: "center" });
-  y += 10;
-
-  doc.setFontSize(9);
-  doc.setFont(undefined, "normal");
-  setColor(doc, C.black, "text");
-  const certText = "This environmental field report has been prepared in accordance with regional DRRM standards and submitted for official review.";
-  const lines = doc.splitTextToSize(certText, CONTENT_W - 10);
-  doc.text(lines, PAGE_W / 2, y, { align: "center" });
-  y += lines.length * 5 + 25;
-
-  // 3-Column Signature Block
-  const colWidth = CONTENT_W / 3;
-  const col1X = MARGIN;
-  const col2X = MARGIN + colWidth;
-  const col3X = MARGIN + colWidth * 2;
-
-  // Column 1: Station Lead
-  doc.setFontSize(10);
-  doc.setFont(undefined, "bold");
-  setColor(doc, C.primary, "text");
-  doc.text("Station Lead", col1X + colWidth / 2, y, { align: "center" });
-  y += 6;
-  doc.setFontSize(9);
-  doc.setFont(undefined, "normal");
-  setColor(doc, C.black, "text");
-  doc.text(authorName || "Station Officer", col1X + colWidth / 2, y, { align: "center" });
-  y += 5;
-  doc.text("Northern Bukidnon State College", col1X + colWidth / 2, y, { align: "center" });
-  y += 15;
-
-  // Signature line
-  hRule(doc, y, C.black, 0.5);
-  y += 5;
-  doc.setFontSize(8);
-  setColor(doc, C.muted, "text");
-  doc.text("Signature over Printed Name", col1X + colWidth / 2, y, { align: "center" });
-  y += 8;
-  doc.text("Date: _______________", col1X + colWidth / 2, y, { align: "center" });
-  resetTextColor(doc);
-
-  // Column 2: NBSC Coordinator
-  let col2Y = y - 33;
-  doc.setFontSize(10);
-  doc.setFont(undefined, "bold");
-  setColor(doc, C.primary, "text");
-  doc.text("NBSC Coordinator", col2X + colWidth / 2, col2Y, { align: "center" });
-  col2Y += 6;
-  doc.setFontSize(9);
-  doc.setFont(undefined, "normal");
-  setColor(doc, C.black, "text");
-  doc.text("DRRM Coordinator", col2X + colWidth / 2, col2Y, { align: "center" });
-  col2Y += 5;
-  doc.text("Northern Bukidnon State College", col2X + colWidth / 2, col2Y, { align: "center" });
-  col2Y += 15;
-
-  // Signature line
-  hRule(doc, col2Y, C.black, 0.5);
-  col2Y += 5;
-  doc.setFontSize(8);
-  setColor(doc, C.muted, "text");
-  doc.text("Signature over Printed Name", col2X + colWidth / 2, col2Y, { align: "center" });
-  col2Y += 8;
-  doc.text("Date: _______________", col2X + colWidth / 2, col2Y, { align: "center" });
-  resetTextColor(doc);
-
-  // Column 3: Regional Director
-  let col3Y = y - 33;
-  doc.setFontSize(10);
-  doc.setFont(undefined, "bold");
-  setColor(doc, C.primary, "text");
-  doc.text("Regional Director", col3X + colWidth / 2, col3Y, { align: "center" });
-  col3Y += 6;
-  doc.setFontSize(9);
-  doc.setFont(undefined, "normal");
-  setColor(doc, C.black, "text");
-  doc.text("Regional Office Director", col3X + colWidth / 2, col3Y, { align: "center" });
-  col3Y += 5;
-  doc.text("DRRM Regional Office", col3X + colWidth / 2, col3Y, { align: "center" });
-  col3Y += 15;
-
-  // Signature line
-  hRule(doc, col3Y, C.black, 0.5);
-  col3Y += 5;
-  doc.setFontSize(8);
-  setColor(doc, C.muted, "text");
-  doc.text("Signature over Printed Name", col3X + colWidth / 2, col3Y, { align: "center" });
-  col3Y += 8;
-  doc.text("Date: _______________", col3X + colWidth / 2, col3Y, { align: "center" });
-  resetTextColor(doc);
-
-  y = col3Y + 25;
-
-  // Official Stamp Placeholder
-  const stampX = PAGE_W / 2 - 25;
-  const stampY = y;
-  setColor(doc, C.rule, "draw");
-  doc.setLineWidth(0.5);
-  doc.rect(stampX, stampY, 50, 50);
-  doc.setLineWidth(0.2);
-  setColor(doc, C.black, "draw");
-
-  doc.setFontSize(8);
-  doc.setFont(undefined, "bold");
-  setColor(doc, C.muted, "text");
-  doc.text("OFFICIAL STAMP", stampX + 25, stampY + 25, { align: "center" });
-  doc.setFont(undefined, "normal");
-  doc.text("PLACEHOLDER", stampX + 25, stampY + 32, { align: "center" });
-  resetTextColor(doc);
-
-  y = stampY + 60;
-
-  // Footer note
-  doc.setFontSize(8);
-  setColor(doc, C.muted, "text");
-  doc.text(
-    "This document is an official environmental field report prepared for regional DRRM submission.",
-    PAGE_W / 2, y, { align: "center" }
-  );
-  resetTextColor(doc);
-};
-
 // ─── CSV builder ─────────────────────────────────────────────────────────────
 
 const buildCsv = (readings, parameterMap, unitMap, paramNames) => {
@@ -1037,8 +920,6 @@ const buildPdf = async (
   // Page 3 — Parameter Comparison & Aggregated Summaries
   await buildParameterComparisonPage(doc, form, readings, paramNames, parameterMap, unitMap);
 
-  // Page 4 — Certification & Sign-Off
-  buildCertificationPage(doc, form, authorName, finalLogoBase64);
 
   // Stamp footers on every page now that we know total count
   const totalPages = doc.internal.pages.length - 1;
