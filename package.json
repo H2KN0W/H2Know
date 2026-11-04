@@ -15,6 +15,7 @@
     "test:all": "node --test tests/insights.test.js tests/cross-user-authorization.test.js tests/reports-features.test.js"
   },
   "dependencies": {
+    "@lottiefiles/dotlottie-react": "^0.21.1",
     "@supabase/supabase-js": "^2.110.2",
     "chart.js": "^4.5.1",
     "jspdf": "^4.2.1",
