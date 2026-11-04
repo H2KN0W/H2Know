@@ -22,3 +22,33 @@ h1, h2 {
 p {
   margin: 0;
 }
+
+/* ── Loading Animation Styles ─────────────────────────────────────────── */
+@keyframes loading-animation-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.loading-animation-fullscreen-backdrop {
+  background-color: rgba(255, 255, 255, 0.9);
+}
+
+@media (prefers-color-scheme: dark) {
+  .loading-animation-fullscreen-backdrop {
+    background-color: rgba(10, 46, 61, 0.92) !important;
+  }
+  .loading-animation-message {
+    color: #e2e8f0 !important;
+  }
+}
+
+[data-theme="dark"] .loading-animation-fullscreen-backdrop,
+.dark .loading-animation-fullscreen-backdrop {
+  background-color: rgba(10, 46, 61, 0.92) !important;
+}
+
+[data-theme="dark"] .loading-animation-message,
+.dark .loading-animation-message {
+  color: #e2e8f0 !important;
+}
