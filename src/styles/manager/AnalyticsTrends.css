@@ -177,3 +177,38 @@
   .manager-band-row { grid-template-columns: 1fr; }
   .analytics-subchart-header { flex-direction: column; align-items: flex-start; gap: 4px; }
 }
+
+/* ── Active Range & Validation Status ───────────────────────────── */
+.analytics-range-status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: -6px;
+  margin-bottom: 18px;
+  font-size: 0.85rem;
+  color: var(--color-text-muted, #5b7c88);
+}
+
+.analytics-range-label {
+  font-weight: 600;
+  color: var(--color-text, #0a2e3d);
+}
+
+.analytics-range-value {
+  color: var(--color-brand-primary, #0077b6);
+  font-weight: 500;
+}
+
+.analytics-range-error {
+  color: #dc2626;
+  font-weight: 600;
+}
+
+.analytics-empty-state {
+  padding: 40px 20px;
+  text-align: center;
+  background: rgba(0, 119, 182, 0.02);
+  border-radius: 16px;
+  border: 1px dashed rgba(0, 119, 182, 0.15);
+  margin-bottom: 20px;
+}
