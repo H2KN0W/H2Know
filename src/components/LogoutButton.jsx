@@ -4,6 +4,7 @@ import { createPortal } from "react-dom";
 import { LogOut } from "lucide-react";
 import { supabase } from "../lib/supabase";
 import { logActivity } from "../lib/logActivity";
+import LoadingAnimation from "./LoadingAnimation";
 
 /**
  * Drop-in replacement for the plain "Logout" button in every admin
@@ -66,12 +67,7 @@ const LogoutButton = () => {
 
       {loggingOut && (
         createPortal(
-          <div className="logout-overlay">
-            <div className="logout-overlay-box">
-              <span className="spinner spinner-dark" role="status" aria-label="Logging out" />
-              <p>Logging out...</p>
-            </div>
-          </div>,
+          <LoadingAnimation fullScreen size={160} message="Logging out..." />,
           document.body,
         )
       )}
