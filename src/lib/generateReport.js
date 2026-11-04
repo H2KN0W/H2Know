@@ -558,6 +558,7 @@ const buildExecutiveSummaryPage = async (
   logoBase64,
   evaluation
 ) => {
+  doc.addPage();
   let y = MARGIN;
 
   // Page Header Banner with Logo
