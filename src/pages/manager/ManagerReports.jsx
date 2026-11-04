@@ -28,6 +28,7 @@ import { formatDateTime, formatDate, formatReportParameters } from "../../lib/fo
 import { PAGE_SIZES, filterMonitoredParameters } from "../../config/constants";
 import {
   PageTransition,
+  LoadingAnimation,
   ButtonSpinner,
   SkeletonTableRows,
   AnimatedRow,
@@ -392,8 +393,7 @@ const ManagerReports = () => {
 
             {insightsLoading ? (
               <div className="mr-insights-loading">
-                <span className="spinner spinner-dark" role="status" aria-label="Loading insights" />
-                <span>Fetching AI analysis…</span>
+                <LoadingAnimation size={36} message="Fetching AI analysis…" />
               </div>
             ) : !aiInsights ? (
               <div className="mr-insights-empty">
