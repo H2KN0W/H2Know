@@ -1,10 +1,11 @@
-import { ClipLoader } from "react-spinners";
+import LoadingAnimation from "../LoadingAnimation";
 
 /**
  * ButtonSpinner — compact, lightweight loader for buttons running async actions.
+ * Powered by LoadingAnimation with a compact size.
  */
 export default function ButtonSpinner({
-  size = 14,
+  size = 16,
   color = "currentColor",
   className = "",
   style = {},
@@ -22,7 +23,7 @@ export default function ButtonSpinner({
       }}
       aria-hidden="true"
     >
-      <ClipLoader size={size} color={color} speedMultiplier={0.85} />
+      <LoadingAnimation size={size} />
     </span>
   );
 }
