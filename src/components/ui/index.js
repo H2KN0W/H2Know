@@ -1,6 +1,7 @@
 export { default as PageTransition } from "./PageTransition";
 export { default as ButtonSpinner } from "./ButtonSpinner";
 export { default as FullPageLoader } from "./FullPageLoader";
+export { default as LoadingAnimation } from "../LoadingAnimation";
 export {
   default as SkeletonCard,
   SkeletonKpiCard,
