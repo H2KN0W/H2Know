@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "../lib/supabase";
 import "../styles/Login.css";
 import H2knowLogo from "../assets/img/H2knowLogo.jpg";
-import { PageTransition, ButtonSpinner } from "../components/ui";
+import { PageTransition, ButtonSpinner, LoadingAnimation } from "../components/ui";
 
 const ResetPassword = () => {
   const navigate = useNavigate();
@@ -89,13 +89,7 @@ const ResetPassword = () => {
   };
 
   if (checkingSession) {
-    return (
-      <div className="login-page">
-        <div className="login-card" style={{ textAlign: "center", padding: "60px 40px" }}>
-          <span className="spinner spinner-dark" role="status" aria-label="Loading" />
-        </div>
-      </div>
-    );
+    return <LoadingAnimation fullScreen size={160} message="Checking reset link..." />;
   }
 
   if (!validSession) {
