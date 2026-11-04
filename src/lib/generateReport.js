@@ -610,7 +610,7 @@ const buildExecutiveSummaryPage = async (
   doc.text("KEY METRICS", MARGIN + 4, y + 8);
   let metricsY = y + 15;
 
-  if (firstStats) {
+  if (firstStats && firstStats.totalCount > 0) {
     doc.setFontSize(13);
     doc.setFont(undefined, "bold");
     doc.text(`${firstStats.latest} ${firstStats.unit}`, MARGIN + 4, metricsY);
@@ -636,8 +636,25 @@ const buildExecutiveSummaryPage = async (
     doc.setFontSize(7);
     doc.setFont(undefined, "bold");
     doc.text(badgeStyle.label, badgeX + badgeW / 2, y + 16.5, { align: "center" });
-  }
+  } else {
+    doc.setFontSize(11);
+    doc.setFont(undefined, "bold");
+    doc.text("No Telemetry Data Available", MARGIN + 4, metricsY);
+    metricsY += 7;
+    doc.setFontSize(8);
+    doc.setFont(undefined, "normal");
+    doc.text(`No readings recorded for ${firstParam || "monitored parameters"} in this period`, MARGIN + 4, metricsY);
 
+    const badgeStyle = getStatusBadgeStyle(STATUS_CODES.INSUFFICIENT_TELEMETRY);
+    const badgeX = MARGIN + 130;
+    const badgeW = 34;
+    setColor(doc, badgeStyle.bg, "fill");
+    doc.roundedRect(badgeX, y + 10, badgeW, 10, 2, 2, "F");
+    setColor(doc, badgeStyle.text, "text");
+    doc.setFontSize(7);
+    doc.setFont(undefined, "bold");
+    doc.text(badgeStyle.label, badgeX + badgeW / 2, y + 16.5, { align: "center" });
+  }
   resetTextColor(doc);
   y += 32;
   // ── Full-Width Parameter Trend Charts ──
@@ -785,64 +802,56 @@ const buildParameterComparisonPage = async (doc, form, readings, paramNames, par
   resetTextColor(doc);
   y += 10;
 
-  // ── Comparison Chart (Bar Chart) ──
-  if (paramNames.length > 1) {
-    doc.setFontSize(10);
-    doc.setFont(undefined, "bold");
-    setColor(doc, C.primary, "text");
-    doc.text("Average Values Comparison", MARGIN, y);
-    resetTextColor(doc);
-    y += 5;
-
-    const comparisonChart = await renderComparisonChart(readings, paramNames, parameterMap);
-    if (comparisonChart) {
-      doc.addImage(comparisonChart, "PNG", MARGIN, y, CHART_W, CHART_H);
-      y += CHART_H + 8;
-    }
-  }
-
-  // ── Summary Statistics Table ──
-  const stats = calculateStats(readings, paramNames, parameterMap, unitMap);
-
+  // ── Summary Statistics Table (Computed from Valid Readings with True Status) ──
   doc.setFontSize(10);
   doc.setFont(undefined, "bold");
   setColor(doc, C.primary, "text");
-  doc.text("Aggregated Parameter Statistics", MARGIN, y);
+  doc.text("Aggregated Parameter Statistics & Regulatory Assessment", MARGIN, y);
   resetTextColor(doc);
   y += 5;
 
   const tableBody = paramNames.map((name) => {
-    const s = stats[name];
+    const canonical = toCanonicalParam(name);
+    const p = evaluation?.parameterResults?.[canonical] || {
+      unit: unitMap?.[name] || "",
+      avg: "—",
+      min: "—",
+      max: "—",
+      validCount: 0,
+      totalCount: 0,
+      status: STATUS_CODES.INSUFFICIENT_DATA,
+    };
     return [
       name,
-      s.unit,
-      s.avg,
-      s.min,
-      s.max,
-      s.count,
-      s.count > 0 ? "Normal" : "—",
+      p.unit,
+      String(p.avg),
+      String(p.min),
+      String(p.max),
+      `${p.validCount} / ${p.totalCount}`,
+      p.status,
     ];
   });
 
   autoTable(doc, {
     startY: y,
-    head: [["Parameter", "Unit", "Average", "Min", "Max", "Readings", "Status"]],
+    head: [["Parameter", "Unit", "Avg (Valid)", "Min", "Max", "Valid / Total", "Status"]],
     body: tableBody,
     styles: { fontSize: 8, cellPadding: 3 },
     headStyles: { fillColor: C.primary, textColor: C.white, fontStyle: "bold" },
     alternateRowStyles: { fillColor: [240, 249, 255] },
     columnStyles: {
       0: { fontStyle: "bold" },
-      6: {
-        fontStyle: "bold",
-        textColor: C.safe,
-      },
+      6: { fontStyle: "bold" },
     },
     didParseCell: (data) => {
       if (data.column.index === 6 && data.section === "body") {
         const val = data.cell.raw;
-        if (val === "Normal") {
+        if (val === STATUS_CODES.COMPLIANT) {
           data.cell.styles.textColor = C.safe;
+        } else if (val === STATUS_CODES.EXCEEDANCE) {
+          data.cell.styles.textColor = C.danger;
+        } else if (val === STATUS_CODES.DATA_SUSPECT) {
+          data.cell.styles.textColor = C.warning;
         } else {
           data.cell.styles.textColor = C.muted;
         }
@@ -853,40 +862,43 @@ const buildParameterComparisonPage = async (doc, form, readings, paramNames, par
 
   y = doc.lastAutoTable.finalY + 10;
 
-  // Note about raw data
+  // Accurate CSV export note with real reading count
   doc.setFontSize(8);
   setColor(doc, C.muted, "text");
+  const totalRawCount = readings.length;
   doc.text(
-    "Note: Detailed time-series data (50+ readings per parameter) is available in the CSV export.",
+    `Note: Detailed time-series data (${totalRawCount} raw readings with individual QC flags) is available in the CSV export.`,
     MARGIN, y
   );
   resetTextColor(doc);
 };
 
-// ─── CSV builder ─────────────────────────────────────────────────────────────
-
-const buildCsv = (readings, parameterMap, unitMap, paramNames) => {
-  const stats = calculateStats(readings, paramNames, parameterMap, unitMap);
+const buildCsv = (readings, parameterMap, unitMap, paramNames, evaluation) => {
   const summaryLines = paramNames.map((name) => {
-    const s = stats[name];
-    return `# ${name}: ${s.count} readings, avg=${s.avg} ${s.unit}, min=${s.min} ${s.unit}, max=${s.max} ${s.unit}`;
+    const canonical = toCanonicalParam(name);
+    const p = evaluation?.parameterResults?.[canonical];
+    if (!p) return `# ${name}: 0 readings`;
+    return `# ${name}: ${p.totalCount} readings (${p.validCount} valid, ${p.excludedCount} excluded), avg=${p.avg} ${p.unit}, min=${p.min} ${p.unit}, max=${p.max} ${p.unit}, status=${p.status}`;
   });
-  const summaryHeader = `# Report summary - Total readings: ${readings.length}\n` + summaryLines.join("\n") + "\n";
-  const header = "Date,Time,Parameter,Value,Unit\n";
+  const summaryHeader =
+    `# Report summary - Total readings: ${readings.length} | Valid: ${evaluation?.coverage?.validReadings ?? 0} | Overall Status: ${evaluation?.overallStatus ?? "N/A"}\n` +
+    summaryLines.join("\n") +
+    "\n";
+  const header = "Date,Time,Parameter,Value,Unit,QC_Status,QC_Reason\n";
   const lines = readings.map((row) => {
     const d = row.recorded_at ? new Date(row.recorded_at) : null;
     const dateStr = d
       ? `${pad(d.getMonth() + 1)}/${pad(d.getDate())}/${d.getFullYear()}`
       : "";
     const timeStr = d ? `${pad(d.getHours())}:${pad(d.getMinutes())}` : "";
-    const paramName = parameterMap[row.parameter_id] || "Unknown";
+    const paramName = parameterMap[row.parameter_id] || row.paramName || "Unknown";
     const unit = unitMap?.[row.parameter_id] || "";
-    return `${dateStr},${timeStr},"${paramName}",${row.value ?? ""},"${unit}"`;
+    const qcStatus = row.isValid ? "VALID" : row.qcFlag || "EXCLUDED";
+    const qcReason = row.qcReason ? `"${row.qcReason.replace(/"/g, '""')}"` : '""';
+    return `${dateStr},${timeStr},"${paramName}",${row.value ?? ""},"${unit}",${qcStatus},${qcReason}`;
   }).join("\n");
   return new Blob([summaryHeader + header + lines], { type: "text/csv" });
 };
-
-// ─── Main PDF builder ─────────────────────────────────────────────────────────
 
 const buildPdf = async (
   form,
@@ -896,7 +908,8 @@ const buildPdf = async (
   unitMap,
   authorName,
   thresholds = [],
-  logoBase64 = LOGO_BASE64
+  logoBase64 = LOGO_BASE64,
+  evaluation = null
 ) => {
   const doc = new jsPDF({ unit: "mm", format: "a4" });
 
@@ -904,7 +917,7 @@ const buildPdf = async (
   const finalLogoBase64 = logoBase64 || LOGO_BASE64;
 
   // Page 1 — Cover
-  buildCoverPage(doc, form, authorName, finalLogoBase64);
+  buildCoverPage(doc, form, authorName, finalLogoBase64, evaluation?.coverage?.coverageHours);
 
   // Page 2 — Executive Summary & Watershed Compliance Audit (Stacked Layout)
   await buildExecutiveSummaryPage(
@@ -915,12 +928,20 @@ const buildPdf = async (
     parameterMap,
     unitMap,
     thresholds,
-    finalLogoBase64
+    finalLogoBase64,
+    evaluation
   );
 
   // Page 3 — Parameter Comparison & Aggregated Summaries
-  await buildParameterComparisonPage(doc, form, readings, paramNames, parameterMap, unitMap);
-
+  await buildParameterComparisonPage(
+    doc,
+    form,
+    readings,
+    paramNames,
+    parameterMap,
+    unitMap,
+    evaluation
+  );
 
   // Stamp footers on every page now that we know total count
   const totalPages = doc.internal.pages.length - 1;
@@ -928,8 +949,6 @@ const buildPdf = async (
 
   return doc.output("blob");
 };
-
-// ─── Public export ────────────────────────────────────────────────────────────
 
 export const generateReportFile = async ({
   form,
@@ -959,23 +978,34 @@ export const generateReportFile = async ({
     (a, b) => new Date(a.recorded_at) - new Date(b.recorded_at)
   );
 
+  // Step A: Run deterministic Data Quality QC layer
+  const readingsWithParamName = sortedReadings.map((r) => ({
+    ...r,
+    paramName: parameterMap[r.parameter_id] || "Unknown",
+  }));
+  const qcReadings = runDataQualityQC(readingsWithParamName);
+
+  // Step B & C: Evaluate coverage and regulatory compliance
+  const evaluation = evaluateReportCompliance(qcReadings, paramNames);
+
   let fileBlob;
   let extension;
 
   if (form.format === "pdf") {
     fileBlob = await buildPdf(
       form,
-      sortedReadings,
+      qcReadings,
       paramNames,
       parameterMap,
       unitMap,
       authorName,
       thresholds,
-      null // logoBase64 will be loaded internally
+      null, // logoBase64 will be loaded internally
+      evaluation
     );
     extension = "pdf";
   } else {
-    fileBlob = buildCsv(sortedReadings, parameterMap, unitMap, paramNames);
+    fileBlob = buildCsv(qcReadings, parameterMap, unitMap, paramNames, evaluation);
     extension = "csv";
   }
 
