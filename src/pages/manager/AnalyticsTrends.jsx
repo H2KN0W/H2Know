@@ -13,7 +13,6 @@ import { useLogPageView } from "../../lib/useLogPageView";
 import ManagerSidebar from "./ManagerSidebar";
 import "../../styles/manager/ManagerPortal.css";
 import "../../styles/manager/AnalyticsTrends.css";
-import { formatDateTime } from "../../lib/formatters";
 import { PAGE_SIZES, filterMonitoredParameters } from "../../config/constants";
 import {
   PageTransition,
@@ -21,6 +20,15 @@ import {
   SkeletonTableRows,
   AnimatedRow,
 } from "../../components/ui";
+import {
+  normalizeDateRange,
+  calculateStats,
+  downsampleTimeSeries,
+  insertGapMarkers,
+  fetchAllPagedReadings,
+  formatManilaDateTime,
+  formatManilaChartTick,
+} from "../../lib/analyticsUtils";
 
 const PAGE_SIZE = PAGE_SIZES.DEFAULT;
 const ALL_VALUE = "all";
@@ -37,42 +45,11 @@ const PARAMETER_COLORS = {
 const getLineColor = (paramName, index) =>
   PARAMETER_COLORS[paramName] || LINE_COLORS[index % LINE_COLORS.length];
 
-const formatChartTime = (isoString) => {
-  if (!isoString) return "";
-  const d = new Date(isoString);
-  const pad = (n) => String(n).padStart(2, "0");
-  return `${pad(d.getMonth() + 1)}/${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
-};
-
 const bandName = (severity) => {
   const value = (severity || "").toLowerCase();
   if (value === "warning") return "Warning";
   if (value === "critical" || value === "danger") return "Critical";
   return "Safe";
-};
-
-const calculateStats = (readingList) => {
-  const values = readingList
-    .map((item) => Number(item.value))
-    .filter(Number.isFinite)
-    .sort((a, b) => a - b);
-
-  if (!values.length) return null;
-  const middle = Math.floor(values.length / 2);
-  const median =
-    values.length % 2
-      ? values[middle]
-      : (values[middle - 1] + values[middle]) / 2;
-  const average =
-    values.reduce((sum, value) => sum + value, 0) / values.length;
-
-  return {
-    min: values[0],
-    max: values.at(-1),
-    median,
-    average,
-    count: values.length,
-  };
 };
 
 const AnalyticsTrends = () => {
@@ -82,6 +59,7 @@ const AnalyticsTrends = () => {
   const [parameterId, setParameterId] = useState("");
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
+  const [validationError, setValidationError] = useState("");
   const [readings, setReadings] = useState([]);
   const [thresholds, setThresholds] = useState([]);
   const [page, setPage] = useState(1);
@@ -105,54 +83,87 @@ const AnalyticsTrends = () => {
       });
   }, []);
 
+  // Compute normalized date range from user inputs
+  const dateRangeInfo = useMemo(() => {
+    return normalizeDateRange(dateFrom, dateTo);
+  }, [dateFrom, dateTo]);
+
   useEffect(() => {
     if (!parameterId) return;
+
+    if (!dateRangeInfo.isValid) {
+      setValidationError(dateRangeInfo.error || "Invalid date range");
+      setReadings([]);
+      setLoading(false);
+      return;
+    }
+
+    setValidationError("");
+    let isCancelled = false;
 
     const load = async () => {
       setLoading(true);
       setError("");
 
-      let query = supabase
-        .from("sensor_readings")
-        .select(
-          "id, value, source, recorded_at, parameter_id, parameters ( name, unit ), nodes ( device_label )"
-        );
+      try {
+        let thresholdQuery = supabase
+          .from("thresholds")
+          .select("parameter_id, min_value, max_value, severity_label");
 
-      if (!isAll) query = query.eq("parameter_id", parameterId);
-      if (dateFrom) query = query.gte("recorded_at", `${dateFrom}T00:00:00`);
-      if (dateTo) query = query.lte("recorded_at", `${dateTo}T23:59:59`);
+        if (!isAll) {
+          thresholdQuery = thresholdQuery.eq("parameter_id", parameterId);
+        }
 
-      let thresholdQuery = supabase
-        .from("thresholds")
-        .select("parameter_id, min_value, max_value, severity_label");
+        const [pagedReadings, thresholdResult] = await Promise.all([
+          fetchAllPagedReadings(supabase, {
+            parameterId: isAll ? null : parameterId,
+            isoFrom: dateRangeInfo.isoFrom,
+            isoTo: dateRangeInfo.isoTo,
+            pageSize: 1000,
+          }),
+          thresholdQuery,
+        ]);
 
-      if (!isAll) thresholdQuery = thresholdQuery.eq("parameter_id", parameterId);
+        if (isCancelled) return;
 
-      const [readingResult, thresholdResult] = await Promise.all([
-        query.order("recorded_at", { ascending: false }).limit(5000),
-        thresholdQuery,
-      ]);
+        if (thresholdResult.error) {
+          throw thresholdResult.error;
+        }
 
-      if (readingResult.error || thresholdResult.error) {
+        // pagedReadings is ordered recorded_at ASC
+        // readings state keeps newest-first (DESC) for the reading table
+        const descReadings = pagedReadings.slice().reverse();
+
+        setReadings(descReadings);
+        setThresholds(thresholdResult.data || []);
+        setPage(1);
+      } catch (err) {
+        if (isCancelled) return;
+        console.error("Analytics fetch error:", err);
         setError("Could not load analytics data.");
+        setReadings([]);
+        setThresholds([]);
+      } finally {
+        if (!isCancelled) {
+          setLoading(false);
+        }
       }
-
-      setReadings(readingResult.data || []);
-      setThresholds(thresholdResult.data || []);
-      setPage(1);
-      setLoading(false);
     };
 
     load();
-  }, [parameterId, dateFrom, dateTo, isAll]);
 
-  // Single parameter statistics
+    return () => {
+      isCancelled = true;
+    };
+  }, [parameterId, dateRangeInfo, isAll]);
+
+  // Single parameter statistics calculated on full filtered dataset
   const singleStats = useMemo(() => {
     if (isAll) return null;
     return calculateStats(readings);
   }, [readings, isAll]);
 
-  // Per-parameter statistics (for All Parameters view)
+  // Per-parameter statistics (for All Parameters view) calculated on full filtered dataset
   const statsByParam = useMemo(() => {
     if (!isAll) return {};
     const map = {};
@@ -189,15 +200,18 @@ const AnalyticsTrends = () => {
   const selected = parameters.find((item) => item.id === parameterId);
   const totalPages = Math.max(1, Math.ceil(readings.length / PAGE_SIZE));
   const pageRows = readings.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+  // Chronological order (oldest to newest) for chart timeline
   const chronologicalReadings = useMemo(() => readings.slice().reverse(), [readings]);
 
-  // Single chart data
+  // Single chart data: downsampled (if >2,000 points) + 3hr gap markers
   const singleChartRows = useMemo(() => {
     if (isAll) return [];
-    return chronologicalReadings.map((item) => ({
-      time: formatChartTime(item.recorded_at),
-      fullTime: formatDateTime(item.recorded_at),
-      value: Number(item.value),
+    const downsampled = downsampleTimeSeries(chronologicalReadings, 2000);
+    return downsampled.map((item) => ({
+      time: formatManilaChartTick(item.recorded_at),
+      fullTime: formatManilaDateTime(item.recorded_at),
+      value: item.value,
+      isGap: item.isGap,
     }));
   }, [chronologicalReadings, isAll]);
 
@@ -206,21 +220,28 @@ const AnalyticsTrends = () => {
     if (!isAll) return {};
     const data = {};
     parameters.forEach((param) => {
-      const paramReadings = chronologicalReadings
-        .filter(
-          (r) =>
-            r.parameter_id === param.id ||
-            r.parameters?.name?.toLowerCase() === param.name?.toLowerCase()
-        )
-        .map((item) => ({
-          time: formatChartTime(item.recorded_at),
-          fullTime: formatDateTime(item.recorded_at),
-          value: Number(item.value),
-        }));
-      data[param.name] = paramReadings;
+      const paramReadings = chronologicalReadings.filter(
+        (r) =>
+          r.parameter_id === param.id ||
+          r.parameters?.name?.toLowerCase() === param.name?.toLowerCase()
+      );
+      const downsampled = downsampleTimeSeries(paramReadings, 2000);
+      data[param.name] = downsampled.map((item) => ({
+        time: formatManilaChartTick(item.recorded_at),
+        fullTime: formatManilaDateTime(item.recorded_at),
+        value: item.value,
+        isGap: item.isGap,
+      }));
     });
     return data;
   }, [parameters, chronologicalReadings, isAll]);
+
+  const handleClear = () => {
+    setParameterId(ALL_VALUE);
+    setDateFrom("");
+    setDateTo("");
+    setValidationError("");
+  };
 
   return (
     <div className="admin-shell">
@@ -237,6 +258,7 @@ const AnalyticsTrends = () => {
             <select
               value={parameterId}
               onChange={(e) => setParameterId(e.target.value)}
+              aria-label="Filter by parameter"
             >
               <option value={ALL_VALUE}>All Parameters (Small Multiples)</option>
               {parameters.map((item) => (
@@ -251,8 +273,8 @@ const AnalyticsTrends = () => {
               <input
                 type="date"
                 value={dateFrom}
-                max={dateTo || undefined}
                 onChange={(e) => setDateFrom(e.target.value)}
+                aria-label="From date"
               />
             </label>
 
@@ -261,19 +283,28 @@ const AnalyticsTrends = () => {
               <input
                 type="date"
                 value={dateTo}
-                min={dateFrom || undefined}
                 onChange={(e) => setDateTo(e.target.value)}
+                aria-label="To date"
               />
             </label>
 
-            <button
-              onClick={() => {
-                setDateFrom("");
-                setDateTo("");
-              }}
-            >
+            <button type="button" onClick={handleClear}>
               Clear
             </button>
+          </div>
+
+          {/* Active Range & Validation Status */}
+          <div className="analytics-range-status">
+            <span className="analytics-range-label">Active Range:</span>
+            <span className="analytics-range-value">
+              {validationError ? (
+                <strong className="analytics-range-error">{validationError}</strong>
+              ) : (
+                <>
+                  {dateRangeInfo.displayRange} ({readings.length.toLocaleString()} total reading{readings.length === 1 ? "" : "s"})
+                </>
+              )}
+            </span>
           </div>
 
           {loading ? (
@@ -298,6 +329,10 @@ const AnalyticsTrends = () => {
             </>
           ) : error ? (
             <p className="manager-error">{error}</p>
+          ) : validationError ? (
+            <div className="analytics-empty-state">
+              <p className="manager-error">{validationError}</p>
+            </div>
           ) : (
             <>
               {/* ── Visual Charts ── */}
@@ -323,7 +358,7 @@ const AnalyticsTrends = () => {
                             </span>
                           </div>
 
-                          {pStats && (
+                          {pStats ? (
                             <div className="analytics-subchart-stats">
                               <span>
                                 Avg: <strong>{pStats.average.toFixed(1)}</strong>
@@ -338,6 +373,10 @@ const AnalyticsTrends = () => {
                                 Med: <strong>{pStats.median}</strong>
                               </span>
                             </div>
+                          ) : (
+                            <div className="analytics-subchart-stats">
+                              <span>No stats available</span>
+                            </div>
                           )}
                         </div>
 
@@ -350,7 +389,7 @@ const AnalyticsTrends = () => {
                             <ResponsiveContainer width="100%" height="100%">
                               <LineChart
                                 data={rows}
-                                margin={{ top: 10, right: 12, left: -10, bottom: 0 }}
+                                margin={{ top: 10, right: 16, left: 10, bottom: 5 }}
                               >
                                 <CartesianGrid strokeDasharray="3 3" vertical={false} />
                                 <XAxis
@@ -361,7 +400,10 @@ const AnalyticsTrends = () => {
                                 <YAxis
                                   domain={["auto", "auto"]}
                                   tick={{ fontSize: 10 }}
-                                  width={36}
+                                  width={55}
+                                  tickFormatter={(val) =>
+                                    val >= 1000 ? `${(val / 1000).toFixed(1)}k` : val
+                                  }
                                 />
                                 <Tooltip
                                   formatter={(val) => [
@@ -379,6 +421,7 @@ const AnalyticsTrends = () => {
                                   stroke={color}
                                   strokeWidth={2}
                                   dot={false}
+                                  connectNulls={true}
                                   activeDot={{ r: 4 }}
                                   isAnimationActive={false}
                                 />
@@ -394,35 +437,48 @@ const AnalyticsTrends = () => {
                 /* Single Parameter Focused Deep-Dive Chart */
                 <>
                   <div className="manager-chart">
-                    <ResponsiveContainer width="100%" height={310}>
-                      <LineChart
-                        data={singleChartRows}
-                        margin={{ top: 10, right: 16, left: -5, bottom: 0 }}
-                      >
-                        <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                        <XAxis dataKey="time" minTickGap={34} />
-                        <YAxis domain={["auto", "auto"]} />
-                        <Tooltip
-                          formatter={(val) => [
-                            `${val} ${selected?.unit || ""}`,
-                            selected?.name || "Value",
-                          ]}
-                          labelFormatter={(_, payload) =>
-                            payload?.[0]?.payload?.fullTime || ""
-                          }
-                        />
-                        <Line
-                          type="monotone"
-                          dataKey="value"
-                          name={selected?.name || "Value"}
-                          stroke={getLineColor(selected?.name, 0)}
-                          strokeWidth={2}
-                          dot={false}
-                          activeDot={{ r: 4 }}
-                          isAnimationActive={false}
-                        />
-                      </LineChart>
-                    </ResponsiveContainer>
+                    {singleChartRows.length === 0 ? (
+                      <div className="analytics-subchart-empty">
+                        No {selected?.name || "sensor"} readings in this range
+                      </div>
+                    ) : (
+                      <ResponsiveContainer width="100%" height={310}>
+                        <LineChart
+                          data={singleChartRows}
+                          margin={{ top: 10, right: 20, left: 10, bottom: 5 }}
+                        >
+                          <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                          <XAxis dataKey="time" minTickGap={34} />
+                          <YAxis
+                            domain={["auto", "auto"]}
+                            width={55}
+                            tickFormatter={(val) =>
+                              val >= 1000 ? `${(val / 1000).toFixed(1)}k` : val
+                            }
+                          />
+                          <Tooltip
+                            formatter={(val) => [
+                              `${val} ${selected?.unit || ""}`,
+                              selected?.name || "Value",
+                            ]}
+                            labelFormatter={(_, payload) =>
+                              payload?.[0]?.payload?.fullTime || ""
+                            }
+                          />
+                          <Line
+                            type="monotone"
+                            dataKey="value"
+                            name={selected?.name || "Value"}
+                            stroke={getLineColor(selected?.name, 0)}
+                            strokeWidth={2}
+                            dot={false}
+                            connectNulls={true}
+                            activeDot={{ r: 4 }}
+                            isAnimationActive={false}
+                          />
+                        </LineChart>
+                      </ResponsiveContainer>
+                    )}
                   </div>
 
                   {/* Single Parameter Metric Summary Cards */}
@@ -492,7 +548,7 @@ const AnalyticsTrends = () => {
                       pageRows.map((row, idx) => (
                         <AnimatedRow key={row.id} index={idx}>
                           {isAll && <td>{row.parameters?.name || "—"}</td>}
-                          <td>{formatDateTime(row.recorded_at)}</td>
+                          <td>{formatManilaDateTime(row.recorded_at)}</td>
                           <td>{row.nodes?.device_label || "—"}</td>
                           <td className="data-cell">
                             {row.value} {row.parameters?.unit || selected?.unit || ""}
