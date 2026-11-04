@@ -1,3 +1,4 @@
+import LoadingAnimation from "./LoadingAnimation";
 import { useState, useEffect, useRef, useCallback } from "react";
 import {
   X,
@@ -390,8 +391,7 @@ export default function SurroundingsViewerModal({ surroundings, title = "Sensor 
           {/* Loading Spinner */}
           {isLoading && !hasError && (
             <div className="surroundings-loading-overlay">
-              <Loader2 className="surroundings-spinner" size={36} />
-              <span>Loading site surroundings...</span>
+              <LoadingAnimation size={90} message="Loading site surroundings..." />
             </div>
           )}
 
