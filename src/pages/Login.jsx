@@ -6,7 +6,7 @@ import H2knowLogo from "../assets/img/H2knowLogo.jpg";
 import { logActivity } from "../lib/logActivity";
 import { Lock, CheckCircle, AlertCircle } from "lucide-react";
 import loginCoverVideo from "../assets/video/h2knowLoginCoverSide.mp4";
-import { ButtonSpinner, PageTransition } from "../components/ui";
+import { ButtonSpinner, PageTransition, LoadingAnimation } from "../components/ui";
 
 const REMEMBER_KEY = "h2know_remembered_email";
 
@@ -392,42 +392,7 @@ const Login = () => {
   // RENDER: Session check loading screen
   // ─────────────────────────────────────────────────────────────────────────
   if (checkingSession) {
-    return (
-      <div className="lp-loading-screen" role="status" aria-label="Initializing H2KNOW">
-        <div className="lp-loading-inner">
-          {/* Ripple rings behind logo */}
-          <div className="lp-loading-ripple">
-            <span className="lp-lr-ring lp-lr-ring-1" />
-            <span className="lp-lr-ring lp-lr-ring-2" />
-            <span className="lp-lr-ring lp-lr-ring-3" />
-            <div className="lp-loading-logo-wrap">
-              <img
-                src={H2knowLogo}
-                alt="H2KNOW"
-                className="lp-loading-logo"
-                onError={(e) => {
-                  e.target.style.display = "none";
-                  e.target.nextSibling.style.display = "flex";
-                }}
-              />
-              <div className="lp-loading-logo-fallback">
-                <svg viewBox="0 0 48 48" fill="none">
-                  <path
-                    d="M24 4C24 4 10 20.5 10 30.5C10 38.5 16.3 44 24 44C31.7 44 38 38.5 38 30.5C38 20.5 24 4 24 4Z"
-                    fill="currentColor"
-                  />
-                </svg>
-              </div>
-            </div>
-          </div>
-          <p className="lp-loading-title">
-            H<sub>2</sub>KNOW
-          </p>
-          <div className="lp-loading-spinner" aria-hidden="true" />
-          <p className="lp-loading-text">Initializing session…</p>
-        </div>
-      </div>
-    );
+    return <LoadingAnimation fullScreen size={160} message="Initializing session..." />;
   }
 
   // ─────────────────────────────────────────────────────────────────────────
