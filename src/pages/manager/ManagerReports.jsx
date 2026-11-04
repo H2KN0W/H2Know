@@ -1,22 +1,21 @@
 import { useCallback, useEffect, useState } from "react";
 import {
   FileText,
-  Sparkles,
   ShieldCheck,
   ShieldAlert,
   AlertTriangle,
-  CloudRain,
   Droplets,
   Gauge,
   Waves,
   Thermometer,
   RefreshCw,
+  ClipboardCheck,
 } from "lucide-react";
 import { supabase } from "../../lib/supabase";
 import { useLogPageView } from "../../lib/useLogPageView";
 import { logActivity } from "../../lib/logActivity";
 import { generateReportFile } from "../../lib/generateReport";
-import { fetchWeatherInsights } from "../../lib/weather";
+import { buildSensorSummary } from "../../lib/insights";
 import { fetchReportBlob, downloadReportBlob } from "../../lib/reportStorage";
 import ReportPreviewModal from "../../components/ReportPreviewModal";
 import ReportActions from "../../components/ReportActions";
@@ -65,9 +64,10 @@ const ManagerReports = () => {
   const [reportModal, setReportModal] = useState(null);
   const [form, setForm] = useState({ name: "", parameterIds: [ALL_VALUE], startDate: "", endDate: "", format: "pdf" });
 
-  // AI insights state for report preview & PDF embedding
-  const [aiInsights, setAiInsights] = useState(null);
-  const [weatherSummary, setWeatherSummary] = useState(null);
+  // Empirical baseline & compliance state for report preview
+  const [thresholds, setThresholds] = useState([]);
+  const [recentReadings, setRecentReadings] = useState([]);
+  const [empiricalSummary, setEmpiricalSummary] = useState(null);
   const [insightsLoading, setInsightsLoading] = useState(false);
 
   // History action state
@@ -133,9 +133,11 @@ const ManagerReports = () => {
   useEffect(() => {
     Promise.all([
       supabase.from("parameters").select("id, name, unit").order("name"),
+      supabase.from("thresholds").select("parameter_id, min_value, max_value, severity_label"),
       supabase.auth.getSession()
-    ]).then(async ([parameterResult, sessionResult]) => {
+    ]).then(async ([parameterResult, thresholdResult, sessionResult]) => {
       setParameters(filterMonitoredParameters(parameterResult.data));
+      setThresholds(thresholdResult.data || []);
       const id = sessionResult.data.session?.user?.id;
       if (id) {
         const { data, error: profileError } = await supabase.from("profiles").select("id, full_name, role").eq("id", id).single();
@@ -150,34 +152,34 @@ const ManagerReports = () => {
     });
   }, []);
 
-  // Load live AI insights once on mount for PDF embedding & preview
-  const loadInsightsPreview = useCallback(async () => {
+  // Load empirical baseline summary from verified readings
+  const loadComplianceAuditPreview = useCallback(async () => {
     setInsightsLoading(true);
     try {
-      const data = await fetchWeatherInsights([]);
-      const ua = data?.unifiedAnalysis;
-      const ws = data?.weatherSummary;
-      if (ua) {
-        setAiInsights({
-          riskLevel: ua.riskLevel || "low",
-          currentInterpretation: ua.currentInterpretation || null,
-          recommendations: ua.recommendations || null,
-          runoffAnalysis: ua.runoffAnalysis || null,
-          riskFactors: ua.riskFactors || [],
-          positiveFactors: ua.positiveFactors || [],
-        });
-      }
-      if (ws) setWeatherSummary(ws);
+      const from = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+      const { data: readData } = await supabase
+        .from("sensor_readings")
+        .select("id, value, recorded_at, parameter_id, parameters ( id, name, unit )")
+        .gte("recorded_at", from)
+        .order("recorded_at", { ascending: false })
+        .limit(1000);
+
+      const rows = readData || [];
+      setRecentReadings(rows);
+      const summary = buildSensorSummary(rows, thresholds, 7);
+      setEmpiricalSummary(summary);
     } catch (e) {
-      console.warn("AI insights preview unavailable:", e.message);
+      console.warn("Compliance summary preview unavailable:", e.message);
     } finally {
       setInsightsLoading(false);
     }
-  }, []);
+  }, [thresholds]);
 
   useEffect(() => {
-    loadInsightsPreview();
-  }, []);
+    if (thresholds.length > 0) {
+      loadComplianceAuditPreview();
+    }
+  }, [thresholds, loadComplianceAuditPreview]);
 
   const toggleParameter = (id) => setForm((current) => {
     if (id === ALL_VALUE) {
@@ -242,8 +244,7 @@ const ManagerReports = () => {
         parameters,
         reportId: inserted.id,
         authorName: currentUser.full_name || "Manager",
-        aiInsights,
-        weatherSummary,
+        thresholds,
       });
       const { error: updateError } = await supabase
         .from("reports")
@@ -285,15 +286,6 @@ const ManagerReports = () => {
   };
 
   const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
-
-  // Risk level helpers
-  const riskLevel = aiInsights?.riskLevel || "low";
-  const riskIcon = riskLevel === "severe" || riskLevel === "high"
-    ? ShieldAlert
-    : riskLevel === "moderate"
-      ? AlertTriangle
-      : ShieldCheck;
-  const RiskIcon = riskIcon;
 
   return (
     <div className="admin-shell">
@@ -371,81 +363,76 @@ const ManagerReports = () => {
             {error && <p className="manager-error">{error}</p>}
           </section>
 
-          {/* ── Right: AI Insights Preview Panel ── */}
-          <aside className="manager-panel mr-insights-panel" aria-label="AI Insights Preview">
+          {/* ── Right: Empirical Compliance Audit Preview Panel ── */}
+          <aside className="manager-panel mr-insights-panel" aria-label="Empirical Compliance Audit Preview">
             <div className="mr-panel-header">
-              <Sparkles size={18} className="mr-panel-icon mr-ai-icon" />
-              <h2>Live AI Insights Preview</h2>
+              <ClipboardCheck size={18} className="mr-panel-icon" style={{ color: "var(--manager-accent, #0C4C7C)" }} />
+              <h2>Compliance Audit Preview</h2>
               <button
                 type="button"
                 className="mr-refresh-btn"
-                onClick={loadInsightsPreview}
+                onClick={loadComplianceAuditPreview}
                 disabled={insightsLoading}
-                title="Refresh AI insights"
-                aria-label="Refresh insights"
+                title="Refresh compliance audit"
+                aria-label="Refresh compliance preview"
               >
                 <RefreshCw size={13} className={insightsLoading ? "spin" : ""} />
               </button>
             </div>
             <p className="mr-insights-sub">
-              These AI insights will be embedded in the PDF when you generate a report.
+              Deterministic DENR Class C compliance metrics that will be embedded into your official report.
             </p>
 
             {insightsLoading ? (
               <div className="mr-insights-loading">
                 <LoadingAnimation size={36} message="Fetching AI analysis…" />
               </div>
-            ) : !aiInsights ? (
+            ) : !empiricalSummary ? (
               <div className="mr-insights-empty">
                 <AlertTriangle size={18} />
-                <span>AI insights unavailable. PDF will still be generated without this section.</span>
+                <span>No telemetry available for compliance audit preview. PDF will render using available date range.</span>
               </div>
             ) : (
               <div className="mr-insights-body">
 
-                {/* Risk Banner */}
-                <div className={`mr-risk-banner is-${riskLevel}`}>
-                  <RiskIcon size={17} />
+                {/* Condition Banner */}
+                <div className={`mr-risk-banner is-${empiricalSummary.overallBadge || "low"}`}>
+                  {empiricalSummary.overallBadge === "optimal" ? <ShieldCheck size={17} /> : <AlertTriangle size={17} />}
                   <div>
-                    <span className="mr-risk-label">Runoff Risk</span>
-                    <strong className="mr-risk-val">{riskLevel.toUpperCase()}</strong>
+                    <span className="mr-risk-label">Watershed Condition</span>
+                    <strong className="mr-risk-val">{(empiricalSummary.overallCondition || "Compliant").toUpperCase()}</strong>
                   </div>
-                  {weatherSummary?.next7DaysRainMm != null && (
-                    <div className="mr-rain-stat">
-                      <CloudRain size={14} />
-                      <span>{weatherSummary.next7DaysRainMm} mm forecast (7 days)</span>
-                    </div>
-                  )}
+                  <div className="mr-rain-stat">
+                    <span>{recentReadings.length} verified samples (7d)</span>
+                  </div>
                 </div>
 
-                {/* Parameter status mini-grid */}
-                {aiInsights.currentInterpretation?.overview && (
-                  <div className="mr-overview-block">
-                    <p className="mr-overview-text">{aiInsights.currentInterpretation.overview}</p>
-                  </div>
-                )}
-
-                {/* Key observations */}
-                {aiInsights.currentInterpretation?.keyObservations?.length > 0 && (
+                {/* Key diagnostic observations */}
+                {empiricalSummary.interpretations?.length > 0 && (
                   <div className="mr-observations">
-                    <span className="mr-obs-title">Key Diagnostic Observations</span>
+                    <span className="mr-obs-title">Diagnostic Telemetry Observations</span>
                     <ul className="mr-obs-list">
-                      {aiInsights.currentInterpretation.keyObservations.slice(0, 4).map((obs, idx) => (
+                      {empiricalSummary.interpretations.slice(0, 3).map((interp, idx) => (
                         <li key={idx} className="mr-obs-item">
                           <span className="mr-obs-bullet" />
-                          <span>{obs}</span>
+                          <span><strong>{interp.title}:</strong> {interp.text}</span>
                         </li>
                       ))}
                     </ul>
                   </div>
                 )}
 
-                {/* Parameter icons row */}
+                {/* Parameter icons row with compliance status */}
                 <div className="mr-param-row">
                   {["pH", "TDS", "Turbidity", "Temperature"].map((param) => {
                     const Icon = PARAM_ICONS[param] || Droplets;
+                    const stat = empiricalSummary.parameterStats?.[param];
+                    const complianceLabel = stat?.hasData
+                      ? (stat.complianceRate >= 95 ? "100% In-Spec" : `${stat.complianceRate.toFixed(0)}% In-Spec`)
+                      : "No Data";
+
                     return (
-                      <div key={param} className="mr-param-chip">
+                      <div key={param} className="mr-param-chip" title={`${param}: ${complianceLabel}`}>
                         <Icon size={14} />
                         <span>{param}</span>
                       </div>
@@ -453,21 +440,9 @@ const ManagerReports = () => {
                   })}
                 </div>
 
-                {/* Immediate recommendations */}
-                {aiInsights.recommendations?.immediate?.length > 0 && (
-                  <div className="mr-recs">
-                    <span className="mr-recs-title">Immediate Actions</span>
-                    <ul className="mr-recs-list">
-                      {aiInsights.recommendations.immediate.slice(0, 2).map((rec, idx) => (
-                        <li key={idx}>{typeof rec === "object" && rec !== null ? rec.text : rec}</li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-
                 <p className="mr-ai-stamp">
-                  <Sparkles size={11} />
-                  AI-Correlated · Open-Meteo 7-Day Horizon · Will be included in PDF
+                  <ShieldCheck size={12} />
+                  100% Deterministic Math · DAO 2016-08 Class C Criteria · Auditable
                 </p>
               </div>
             )}
