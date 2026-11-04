@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import AnimatedModal from "./ui/AnimatedModal";
 import ButtonSpinner from "./ui/ButtonSpinner";
+import LoadingAnimation from "./LoadingAnimation";
 import { fetchReportBlob, downloadReportBlob } from "../lib/reportStorage";
 import { parseCsvPreview } from "../lib/csvPreviewParser";
 import { formatDate } from "../lib/formatters";
@@ -277,8 +278,7 @@ export default function ReportPreviewModal({
         <div className="rpm-body">
           {loading ? (
             <div className="rpm-state-box">
-              <span className="spinner spinner-dark" role="status" aria-label="Loading preview" />
-              <p className="rpm-state-text">Loading report preview…</p>
+              <LoadingAnimation size={120} message="Loading report preview…" />
             </div>
           ) : error ? (
             <div className="rpm-state-box rpm-error-box">
