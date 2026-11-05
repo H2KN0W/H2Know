@@ -408,6 +408,36 @@ export const generateReportNarratives = (evaluation) => {
 };
 
 /**
+ * Step E-0: Build a sufficiencyConfig object from `report_quality_config` DB rows.
+ *
+ * Converts rows from the `report_quality_config` table (key/value pairs)
+ * into the sufficiencyConfig format required by `evaluateReportCompliance`.
+ * Any key not present in the DB falls back to the TELEMETRY_SUFFICIENCY_CONFIG
+ * hardcoded default, so the app continues to work even if the table is empty
+ * or the fetch fails.
+ *
+ * @param {Array} dbRows - Rows from report_quality_config: { key: string, value: number }
+ * @returns {Object} sufficiencyConfig with minValidReadings, minCoverageHours, maxGapMinutes, staleThresholdHours
+ */
+export const buildSufficiencyConfig = (dbRows = []) => {
+  const lookup = new Map(
+    (dbRows || []).map((row) => [String(row.key), Number(row.value)])
+  );
+
+  const get = (key, fallback) => {
+    const v = lookup.get(key);
+    return Number.isFinite(v) && v > 0 ? v : fallback;
+  };
+
+  return {
+    minValidReadings:    get("min_valid_readings",    TELEMETRY_SUFFICIENCY_CONFIG.minValidReadings),
+    minCoverageHours:    get("min_coverage_hours",    TELEMETRY_SUFFICIENCY_CONFIG.minCoverageHours),
+    maxGapMinutes:       get("max_gap_minutes",       TELEMETRY_SUFFICIENCY_CONFIG.maxGapMinutes),
+    staleThresholdHours: get("stale_threshold_hours", TELEMETRY_SUFFICIENCY_CONFIG.staleThresholdHours),
+  };
+};
+
+/**
  * Step E: Build a thresholdConfig object from Supabase threshold rows.
  *
  * Converts the Supabase `thresholds` table rows (with `parameter_id`, `min_value`,

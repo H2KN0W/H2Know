@@ -66,6 +66,7 @@ const ManagerReports = () => {
 
   // Empirical baseline & compliance state for report preview
   const [thresholds, setThresholds] = useState([]);
+  const [qualityConfig, setQualityConfig] = useState([]);
   const [recentReadings, setRecentReadings] = useState([]);
   const [empiricalSummary, setEmpiricalSummary] = useState(null);
   const [insightsLoading, setInsightsLoading] = useState(false);
@@ -134,10 +135,12 @@ const ManagerReports = () => {
     Promise.all([
       supabase.from("parameters").select("id, name, unit").order("name"),
       supabase.from("thresholds").select("parameter_id, min_value, max_value, severity_label"),
+      supabase.from("report_quality_config").select("key, value"),
       supabase.auth.getSession()
-    ]).then(async ([parameterResult, thresholdResult, sessionResult]) => {
+    ]).then(async ([parameterResult, thresholdResult, qualityConfigResult, sessionResult]) => {
       setParameters(filterMonitoredParameters(parameterResult.data));
       setThresholds(thresholdResult.data || []);
+      setQualityConfig(qualityConfigResult.data || []);
       const id = sessionResult.data.session?.user?.id;
       if (id) {
         const { data, error: profileError } = await supabase.from("profiles").select("id, full_name, role").eq("id", id).single();
@@ -245,6 +248,7 @@ const ManagerReports = () => {
         reportId: inserted.id,
         authorName: currentUser.full_name || "Manager",
         thresholds,
+        qualityConfig,
       });
       const { error: updateError } = await supabase
         .from("reports")
