@@ -408,6 +408,83 @@ export const generateReportNarratives = (evaluation) => {
 };
 
 /**
+ * Step E: Build a thresholdConfig object from Supabase threshold rows.
+ *
+ * Converts the Supabase `thresholds` table rows (with `parameter_id`, `min_value`,
+ * `max_value`, `severity_label`) into the keyed config format required by
+ * `evaluateReportCompliance`.
+ *
+ * Logic:
+ * - Finds the row whose `severity_label` is "normal" or "safe" for each parameter —
+ *   this is the passing/compliant band. Its min/max become the compliance limits.
+ * - If no normal/safe row exists for a parameter, falls back to DENR_CLASS_C_THRESHOLDS.
+ * - `parameters` is the array of `{ id, name, unit }` objects loaded from Supabase.
+ *
+ * @param {Array} thresholds  - Supabase threshold rows: { parameter_id, min_value, max_value, severity_label }
+ * @param {Array} parameters  - Supabase parameter rows: { id, name, unit }
+ * @returns {Object} thresholdConfig keyed by canonical parameter name
+ */
+export const buildThresholdConfig = (thresholds = [], parameters = []) => {
+  // Build a quick lookup from parameter_id -> { canonicalName, unit }
+  const paramById = new Map();
+  for (const p of parameters) {
+    const canonical = toCanonicalParam(p.name);
+    paramById.set(String(p.id), { canonical, unit: p.unit || "" });
+  }
+
+  // Group threshold rows by canonical parameter name
+  const grouped = new Map();
+  for (const row of thresholds) {
+    const info = paramById.get(String(row.parameter_id));
+    if (!info) continue;
+    if (!grouped.has(info.canonical)) {
+      grouped.set(info.canonical, { rows: [], unit: info.unit });
+    }
+    grouped.get(info.canonical).rows.push(row);
+  }
+
+  const SAFE_LABELS = new Set(["normal", "safe", "within", "compliant", "good"]);
+
+  const config = {};
+  for (const [canonical, { rows, unit }] of grouped) {
+    const denrFallback = DENR_CLASS_C_THRESHOLDS[canonical] || {
+      min: null,
+      max: null,
+      unit,
+      standardName: "Database Configuration",
+    };
+
+    // Prefer the row labeled as "normal" or "safe"
+    const safeRow = rows.find((r) =>
+      SAFE_LABELS.has(String(r.severity_label || "").trim().toLowerCase())
+    );
+
+    if (safeRow) {
+      const min = safeRow.min_value == null ? null : Number(safeRow.min_value);
+      const max = safeRow.max_value == null ? null : Number(safeRow.max_value);
+      config[canonical] = {
+        min: Number.isFinite(min) ? min : denrFallback.min,
+        max: Number.isFinite(max) ? max : denrFallback.max,
+        unit: unit || denrFallback.unit,
+        standardName: "Database Threshold Configuration",
+      };
+    } else {
+      // No safe/normal band found — fall back to DENR defaults but keep the unit
+      config[canonical] = { ...denrFallback, unit: unit || denrFallback.unit };
+    }
+  }
+
+  // For any canonical param not covered by DB rows, fill in DENR defaults
+  for (const [canonical, fallback] of Object.entries(DENR_CLASS_C_THRESHOLDS)) {
+    if (!config[canonical]) {
+      config[canonical] = { ...fallback };
+    }
+  }
+
+  return config;
+};
+
+/**
  * Step F: Badge Colors Matching Status
  */
 export const getStatusBadgeStyle = (status) => {

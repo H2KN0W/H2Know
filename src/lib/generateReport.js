@@ -10,6 +10,7 @@ import {
   generateReportNarratives,
   getStatusBadgeStyle,
   toCanonicalParam,
+  buildThresholdConfig,
 } from "./reportAnalytics";
 import { STATUS_CODES } from "../config/reportQualityConfig";
 // H2Know logo embedded as a static Base64 Data URL so PDF generation
@@ -986,7 +987,9 @@ export const generateReportFile = async ({
   const qcReadings = runDataQualityQC(readingsWithParamName);
 
   // Step B & C: Evaluate coverage and regulatory compliance
-  const evaluation = evaluateReportCompliance(qcReadings, paramNames);
+  // Build thresholdConfig from Supabase DB rows so compliance uses live configured thresholds
+  const thresholdConfig = buildThresholdConfig(thresholds, parameters);
+  const evaluation = evaluateReportCompliance(qcReadings, paramNames, thresholdConfig);
 
   let fileBlob;
   let extension;
