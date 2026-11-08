@@ -65,12 +65,12 @@ export const formatRelativeTime = (isoString, checkedAt) => {
 };
 
 /**
- * Format severity labels for display. Softens heavy terms ("critical" / "danger" -> "Elevated").
+ * Format severity labels for display. Softens heavy terms ("critical" / "danger" -> "Exceeded").
  */
 export const formatSeverityLabel = (severity) => {
   if (!severity) return "—";
   const s = String(severity).trim().toLowerCase();
-  if (s === "critical" || s === "danger") return "Elevated";
+  if (s === "critical" || s === "danger" || s === "exceeded" || s === "elevated") return "Exceeded";
   if (s === "warning") return "Warning";
   if (s === "normal" || s === "safe") return "Safe";
   return severity;
@@ -78,11 +78,11 @@ export const formatSeverityLabel = (severity) => {
 
 /**
  * Maps severity labels to badge CSS classes.
- * "Elevated", "critical", and "danger" use the softer amber/gold status-warning styling instead of red.
+ * "Exceeded", "elevated", "critical", and "danger" use the softer amber/gold status-warning styling instead of red.
  */
 export const severityBadgeClass = (severity) => {
   const s = (severity || "").toLowerCase();
-  if (s === "critical" || s === "danger" || s === "elevated") return "badge-elevated";
+  if (s === "critical" || s === "danger" || s === "elevated" || s === "exceeded") return "badge-exceeded";
   if (s === "warning") return "badge-warning";
   return "badge-normal";
 };
