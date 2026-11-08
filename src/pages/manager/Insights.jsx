@@ -392,7 +392,7 @@ const Insights = () => {
         <header className="page-header page-header-with-actions">
           <div>
             <h1>Watershed Insights</h1>
-            <p>Quick-read predictive analysis for water quality decisions</p>
+            <p>Empirical telemetry analysis and observation for water quality decisions</p>
           </div>
           <WeatherWidget />
           <div className="insights-refreshed">
@@ -403,7 +403,7 @@ const Insights = () => {
               className="insights-button"
               onClick={() => loadInsightsData()}
               disabled={loading || weatherLoading}
-              title="Refresh telemetry and AI predictive analysis"
+              title="Refresh telemetry and analysis"
             >
               <RefreshCw size={14} className={weatherLoading ? "spin" : ""} aria-hidden="true" />
               <span>Refresh</span>
