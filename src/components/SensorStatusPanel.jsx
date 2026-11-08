@@ -8,23 +8,21 @@ import {
 } from "../lib/nodeHealth";
 
 /* ─────────────────────────────────────────────────────────
-   computeHealth — derives a 0-100 score from existing data.
+   computeHealth — derives a 0-100 score from existing device telemetry.
 
    Factors:
-     1. Freshness  (40 pts): re-anchored to the 30-minute cycle:
-         age <= 30 min -> 40 pts
-         <= 40 min     -> 36 pts (tiny drop)
-         <= 60 min     -> 28 pts
-         <= 90 min     -> 16 pts
+     1. Freshness   (65 pts): anchored to the 30-minute cycle:
+         age <= 30 min -> 65 pts
+         <= 40 min     -> 58 pts (tiny drop)
+         <= 60 min     -> 45 pts
+         <= 90 min     -> 25 pts
          otherwise     -> 0 pts
-     2. Alert-free (40 pts): active alerts for this node
-         0 alerts → 40    1 alert  → 20    ≥ 2    → 0
-     3. Node Status (20 pts): based on evaluateNodeStatus(ageMs)
-         Online  → 20    Delayed → 10    Offline → 0
+     2. Node Status (35 pts): based on evaluateNodeStatus(ageMs)
+         Online  → 35    Delayed → 18    Offline → 0
 
    Returns { score: number, factors: [{ label, pts, max }] }
 ───────────────────────────────────────────────────────── */
-function computeHealth({ lastSync, checkedAt, alertCount, status }) {
+function computeHealth({ lastSync, checkedAt, status }) {
   const factors = [];
   let score = 0;
 
@@ -33,40 +31,29 @@ function computeHealth({ lastSync, checkedAt, alertCount, status }) {
   let freshnessLabel = "Freshness unknown";
   if (lastSync && checkedAt) {
     const ageMin = (checkedAt - new Date(lastSync).getTime()) / 60000;
-    if (ageMin <= 30)       { freshnessScore = 40; freshnessLabel = "Synced <= 30 min ago"; }
-    else if (ageMin <= 40) { freshnessScore = 36; freshnessLabel = "Synced <= 40 min ago"; }
-    else if (ageMin <= 60) { freshnessScore = 28; freshnessLabel = "Synced <= 1 hr ago"; }
-    else if (ageMin <= 90) { freshnessScore = 16; freshnessLabel = "Synced <= 90 min ago"; }
+    if (ageMin <= 30)       { freshnessScore = 65; freshnessLabel = "Synced <= 30 min ago"; }
+    else if (ageMin <= 40) { freshnessScore = 58; freshnessLabel = "Synced <= 40 min ago"; }
+    else if (ageMin <= 60) { freshnessScore = 45; freshnessLabel = "Synced <= 1 hr ago"; }
+    else if (ageMin <= 90) { freshnessScore = 25; freshnessLabel = "Synced <= 90 min ago"; }
     else                   { freshnessScore = 0;  freshnessLabel = "Last sync > 90 min ago"; }
   }
   score += freshnessScore;
-  factors.push({ label: freshnessLabel, pts: freshnessScore, max: 40 });
+  factors.push({ label: freshnessLabel, pts: freshnessScore, max: 65 });
 
-  // 2. Alert-free
-  let alertScore = 20; // partial credit when unknown
-  let alertLabel = "Alert data unavailable";
-  if (alertCount != null) {
-    if (alertCount === 0)      { alertScore = 40; alertLabel = "No active alerts"; }
-    else if (alertCount === 1) { alertScore = 20; alertLabel = "1 active alert"; }
-    else                       { alertScore = 0;  alertLabel = `${alertCount} active alerts`; }
-  }
-  score += alertScore;
-  factors.push({ label: alertLabel, pts: alertScore, max: 40 });
-
-  // 3. Online / Node Status
+  // 2. Online / Node Status
   let statusScore = 0;
   let statusLabel = "Currently offline";
   if (status === NODE_STATUS_LABELS.ONLINE) {
-    statusScore = 20;
+    statusScore = 35;
     statusLabel = "Currently online";
   } else if (status === NODE_STATUS_LABELS.DELAYED) {
-    statusScore = 10;
+    statusScore = 18;
     statusLabel = "Reading delayed";
   } else {
     statusScore = 0;
     statusLabel = "Currently offline";
   }
-  factors.push({ label: statusLabel, pts: statusScore, max: 20 });
+  factors.push({ label: statusLabel, pts: statusScore, max: 35 });
   score += statusScore;
 
   return { score: Math.max(0, Math.min(100, score)), factors };
@@ -506,7 +493,7 @@ function HeartbeatLine({ timestamps, status, checkedAt }) {
  *   alerts     – active alerts rows from Supabase
  *   checkedAt  – Date.now() of last fetch
  */
-export default function SensorHealthGauge({ node, readings = [], alerts = [], checkedAt }) {
+export default function SensorHealthGauge({ node, readings = [], checkedAt }) {
   // Query one parameter (e.g. temperature) for this node in the last 12 hours
   // Distinct timestamps, newest last
   const { nodeReadings, distinctTimestamps, lastSync } = useMemo(() => {
@@ -556,15 +543,9 @@ export default function SensorHealthGauge({ node, readings = [], alerts = [], ch
     return evaluateNodeStatus(ageMs);
   }, [ageMs]);
 
-  const alertCount = useMemo(() => {
-    if (!node) return null;
-    const nodeReadingIds = new Set(nodeReadings.map((r) => r.id));
-    return alerts.filter((a) => (a.status ? a.status.toLowerCase() === 'active' : true) && nodeReadingIds.has(a.sensor_readings?.id)).length;
-  }, [alerts, node, nodeReadings]);
-
   const { score, factors } = useMemo(
-    () => computeHealth({ lastSync, checkedAt, alertCount, status: nodeStatus }),
-    [lastSync, checkedAt, alertCount, nodeStatus]
+    () => computeHealth({ lastSync, checkedAt, status: nodeStatus }),
+    [lastSync, checkedAt, nodeStatus]
   );
 
   const formatDT = (v) => (v ? formatPHTDateTime(v) : "No data yet");
