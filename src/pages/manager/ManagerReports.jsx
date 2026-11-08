@@ -2,7 +2,6 @@ import { useCallback, useEffect, useState } from "react";
 import {
   FileText,
   ShieldCheck,
-  ShieldAlert,
   AlertTriangle,
   Droplets,
   Gauge,
@@ -24,7 +23,12 @@ import "../../styles/manager/ManagerPortal.css";
 import "../../styles/manager/ManagerReports.css";
 
 import { formatDateTime, formatDate, formatReportParameters } from "../../lib/formatters";
-import { PAGE_SIZES, filterMonitoredParameters } from "../../config/constants";
+import {
+  PAGE_SIZES,
+  filterMonitoredParameters,
+  toStartOfDay,
+  toEndOfDay,
+} from "../../config/constants";
 import {
   PageTransition,
   LoadingAnimation,
@@ -67,9 +71,9 @@ const ManagerReports = () => {
   // Empirical baseline & compliance state for report preview
   const [thresholds, setThresholds] = useState([]);
   const [qualityConfig, setQualityConfig] = useState([]);
-  const [recentReadings, setRecentReadings] = useState([]);
   const [empiricalSummary, setEmpiricalSummary] = useState(null);
   const [insightsLoading, setInsightsLoading] = useState(false);
+  const [previewError, setPreviewError] = useState("");
 
   // History action state
   const [downloadingReportId, setDownloadingReportId] = useState(null);
@@ -155,33 +159,55 @@ const ManagerReports = () => {
     });
   }, []);
 
-  // Load empirical baseline summary from verified readings
+  // Load the empirical summary for the selected report period
   const loadComplianceAuditPreview = useCallback(async () => {
-    setInsightsLoading(true);
-    try {
-      const from = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
-      const { data: readData } = await supabase
-        .from("sensor_readings")
-        .select("id, value, recorded_at, parameter_id, parameters ( id, name, unit )")
-        .gte("recorded_at", from)
-        .order("recorded_at", { ascending: false })
-        .limit(1000);
+    if (!form.startDate || !form.endDate || form.startDate > form.endDate) {
+      setEmpiricalSummary(null);
+      setPreviewError("");
+      setInsightsLoading(false);
+      return;
+    }
 
-      const rows = readData || [];
-      setRecentReadings(rows);
-      const summary = buildSensorSummary(rows, thresholds, 7);
+    setInsightsLoading(true);
+    setPreviewError("");
+    try {
+      const start = new Date(toStartOfDay(form.startDate));
+      const end = new Date(toEndOfDay(form.endDate));
+      const rangeDays = Math.floor((end.getTime() - start.getTime()) / (24 * 60 * 60 * 1000)) + 1;
+      const rows = [];
+      const pageSize = 1000;
+
+      for (let from = 0; ; from += pageSize) {
+        const { data, error: readingsError } = await supabase
+          .from("sensor_readings")
+          .select("id, value, recorded_at, parameter_id, parameters ( id, name, unit )")
+          .gte("recorded_at", toStartOfDay(form.startDate))
+          .lte("recorded_at", toEndOfDay(form.endDate))
+          .order("recorded_at", { ascending: true })
+          .order("id", { ascending: true })
+          .range(from, from + pageSize - 1);
+
+        if (readingsError) throw readingsError;
+
+        const page = data || [];
+        rows.push(...page);
+        if (page.length < pageSize) break;
+      }
+
+      const summary = buildSensorSummary(rows, thresholds, rangeDays, end.getTime());
       setEmpiricalSummary(summary);
     } catch (e) {
-      console.warn("Compliance summary preview unavailable:", e.message);
+      console.error("Compliance summary preview unavailable:", e);
+      setEmpiricalSummary(null);
+      setPreviewError(e.message || "Could not load compliance data for this date range.");
     } finally {
       setInsightsLoading(false);
     }
-  }, [thresholds]);
+  }, [form.startDate, form.endDate, thresholds]);
 
   useEffect(() => {
-    if (thresholds.length > 0) {
-      loadComplianceAuditPreview();
-    }
+    if (!thresholds.length) return;
+    loadComplianceAuditPreview();
   }, [thresholds, loadComplianceAuditPreview]);
 
   const toggleParameter = (id) => setForm((current) => {
@@ -300,7 +326,7 @@ const ManagerReports = () => {
           <p>Generate and download professional water-quality reports for institutional review</p>
         </header>
 
-        {/* ── Two-column layout: Form left, AI Preview right ── */}
+        {/* ── Two-column layout: Form left, compliance preview right ── */}
         <div className="mr-layout">
 
           {/* ── Left: Generate Form ── */}
@@ -349,7 +375,7 @@ const ManagerReports = () => {
               <label>
                 Format
                 <select value={form.format} onChange={(e) => setForm({ ...form, format: e.target.value })}>
-                  <option value="pdf">PDF — Full Report with Charts &amp; AI Insights</option>
+                  <option value="pdf">PDF — Full Report with Charts &amp; Compliance Assessment</option>
                   <option value="csv">CSV — Raw Data Export</option>
                 </select>
               </label>
@@ -389,12 +415,17 @@ const ManagerReports = () => {
 
             {insightsLoading ? (
               <div className="mr-insights-loading">
-                <LoadingAnimation size={36} message="Fetching AI analysis…" />
+                <LoadingAnimation size={36} message="Loading compliance data…" />
               </div>
             ) : !empiricalSummary ? (
               <div className="mr-insights-empty">
                 <AlertTriangle size={18} />
-                <span>No telemetry available for compliance audit preview. PDF will render using available date range.</span>
+                <span>
+                  {previewError ||
+                    (form.startDate && form.endDate
+                      ? `No telemetry available from ${form.startDate} to ${form.endDate}.`
+                      : "Choose a start and end date to preview the report’s compliance assessment.")}
+                </span>
               </div>
             ) : (
               <div className="mr-insights-body">
@@ -407,7 +438,10 @@ const ManagerReports = () => {
                     <strong className="mr-risk-val">{(empiricalSummary.overallCondition || "Compliant").toUpperCase()}</strong>
                   </div>
                   <div className="mr-rain-stat">
-                    <span>{recentReadings.length} verified samples (7d)</span>
+                    <span>
+                      {empiricalSummary.totalReadingsInWindow} verified samples
+                      ({form.startDate} to {form.endDate})
+                    </span>
                   </div>
                 </div>
 

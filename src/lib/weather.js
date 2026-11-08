@@ -17,6 +17,7 @@ export function summarizeWeather(weather) {
 
   const dates = daily.time || [];
   const rain = daily.rain_sum || daily.precipitation_sum || [];
+  if (!dates.length || !rain.length) return null;
   const precipProb = daily.precipitation_probability_max || [];
   const tempMax = daily.temperature_2m_max || [];
 
@@ -300,38 +301,55 @@ export function generateHydrologicalAnalysis(telemetryStats, weatherSummary) {
  * analytical fallback when Edge Functions are offline or unreachable.
  */
 export async function fetchWeatherInsights(clientReadings = []) {
+  let edgeData = null;
+
   try {
     const { data, error } = await supabase.functions.invoke("weather-insights");
-    if (!error && data && data.unifiedAnalysis) {
-      return data;
-    }
-    if (data && data.aiInsights) {
-      // If legacy format without unifiedAnalysis, upgrade it
-      const ws = data.weatherSummary || null;
-      const stats = data.telemetrySummary || {};
-      const analysis = generateHydrologicalAnalysis(stats, ws);
-      return {
-        ...data,
-        unifiedAnalysis: analysis,
-      };
+    if (error) throw error;
+    edgeData = data;
+
+    if (data) {
+      const daily = data.daily || data.dailyForecast;
+      const weatherSummary = data.weatherSummary?.next7DaysRainMm != null
+        ? data.weatherSummary
+        : summarizeWeather({ daily, current: data.currentWeather });
+      const hasRainfallForecast = weatherSummary?.next7DaysRainMm != null;
+
+      if (hasRainfallForecast && data.unifiedAnalysis) {
+        return { ...data, weatherSummary };
+      }
+
+      if (hasRainfallForecast && data.aiInsights) {
+        const analysis = generateHydrologicalAnalysis(data.telemetrySummary || {}, weatherSummary);
+        return {
+          ...data,
+          weatherSummary,
+          unifiedAnalysis: analysis,
+        };
+      }
     }
   } catch (err) {
-    console.warn("Edge function invocation failed, using client-side hydrological synthesis:", err);
+    console.warn("Edge weather request failed; trying the public forecast API:", err);
   }
 
   // Fallback: fetch Open-Meteo directly from client (CORS-friendly public API)
-  let rawWeather = null;
+  let rawWeather;
   try {
-    const url = `https://api.open-meteo.com/v1/forecast?latitude=${LAT}&longitude=${LON}&current=temperature_2m,relative_humidity_2m,apparent_temperature,precipitation,rain,weather_code,wind_speed_10m&daily=precipitation_sum,rain_sum,precipitation_probability_max,temperature_2m_max,temperature_2m_min&past_days=7&forecast_days=7&timezone=Asia/Manila`;
+    const url = `https://api.open-meteo.com/v1/forecast?latitude=${LAT}&longitude=${LON}&current=temperature_2m,relative_humidity_2m,apparent_temperature,precipitation,rain,weather_code,wind_speed_10m&daily=precipitation_sum,rain_sum,precipitation_probability_max,temperature_2m_max,temperature_2m_min&past_days=7&forecast_days=8&timezone=Asia/Manila`;
     const res = await fetch(url, { signal: AbortSignal.timeout(8000) });
-    if (res.ok) {
-      rawWeather = await res.json();
+    if (!res.ok) {
+      throw new Error(`Open-Meteo returned HTTP ${res.status}`);
     }
-  } catch {
-    rawWeather = null;
+    rawWeather = await res.json();
+  } catch (err) {
+    console.warn("Direct weather forecast request failed:", err);
+    throw new Error("Rainfall forecast is unavailable. Please try refreshing.", { cause: err });
   }
 
   const ws = summarizeWeather(rawWeather);
+  if (!ws) {
+    throw new Error("Rainfall forecast data is missing. Please try refreshing.");
+  }
 
   // Group readings by parameter
   const statsMap = {};
@@ -345,27 +363,30 @@ export async function fetchWeatherInsights(clientReadings = []) {
     statsMap[name].push(v);
   }
 
-  const telemetrySummary = {};
-  for (const [name, vals] of Object.entries(statsMap)) {
-    const latest = vals[0] ?? 0;
-    const avg = vals.reduce((s, v) => s + v, 0) / (vals.length || 1);
-    const quarter = Math.max(1, Math.floor(vals.length / 4));
-    const recentAvg = vals.slice(0, quarter).reduce((s, v) => s + v, 0) / quarter;
-    const olderAvg = vals.slice(quarter).reduce((s, v) => s + v, 0) / (vals.length - quarter || 1);
-    const deltaPercent = olderAvg !== 0 ? ((recentAvg - olderAvg) / olderAvg) * 100 : 0;
-    telemetrySummary[name] = {
-      current: +latest.toFixed(2),
-      avg: +avg.toFixed(2),
-      trend: Math.abs(deltaPercent) < 3 ? "stable" : deltaPercent > 0 ? "rising" : "falling",
-      deltaPercent: +deltaPercent.toFixed(1),
-    };
+  const telemetrySummary = edgeData?.telemetrySummary || {};
+  if (!edgeData?.telemetrySummary) {
+    for (const [name, vals] of Object.entries(statsMap)) {
+      const latest = vals[0] ?? 0;
+      const avg = vals.reduce((s, v) => s + v, 0) / (vals.length || 1);
+      const quarter = Math.max(1, Math.floor(vals.length / 4));
+      const recentAvg = vals.slice(0, quarter).reduce((s, v) => s + v, 0) / quarter;
+      const olderAvg = vals.slice(quarter).reduce((s, v) => s + v, 0) / (vals.length - quarter || 1);
+      const deltaPercent = olderAvg !== 0 ? ((recentAvg - olderAvg) / olderAvg) * 100 : 0;
+      telemetrySummary[name] = {
+        current: +latest.toFixed(2),
+        avg: +avg.toFixed(2),
+        trend: Math.abs(deltaPercent) < 3 ? "stable" : deltaPercent > 0 ? "rising" : "falling",
+        deltaPercent: +deltaPercent.toFixed(1),
+      };
+    }
   }
 
   const analysis = generateHydrologicalAnalysis(telemetrySummary, ws);
 
   return {
+    ...edgeData,
     generatedAt: new Date().toISOString(),
-    location: {
+    location: edgeData?.location || {
       name: `${SITE_LOCATION.river}, ${SITE_LOCATION.city}`,
       city: SITE_LOCATION.city,
       province: SITE_LOCATION.province,
@@ -379,6 +400,7 @@ export async function fetchWeatherInsights(clientReadings = []) {
     telemetrySummary,
     unifiedAnalysis: analysis,
     aiInsights: {
+      ...edgeData?.aiInsights,
       riskLevel: analysis.riskLevel,
       risks: analysis.currentInterpretation.keyObservations,
       recommendations: analysis.recommendations.immediate,
