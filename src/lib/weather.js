@@ -322,8 +322,8 @@ export async function fetchWeatherInsights(clientReadings = []) {
   // Fallback: fetch Open-Meteo directly from client (CORS-friendly public API)
   let rawWeather = null;
   try {
-    const url = `https://api.open-meteo.com/v1/forecast?latitude=${LAT}&longitude=${LON}&current=temperature_2m,relative_humidity_2m,precipitation,rain,weather_code&daily=precipitation_sum,rain_sum,precipitation_probability_max,temperature_2m_max,temperature_2m_min&past_days=7&forecast_days=7&timezone=Asia/Manila`;
-    const res = await fetch(url, { signal: AbortSignal.timeout(4000) });
+    const url = `https://api.open-meteo.com/v1/forecast?latitude=${LAT}&longitude=${LON}&current=temperature_2m,relative_humidity_2m,apparent_temperature,precipitation,rain,weather_code,wind_speed_10m&daily=precipitation_sum,rain_sum,precipitation_probability_max,temperature_2m_max,temperature_2m_min&past_days=7&forecast_days=7&timezone=Asia/Manila`;
+    const res = await fetch(url, { signal: AbortSignal.timeout(8000) });
     if (res.ok) {
       rawWeather = await res.json();
     }
@@ -375,6 +375,7 @@ export async function fetchWeatherInsights(clientReadings = []) {
     weatherSummary: ws,
     currentWeather: rawWeather?.current || null,
     dailyForecast: rawWeather?.daily || null,
+    daily: rawWeather?.daily || null,
     telemetrySummary,
     unifiedAnalysis: analysis,
     aiInsights: {
