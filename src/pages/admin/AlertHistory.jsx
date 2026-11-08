@@ -5,7 +5,7 @@ import "../../styles/admin/AlertHistory.css";
 import { useLogPageView } from "../../lib/useLogPageView";
 import Sidebar from "../../components/Sidebar";
 
-import { formatDateTime, severityBadgeClass } from "../../lib/formatters";
+import { formatDateTime, severityBadgeClass, formatSeverityLabel } from "../../lib/formatters";
 import { PAGE_SIZES, filterMonitoredParameters } from "../../config/constants";
 import { PageTransition, SkeletonTableRows, AnimatedRow } from "../../components/ui";
 
@@ -211,7 +211,7 @@ const AlertHistory = () => {
                         </td>
                         <td>
                           <span className={`badge ${severityBadgeClass(severity)}`}>
-                            {severity || "—"}
+                            {formatSeverityLabel(severity)}
                           </span>
                         </td>
                       </AnimatedRow>
