@@ -444,6 +444,7 @@ Deno.serve(async (req) => {
       weatherSummary: ws,
       currentWeather: (weather as Record<string, unknown>)?.current || null,
       dailyForecast: (weather as Record<string, unknown>)?.daily || null,
+      daily: (weather as Record<string, unknown>)?.daily || null,
       telemetrySummary: stats,
       unifiedAnalysis: analysis,
       aiInsights: {

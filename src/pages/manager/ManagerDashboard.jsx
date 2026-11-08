@@ -25,7 +25,7 @@ import "../../styles/manager/ManagerPortal.css";
 import "../../styles/manager/ManagerDashboard.css";
 import { PageTransition, SkeletonCard, SkeletonTableRows, LiveValue, AnimatedRow } from "../../components/ui";
 
-import { formatDateTime, formatClockTime, severityBadgeClass } from "../../lib/formatters";
+import { formatDateTime, formatClockTime, severityBadgeClass, formatSeverityLabel } from "../../lib/formatters";
 import { PARAMETERS, REFRESH_INTERVALS } from "../../config/constants";
 
 const icons = { ph: Droplets, turbidity: Waves, tds: Gauge, temperature: Thermometer };
@@ -36,13 +36,13 @@ const conditionRank = { safe: 0, warning: 1, critical: 2, unknown: 3 };
 const conditionLabel = {
   safe: "Safe",
   warning: "Warning",
-  critical: "Critical",
+  critical: "Exceeded",
   unknown: "Unknown",
 };
 const conditionIcon = {
   safe: ShieldCheck,
   warning: ShieldAlert,
-  critical: ShieldX,
+  critical: ShieldAlert,
   unknown: ShieldQuestion,
 };
 
@@ -459,7 +459,7 @@ const ManagerDashboard = () => {
                                    threshold?.severity_label
                                  )}`}
                               >
-                                {threshold?.severity_label || "—"}
+                                {formatSeverityLabel(threshold?.severity_label)}
                               </span>
                             </td>
                           </AnimatedRow>

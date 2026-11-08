@@ -63,12 +63,14 @@ const withNodeLocation = (row) => ({
   nodes: row.nodes ? { ...row.nodes, location: row.nodes.device_label } : row.nodes,
 });
 
-// Risk color scale
+// Risk color scale - uses amber/gold instead of red for elevated risks
 const RISK_COLORS = {
   low: "#27ae60",
-  moderate: "#e67e22",
-  high: "#c0392b",
-  severe: "#8b0000",
+  moderate: "#d97706",
+  high: "#b45309",
+  severe: "#92400e",
+  elevated: "#b45309",
+  significant: "#92400e",
 };
 
 const OWNER_ICONS = {
@@ -390,7 +392,7 @@ const Insights = () => {
         <header className="page-header page-header-with-actions">
           <div>
             <h1>Watershed Insights</h1>
-            <p>Quick-read predictive analysis for water quality decisions</p>
+            <p>Empirical telemetry analysis and observation for water quality decisions</p>
           </div>
           <WeatherWidget />
           <div className="insights-refreshed">
@@ -401,7 +403,7 @@ const Insights = () => {
               className="insights-button"
               onClick={() => loadInsightsData()}
               disabled={loading || weatherLoading}
-              title="Refresh telemetry and AI predictive analysis"
+              title="Refresh telemetry and analysis"
             >
               <RefreshCw size={14} className={weatherLoading ? "spin" : ""} aria-hidden="true" />
               <span>Refresh</span>
@@ -499,7 +501,6 @@ const Insights = () => {
 
             {/* Primary Ground Truth: Sensor Summary & Dynamic Baseline Analysis */}
             <SensorSummaryCard
-              readings={readings}
               thresholds={thresholds}
               excludeTurbidity={EXCLUDE_TURBIDITY}
             />

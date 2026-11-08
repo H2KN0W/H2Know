@@ -82,12 +82,12 @@
 /* Condition-specific overrides on the hero card text color */
 .river-condition-safe strong     { color: #bbf7d0 !important; }
 .river-condition-warning strong  { color: #fef08a !important; }
-.river-condition-critical strong { color: #fecaca !important; }
+.river-condition-critical strong { color: #fef08a !important; }
 .river-condition-unknown strong  { color: #ffffff !important; }
 
 .river-condition-safe svg        { color: #bbf7d0 !important; }
 .river-condition-warning svg     { color: #fef08a !important; }
-.river-condition-critical svg    { color: #fecaca !important; }
+.river-condition-critical svg    { color: #fef08a !important; }
 .river-condition-unknown svg     { color: #ffffff !important; }
 
 /* ── Node grid ───────────────────────────────────────────────────── */
