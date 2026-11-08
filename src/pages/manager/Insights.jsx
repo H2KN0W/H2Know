@@ -63,12 +63,14 @@ const withNodeLocation = (row) => ({
   nodes: row.nodes ? { ...row.nodes, location: row.nodes.device_label } : row.nodes,
 });
 
-// Risk color scale
+// Risk color scale - uses amber/gold instead of red for elevated risks
 const RISK_COLORS = {
   low: "#27ae60",
-  moderate: "#e67e22",
-  high: "#c0392b",
-  severe: "#8b0000",
+  moderate: "#d97706",
+  high: "#b45309",
+  severe: "#92400e",
+  elevated: "#b45309",
+  significant: "#92400e",
 };
 
 const OWNER_ICONS = {
@@ -499,7 +501,6 @@ const Insights = () => {
 
             {/* Primary Ground Truth: Sensor Summary & Dynamic Baseline Analysis */}
             <SensorSummaryCard
-              readings={readings}
               thresholds={thresholds}
               excludeTurbidity={EXCLUDE_TURBIDITY}
             />
