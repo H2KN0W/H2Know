@@ -15,7 +15,7 @@ import { PageTransition, SkeletonCard, SkeletonTableRows, LiveValue, AnimatedRow
  * and recent user activity logs with auto-refresh & Supabase realtime updates.
  */
 
-import { formatDateTime, formatClockTime, formatRelativeTime, severityBadgeClass } from "../../lib/formatters";
+import { formatDateTime, formatClockTime, formatRelativeTime, severityBadgeClass, formatSeverityLabel } from "../../lib/formatters";
 import { REFRESH_INTERVALS } from "../../config/constants";
 import { evaluateNodeStatus, NODE_STATUS_LABELS } from "../../lib/nodeHealth";
 
@@ -549,7 +549,7 @@ const Dashboard = () => {
                           </td>
                           <td>
                             <span className={`badge ${severityBadgeClass(severity)}`}>
-                              {severity}
+                              {formatSeverityLabel(severity)}
                             </span>
                           </td>
                         </AnimatedRow>
