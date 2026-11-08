@@ -450,9 +450,12 @@ const Insights = () => {
             {/* Top Summary Strip */}
             <section className="summary-strip" aria-label="Quick summary">
               <div className="summary-tile">
-                <div className="summary-tile-label">Overall Risk</div>
+                <div className="summary-tile-label" title="Catchment runoff and sensor trend risk">
+                  Catchment Runoff Risk
+                </div>
                 <div className="summary-tile-value" style={{ color: RISK_COLORS[riskLevel] }}>
                   {riskLevel.toUpperCase()}
+                  <span className="summary-tile-sub">Weather & Runoff</span>
                 </div>
                 {!EXCLUDE_TURBIDITY && summarySparklines.turbidity && summarySparklines.turbidity.length > 1 && (
                   <Sparkline data={summarySparklines.turbidity} color={RISK_COLORS[riskLevel]} height={30} />
