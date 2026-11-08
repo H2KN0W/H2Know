@@ -2,7 +2,7 @@ import { motion, useReducedMotion } from "motion/react";
 
 /**
  * SlidingTabs — tabs with a sliding underline indicator on selection.
- * Ideal for ManagerAlerts (Active, Reviewed, Resolved) and NodeHealth sub-tabs.
+ * Ideal for page-level navigation and NodeHealth sub-tabs.
  */
 export default function SlidingTabs({
   tabs = [],
