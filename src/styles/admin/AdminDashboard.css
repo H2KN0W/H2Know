@@ -413,6 +413,7 @@ td.data-cell {
 }
 
 .badge-warning  { background: var(--status-warning-bg);  color: var(--status-warning); }
+.badge-elevated { background: #fef3c7;                    color: #b45309; }
 .badge-normal   { background: rgba(0,119,182,0.08);       color: var(--color-primary); }
 .badge-success  { background: var(--status-positive-bg);  color: var(--status-positive); }
 .badge-failed   { background: var(--status-danger-bg);    color: var(--status-danger); }
