@@ -36,7 +36,7 @@ const conditionRank = { safe: 0, warning: 1, critical: 2, unknown: 3 };
 const conditionLabel = {
   safe: "Safe",
   warning: "Warning",
-  critical: "Elevated",
+  critical: "Exceeded",
   unknown: "Unknown",
 };
 const conditionIcon = {
