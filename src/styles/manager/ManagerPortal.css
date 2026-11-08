@@ -303,6 +303,8 @@
 .admin-shell:has(.manager-main) .badge-normal { background: rgba(0,119,182,0.08); color: #0C4C7C; }
 .manager-shell .badge-warning,
 .admin-shell:has(.manager-main) .badge-warning { background: #fff2d9; color: #b3760a; }
+.manager-shell .badge-elevated,
+.admin-shell:has(.manager-main) .badge-elevated { background: #fef3c7; color: #b45309; }
 .manager-shell .badge-failed,
 .admin-shell:has(.manager-main) .badge-failed { background: #fdecec; color: #d64545; }
 .manager-shell .badge-pending,
