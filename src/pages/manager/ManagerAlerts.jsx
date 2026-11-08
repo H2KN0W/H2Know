@@ -10,7 +10,7 @@ import {
   AnimatedRow,
 } from "../../components/ui";
 
-import { formatDateTime, severityBadgeClass } from "../../lib/formatters";
+import { formatDateTime, severityBadgeClass, formatSeverityLabel } from "../../lib/formatters";
 import { PAGE_SIZES, filterMonitoredParameters } from "../../config/constants";
 
 const PAGE_SIZE = PAGE_SIZES.DEFAULT;
@@ -174,7 +174,7 @@ const ManagerAlerts = () => {
                         </td>
                         <td>
                           <span className={`badge ${severityClass(threshold?.severity_label)}`}>
-                            {threshold?.severity_label || "—"}
+                            {formatSeverityLabel(threshold?.severity_label)}
                           </span>
                         </td>
                       </AnimatedRow>
