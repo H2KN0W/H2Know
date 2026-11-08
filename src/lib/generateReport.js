@@ -3,7 +3,6 @@ import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import { Chart } from "chart.js/auto";
 import { toStartOfDay, toEndOfDay } from "../config/constants";
-import { buildSensorSummary } from "./insights";
 import {
   runDataQualityQC,
   evaluateReportCompliance,
@@ -44,7 +43,6 @@ const MARGIN = 14;
 const CONTENT_W = PAGE_W - MARGIN * 2;
 
 // ─── Chart Dimensions (explicit mm sizing) ────────────────────────────────────
-const CHART_W = 170;
 const CHART_H = 85;
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -86,7 +84,7 @@ const parseCalendarDateParts = (dateStr) => {
  * - Computed from calendar midnights only, with inclusive duration (start == end -> 1 day).
  * - Graceful fallback on invalid/missing dates.
  */
-export const formatDateRange = (startDate, endDate, actualHours = null) => {
+export const formatDateRange = (startDate, endDate) => {
   const startParts = parseCalendarDateParts(startDate);
   const endParts = parseCalendarDateParts(endDate);
 
@@ -195,32 +193,6 @@ const aggregateReadingsByDay = (readings) => {
   return aggregated.sort((a, b) => new Date(a.recorded_at) - new Date(b.recorded_at));
 };
 
-// ─── Stats calculator ─────────────────────────────────────────────────────────
-
-const calculateStats = (readings, paramNames, parameterMap, unitMap) => {
-  const stats = {};
-  paramNames.forEach((name) => {
-    const paramId = Object.entries(parameterMap).find(([, n]) => n === name)?.[0];
-    const paramReadings = readings.filter((r) => r.parameter_id === paramId);
-    const values = paramReadings.map((r) => Number(r.value)).filter((v) => !isNaN(v));
-    const unit = unitMap?.[paramId] || "";
-    if (values.length === 0) {
-      stats[name] = { count: 0, avg: "—", min: "—", max: "—", latest: "—", unit };
-    } else {
-      const sorted = [...paramReadings].sort((a, b) => new Date(b.recorded_at) - new Date(a.recorded_at));
-      stats[name] = {
-        count: values.length,
-        avg: (values.reduce((a, b) => a + b, 0) / values.length).toFixed(2),
-        min: Math.min(...values).toFixed(2),
-        max: Math.max(...values).toFixed(2),
-        latest: String(sorted[0]?.value ?? "—"),
-        unit,
-      };
-    }
-  });
-  return stats;
-};
-
 // ─── Chart renderer with smart aggregation ─────────────────────────────────────
 
 const renderSingleChart = async (readings, paramName, parameterMap) => {
@@ -323,66 +295,6 @@ const renderSingleChart = async (readings, paramName, parameterMap) => {
   return imageDataUrl;
 };
 
-// Render multi-parameter comparison chart (bar chart)
-const renderComparisonChart = async (readings, paramNames, parameterMap) => {
-  const canvas = document.createElement("canvas");
-  canvas.width = 1200;
-  canvas.height = 600;
-  canvas.style.position = "absolute";
-  canvas.style.left = "-9999px";
-  document.body.appendChild(canvas);
-
-  const datasets = paramNames.map((name, idx) => {
-    const paramId = Object.entries(parameterMap).find(([, n]) => n === name)?.[0];
-    const paramReadings = readings.filter((r) => r.parameter_id === paramId);
-    const values = paramReadings.map((r) => Number(r.value)).filter((v) => !isNaN(v));
-    const avg = values.length > 0 ? (values.reduce((a, b) => a + b, 0) / values.length).toFixed(2) : 0;
-
-    const colors = ["#0C4C7C", "#00B4D8", "#16A34A", "#D97706", "#DC2626"];
-    return {
-      label: name,
-      data: [avg],
-      backgroundColor: colors[idx % colors.length],
-      borderColor: colors[idx % colors.length],
-      borderWidth: 2,
-    };
-  });
-
-  const chart = new Chart(canvas, {
-    type: "bar",
-    data: {
-      labels: ["Average Values"],
-      datasets,
-    },
-    options: {
-      responsive: false,
-      animation: false,
-      plugins: {
-        title: {
-          display: true,
-          text: "Parameter Comparison — Average Values",
-          font: { size: 16, weight: "bold" },
-          color: "#0C4C7C",
-        },
-        legend: { position: "top" },
-      },
-      scales: {
-        y: {
-          beginAtZero: true,
-          grid: { color: "rgba(200,200,200,0.3)" },
-          title: { display: true, text: "Average Value" },
-        },
-      },
-    },
-  });
-
-  await new Promise((resolve) => setTimeout(resolve, 200));
-  const imageDataUrl = canvas.toDataURL("image/png");
-  chart.destroy();
-  document.body.removeChild(canvas);
-  return imageDataUrl;
-};
-
 // ─── Logo embedding helper (static Base64 — no async load, no CORS) ───
 
 const addLogoWithAspectRatio = (doc, logoBase64, x, y, maxWidth, maxHeight) => {
@@ -433,7 +345,7 @@ const writeFooters = (doc, totalPages) => {
 
 // ─── Page 1: Modern Minimalist Cover Page ─────────────────────────────────────
 
-const buildCoverPage = (doc, form, authorName, logoBase64, actualHours = null) => {
+const buildCoverPage = (doc, form, authorName, logoBase64) => {
   // Subtle background tint (top to bottom gradient simulation)
   setColor(doc, C.lightBg, "fill");
   doc.rect(0, 0, PAGE_W, PAGE_H, "F");
@@ -582,7 +494,7 @@ const buildExecutiveSummaryPage = async (
   y += 17;
 
   // Sub-header with true data coverage metrics
-  const { rangeLabel, totalDays } = formatDateRange(form.startDate, form.endDate, evaluation?.coverage?.coverageHours);
+  const { rangeLabel, totalDays } = formatDateRange(form.startDate, form.endDate);
   const periodText = totalDays > 0 ? rangeLabel.replace("Reporting Period: ", "") : `${form.startDate} to ${form.endDate}`;
 
   doc.setFontSize(8.5);
@@ -919,7 +831,7 @@ const buildPdf = async (
   const finalLogoBase64 = logoBase64 || LOGO_BASE64;
 
   // Page 1 — Cover
-  buildCoverPage(doc, form, authorName, finalLogoBase64, evaluation?.coverage?.coverageHours);
+  buildCoverPage(doc, form, authorName, finalLogoBase64);
 
   // Page 2 — Executive Summary & Watershed Compliance Audit (Stacked Layout)
   await buildExecutiveSummaryPage(
@@ -968,16 +880,27 @@ export const generateReportFile = async ({
   const unitMap = Object.fromEntries(parameters.map((p) => [p.id, p.unit || ""]));
   const paramNames = selectedIds.map((id) => parameterMap[id]).filter(Boolean);
 
-  const { data: readings, error: readingsError } = await supabase
-    .from("sensor_readings")
-    .select("parameter_id, value, recorded_at")
-    .in("parameter_id", selectedIds)
-    .gte("recorded_at", toStartOfDay(form.startDate))
-    .lte("recorded_at", toEndOfDay(form.endDate));
+  const pageSize = 1000;
+  const readings = [];
+  for (let from = 0; ; from += pageSize) {
+    const { data, error: readingsError } = await supabase
+      .from("sensor_readings")
+      .select("id, parameter_id, value, recorded_at")
+      .in("parameter_id", selectedIds)
+      .gte("recorded_at", toStartOfDay(form.startDate))
+      .lte("recorded_at", toEndOfDay(form.endDate))
+      .order("recorded_at", { ascending: true })
+      .order("id", { ascending: true })
+      .range(from, from + pageSize - 1);
 
-  if (readingsError) throw readingsError;
+    if (readingsError) throw readingsError;
 
-  const sortedReadings = (readings || []).sort(
+    const page = data || [];
+    readings.push(...page);
+    if (page.length < pageSize) break;
+  }
+
+  const sortedReadings = readings.sort(
     (a, b) => new Date(a.recorded_at) - new Date(b.recorded_at)
   );
 
