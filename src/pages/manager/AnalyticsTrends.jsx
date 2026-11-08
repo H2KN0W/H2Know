@@ -48,7 +48,7 @@ const getLineColor = (paramName, index) =>
 const bandName = (severity) => {
   const value = (severity || "").toLowerCase();
   if (value === "warning") return "Warning";
-  if (value === "critical" || value === "danger") return "Critical";
+  if (value === "critical" || value === "danger" || value === "elevated") return "Elevated";
   return "Safe";
 };
 
@@ -180,7 +180,7 @@ const AnalyticsTrends = () => {
 
   // Overall Severity Bands Distribution
   const bands = useMemo(() => {
-    const counts = { Safe: 0, Warning: 0, Critical: 0 };
+    const counts = { Safe: 0, Warning: 0, Elevated: 0 };
     readings.forEach((reading) => {
       const relevantThresholds = isAll
         ? thresholds.filter((t) => t.parameter_id === reading.parameter_id)
