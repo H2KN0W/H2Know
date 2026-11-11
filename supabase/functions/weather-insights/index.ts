@@ -44,7 +44,7 @@ async function fetchWeather() {
     "precipitation_sum,rain_sum,precipitation_probability_max,temperature_2m_max,temperature_2m_min,uv_index_max"
   );
   url.searchParams.set("past_days", "7");
-  url.searchParams.set("forecast_days", "7");
+  url.searchParams.set("forecast_days", "8");
   url.searchParams.set("timezone", "Asia/Manila");
 
   const res = await fetch(url.toString());

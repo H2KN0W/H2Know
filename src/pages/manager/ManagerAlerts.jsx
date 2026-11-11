@@ -77,7 +77,7 @@ const ManagerAlerts = () => {
       <PageTransition className="admin-main manager-main">
         <header className="page-header">
           <h1>Alerts</h1>
-          <p>Real-time and historical water-quality threshold breaches</p>
+          <p>Current and Historical Water Quality Threshold Exceedances</p>
         </header>
 
         <section className="manager-panel">

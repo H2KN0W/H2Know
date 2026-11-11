@@ -272,11 +272,18 @@ const Insights = () => {
         initialLoadRef.current = false;
       }
     }
-  }, []);
+  }, [loadWeatherInsights]);
 
   useEffect(() => {
     loadInsightsData();
-  }, []);
+  }, [loadInsightsData]);
+
+  const handleRefresh = useCallback(() => {
+    void Promise.all([
+      loadInsightsData(),
+      loadWeatherInsights(readings),
+    ]);
+  }, [loadInsightsData, loadWeatherInsights, readings]);
 
   // Silent Refresh Hook (30 min interval)
   const { isRefreshing } = useSilentRefresh(loadInsightsData, {
@@ -401,7 +408,7 @@ const Insights = () => {
             <button
               type="button"
               className="insights-button"
-              onClick={() => loadInsightsData()}
+              onClick={handleRefresh}
               disabled={loading || weatherLoading}
               title="Refresh telemetry and analysis"
             >
@@ -467,8 +474,13 @@ const Insights = () => {
                 <div className="summary-tile-value">
                   {weatherSummary?.next7DaysRainMm != null
                     ? `${weatherSummary.next7DaysRainMm.toFixed(0)} mm`
-                    : "—"}
+                    : weatherLoading
+                      ? "Loading..."
+                      : weatherError
+                        ? "Unavailable"
+                        : "—"}
                 </div>
+                {weatherError && <span className="summary-tile-sub" role="status">{weatherError}</span>}
                 {rainfall7d.length > 0 && (
                   <Sparkline data={rainfall7d} color="#3498db" height={30} />
                 )}
