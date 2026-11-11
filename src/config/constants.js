@@ -109,3 +109,65 @@ export const MODAL_ANIMATION_VARIANTS = {
     exit: { opacity: 0, scale: 0.96, y: 4, transition: { duration: 0.15, ease: ANIMATION_EASING } },
   },
 };
+
+/**
+ * THRESHOLDS — single source of truth for all water-quality limits
+ * shown to the user in the Manager portal.
+ *
+ * official: true  → value comes from DENR DAO 2016-08 / DAO 2021-19 Class C.
+ * official: false → system-defined alert level; not yet confirmed against the DAO.
+ *
+ * label rule (used by ThresholdInfoPopover):
+ *   official === true  → "DENR Class C limit"
+ *   official === false → "Alert threshold"
+ */
+export const THRESHOLDS = {
+  pH: {
+    label:        "pH",
+    unit:         "",
+    min:          6.5,
+    max:          9.0,
+    warning:      null,
+    standardLabel: "DENR Class C Limit",
+    source:       "DENR DAO 2016-08 / DAO 2021-19 Table 3 (Class C)",
+    fullCitation: "DENR Administrative Order No. 2016-08 / DAO 2021-19 (Table 3: Water Quality Guidelines for Class C Waters). Sets safe pH range between 6.5 and 9.0 for freshwater aquatic life.",
+    url:          "https://air.emb.gov.ph/wp-content/uploads/2016/07/DAO-2016-08.pdf",
+    official:     true,
+  },
+  Turbidity: {
+    label:        "Turbidity",
+    unit:         "NTU",
+    min:          null,
+    max:          50,
+    warning:      null,
+    standardLabel: "US EPA Aquatic Life Criteria",
+    source:       "US EPA Surface Water Criteria (Warmwater Aquatic Life)",
+    fullCitation: "US EPA State-Specific Water Quality Standards for Turbidity (Compilation of State & Tribal Criteria under the Clean Water Act). Limits stream & river turbidity to ≤ 50 NTU for warmwater aquatic habitats, with ≤ 10 NTU reserved for sensitive coldwater/lake environments.",
+    url:          "https://www.epa.gov/system/files/documents/2022-01/list-of-state-specific-water-quality-standards.pdf",
+    official:     false,
+  },
+  TDS: {
+    label:        "TDS",
+    unit:         "ppm",
+    min:          null,
+    max:          1000,
+    warning:      null,
+    standardLabel: "DENR DAO 1990-34 Standard",
+    source:       "DENR DAO 1990-34 (Table 1: Surface Water Criteria)",
+    fullCitation: "DENR Administrative Order No. 34, Series of 1990 (Section 69b / Table 1: Minimum Criteria for Surface Waters). Establishes the 1,000 mg/L (ppm) freshwater standard for Class A & Class D waters, used as the benchmark for general inland freshwater quality.",
+    url:          "https://openjicareport.jica.go.jp/pdf/11948882_17.pdf",
+    official:     true,
+  },
+  Temperature: {
+    label:        "Temperature",
+    unit:         "°C",
+    min:          25.0,
+    max:          31.0,
+    warning:      null,
+    standardLabel: "DENR Class C Limit",
+    source:       "DENR DAO 2016-08 Table 3 (Class C: 25.0 – 31.0 °C)",
+    fullCitation: "DENR Administrative Order No. 2016-08 (Table 3: Water Quality Guidelines for Class C Waters). Sets ambient water temperature guideline of 25.0 – 31.0 °C.",
+    url:          "https://air.emb.gov.ph/wp-content/uploads/2016/07/DAO-2016-08.pdf",
+    official:     true,
+  },
+};
