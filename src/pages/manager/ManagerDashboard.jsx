@@ -26,7 +26,7 @@ import "../../styles/manager/ManagerDashboard.css";
 import { PageTransition, SkeletonCard, SkeletonTableRows, LiveValue, AnimatedRow } from "../../components/ui";
 
 import { formatDateTime, formatClockTime, severityBadgeClass, formatSeverityLabel } from "../../lib/formatters";
-import { PARAMETERS, REFRESH_INTERVALS } from "../../config/constants";
+import { PARAMETERS, REFRESH_INTERVALS, THRESHOLDS } from "../../config/constants";
 
 const icons = { ph: Droplets, turbidity: Waves, tds: Gauge, temperature: Thermometer };
 
@@ -357,11 +357,35 @@ const ManagerDashboard = () => {
               {PARAMETERS.map((name) => {
                 const reading = latestFor(name);
                 const Icon = icons[name.toLowerCase()] || Activity;
+                const thresh = THRESHOLDS[name];
+                const numVal = reading ? Number(reading.value) : null;
+                const isExceeded = thresh && Number.isFinite(numVal) && (
+                  (thresh.min != null && numVal < thresh.min) ||
+                  (thresh.max != null && numVal > thresh.max)
+                );
+                const safeRangeLabel = thresh ? (
+                  thresh.min != null && thresh.max != null
+                    ? `${thresh.min}–${thresh.max}`
+                    : thresh.max != null
+                    ? `Up to ${thresh.max}`
+                    : `Min ${thresh.min}`
+                ) : null;
+
                 return (
-                  <article className="manager-stat-card" key={name}>
+                  <article className={`manager-stat-card ${isExceeded ? "card-exceeded" : ""}`} key={name}>
                     <Icon size={21} />
-                    <div>
-                      <p>{name}</p>
+                    <div className="stat-card-content">
+                      <div className="stat-card-header">
+                        <p>{name}</p>
+                        {safeRangeLabel && (
+                          <span
+                            className={`stat-threshold-badge ${isExceeded ? "badge-exceeded" : "badge-safe"}`}
+                            title={`Safe Range: ${safeRangeLabel} ${thresh.unit}\nStandard: ${thresh.source}\n${thresh.fullCitation || ""}`}
+                          >
+                            {isExceeded ? "Exceeded" : `Safe: ${safeRangeLabel}`}
+                          </span>
+                        )}
+                      </div>
                       <strong>
                         {reading ? (
                           <LiveValue
