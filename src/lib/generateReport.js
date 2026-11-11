@@ -2,7 +2,8 @@ import { supabase } from "./supabase";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import { Chart } from "chart.js/auto";
-import { toStartOfDay, toEndOfDay } from "../config/constants";
+import { toStartOfDay, toEndOfDay, THRESHOLDS } from "../config/constants";
+import { buildSensorSummary } from "./insights";
 import {
   runDataQualityQC,
   evaluateReportCompliance,
@@ -227,20 +228,48 @@ const renderSingleChart = async (readings, paramName, parameterMap) => {
     }
   };
 
+  const thresh = THRESHOLDS[paramName];
+  const chartDatasets = [{
+    label: paramName,
+    data: points,
+    borderColor: "#0C4C7C",
+    backgroundColor: "rgba(12,76,124,0.08)",
+    tension: 0.3,
+    pointRadius: isAggregated ? 4 : 3,
+    pointBackgroundColor: "#0C4C7C",
+    fill: true,
+    borderWidth: 2,
+  }];
+
+  if (thresh && points.length > 0) {
+    if (thresh.min != null) {
+      chartDatasets.push({
+        label: `Min Limit (${thresh.min} ${thresh.unit})`,
+        data: points.map((p) => ({ x: p.x, y: thresh.min })),
+        borderColor: "#DC2626",
+        borderWidth: 1.5,
+        borderDash: [6, 4],
+        pointRadius: 0,
+        fill: false,
+      });
+    }
+    if (thresh.max != null) {
+      chartDatasets.push({
+        label: `Max Limit (${thresh.max} ${thresh.unit})`,
+        data: points.map((p) => ({ x: p.x, y: thresh.max })),
+        borderColor: "#DC2626",
+        borderWidth: 1.5,
+        borderDash: [6, 4],
+        pointRadius: 0,
+        fill: false,
+      });
+    }
+  }
+
   const chart = new Chart(canvas, {
     type: "line",
     data: {
-      datasets: [{
-        label: paramName,
-        data: points,
-        borderColor: "#0C4C7C",
-        backgroundColor: "rgba(12,76,124,0.08)",
-        tension: 0.3,
-        pointRadius: isAggregated ? 4 : 3,
-        pointBackgroundColor: "#0C4C7C",
-        fill: true,
-        borderWidth: 2,
-      }],
+      datasets: chartDatasets,
     },
     options: {
       responsive: false,
@@ -774,7 +803,42 @@ const buildParameterComparisonPage = async (doc, form, readings, paramNames, par
     margin: { left: MARGIN, right: MARGIN },
   });
 
-  y = doc.lastAutoTable.finalY + 10;
+  y = doc.lastAutoTable.finalY + 8;
+
+  // ── Reference Thresholds Table ──
+  doc.setFontSize(10);
+  doc.setFont(undefined, "bold");
+  setColor(doc, C.primary, "text");
+  doc.text("Water Quality Standards & Thresholds Reference", MARGIN, y);
+  resetTextColor(doc);
+  y += 5;
+
+  const thresholdTableBody = Object.entries(THRESHOLDS).map(([name, t]) => {
+    const limitStr = t.min != null && t.max != null
+      ? `${t.min} to ${t.max}`
+      : t.max != null ? `Up to ${t.max}` : `At least ${t.min}`;
+    const standardStr = t.standardLabel || (t.official ? "DENR Standard" : "System Alert");
+    return [name, limitStr, t.unit || "—", standardStr, t.source];
+  });
+
+  autoTable(doc, {
+    startY: y,
+    head: [["Parameter", "Safe Range", "Unit", "Standard", "Regulatory / Baseline Source"]],
+    body: thresholdTableBody,
+    styles: { fontSize: 7.5, cellPadding: 2.5 },
+    headStyles: { fillColor: C.primary, textColor: C.white, fontStyle: "bold" },
+    alternateRowStyles: { fillColor: [240, 249, 255] },
+    columnStyles: {
+      0: { fontStyle: "bold", cellWidth: 26 },
+      1: { cellWidth: 20 },
+      2: { cellWidth: 14 },
+      3: { cellWidth: 32 },
+      4: { cellWidth: "auto" },
+    },
+    margin: { left: MARGIN, right: MARGIN },
+  });
+
+  y = doc.lastAutoTable.finalY + 8;
 
   // Accurate CSV export note with real reading count
   doc.setFontSize(8);
@@ -794,8 +858,15 @@ const buildCsv = (readings, parameterMap, unitMap, paramNames, evaluation) => {
     if (!p) return `# ${name}: 0 readings`;
     return `# ${name}: ${p.totalCount} readings (${p.validCount} valid, ${p.excludedCount} excluded), avg=${p.avg} ${p.unit}, min=${p.min} ${p.unit}, max=${p.max} ${p.unit}, status=${p.status}`;
   });
+  const thresholdLines = Object.entries(THRESHOLDS).map(([name, t]) => {
+    const limitStr = t.min != null && t.max != null
+      ? `${t.min} to ${t.max} ${t.unit}`
+      : t.max != null ? `Up to ${t.max} ${t.unit}` : `At least ${t.min} ${t.unit}`;
+    return `# Threshold - ${name}: ${limitStr} (${t.official ? "DENR Class C" : "Alert"}) ${t.source}`;
+  });
   const summaryHeader =
     `# Report summary - Total readings: ${readings.length} | Valid: ${evaluation?.coverage?.validReadings ?? 0} | Overall Status: ${evaluation?.overallStatus ?? "N/A"}\n` +
+    thresholdLines.join("\n") + "\n" +
     summaryLines.join("\n") +
     "\n";
   const header = "Date,Time,Parameter,Value,Unit,QC_Status,QC_Reason\n";

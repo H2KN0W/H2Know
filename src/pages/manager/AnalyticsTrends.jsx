@@ -10,10 +10,11 @@ import {
 } from "recharts";
 import { supabase } from "../../lib/supabase";
 import { useLogPageView } from "../../lib/useLogPageView";
+import { ExternalLink } from "lucide-react";
 import ManagerSidebar from "./ManagerSidebar";
 import "../../styles/manager/ManagerPortal.css";
 import "../../styles/manager/AnalyticsTrends.css";
-import { PAGE_SIZES, filterMonitoredParameters } from "../../config/constants";
+import { PAGE_SIZES, filterMonitoredParameters, THRESHOLDS } from "../../config/constants";
 import {
   PageTransition,
   SkeletonChart,
@@ -52,6 +53,106 @@ const bandName = (severity) => {
   return "Safe";
 };
 
+const ThresholdInfoPopover = ({ open, onClose }) => {
+  useEffect(() => {
+    if (!open) return;
+    const handleKeyDown = (e) => {
+      if (e.key === "Escape") {
+        onClose();
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [open, onClose]);
+
+  if (!open) return null;
+  return (
+    <>
+      <div
+        className="threshold-popover-backdrop"
+        onClick={onClose}
+        aria-hidden="true"
+      />
+      <div
+        className="threshold-popover"
+        role="dialog"
+        aria-modal="true"
+        aria-label="Water Quality Standards Reference"
+      >
+        <button
+          className="threshold-popover-close"
+          onClick={onClose}
+          aria-label="Close"
+        >
+          ×
+        </button>
+        <h4 className="threshold-popover-title">Water Quality Standards Reference</h4>
+        <div className="threshold-popover-table-container">
+          <table className="threshold-popover-table">
+            <thead>
+              <tr>
+                <th style={{ width: "12%" }}>Parameter</th>
+                <th style={{ width: "14%" }}>Safe Range</th>
+                <th style={{ width: "8%" }}>Unit</th>
+                <th style={{ width: "24%" }}>Standard</th>
+                <th style={{ width: "42%" }}>Regulatory Document</th>
+              </tr>
+            </thead>
+            <tbody>
+              {Object.values(THRESHOLDS).map((t) => {
+                const safeRangeStr =
+                  t.min != null && t.max != null
+                    ? `${t.min} – ${t.max}`
+                    : t.max != null
+                    ? `Up to ${t.max}`
+                    : `Min ${t.min}`;
+                return (
+                  <tr key={t.label}>
+                    <td data-label="Parameter">
+                      <strong>{t.label}</strong>
+                    </td>
+                    <td data-label="Safe Range">
+                      <span className="threshold-safe-val">{safeRangeStr}</span>
+                    </td>
+                    <td data-label="Unit">{t.unit || "—"}</td>
+                    <td data-label="Standard">
+                      <span
+                        className={`threshold-label-badge ${
+                          t.official ? "official" : "system"
+                        }`}
+                      >
+                        {t.standardLabel || (t.official ? "DENR Standard" : "System Alert")}
+                      </span>
+                    </td>
+                    <td data-label="Regulatory Document">
+                      {t.url ? (
+                        <a
+                          href={t.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="threshold-source-link"
+                          title={t.fullCitation || `View ${t.source}`}
+                        >
+                          <span className="threshold-source-text">{t.source}</span>
+                          <ExternalLink size={12} className="threshold-link-icon" />
+                        </a>
+                      ) : (
+                        <span className="threshold-source-plain" title={t.fullCitation || t.source}>
+                          {t.source}
+                        </span>
+                      )}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </>
+  );
+};
+
 const AnalyticsTrends = () => {
   useLogPageView("Viewed Analytics & Trends");
 
@@ -65,6 +166,7 @@ const AnalyticsTrends = () => {
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [popoverOpen, setPopoverOpen] = useState(false);
 
   const isAll = parameterId === ALL_VALUE;
 
@@ -248,8 +350,27 @@ const AnalyticsTrends = () => {
       <ManagerSidebar />
       <PageTransition className="admin-main manager-main">
         <header className="page-header">
-          <h1>Analytics &amp; Trends</h1>
-          <p>Explore historical sensor performance and threshold bands</p>
+          <div className="page-header-row" style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", width: "100%", gap: "12px", flexWrap: "wrap" }}>
+            <div>
+              <h1>Analytics &amp; Trends</h1>
+              <p>Explore historical sensor performance and threshold bands</p>
+            </div>
+            <button
+              type="button"
+              className="threshold-info-btn"
+              onClick={() => setPopoverOpen(true)}
+              aria-label="View standards reference"
+              title="View standards reference"
+            >
+              ℹ Standards Reference
+            </button>
+          </div>
+          {popoverOpen && (
+            <ThresholdInfoPopover
+              open={popoverOpen}
+              onClose={() => setPopoverOpen(false)}
+            />
+          )}
         </header>
 
         <section className="manager-panel">
