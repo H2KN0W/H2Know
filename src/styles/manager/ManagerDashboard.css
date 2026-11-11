@@ -46,7 +46,48 @@
   letter-spacing: 0.03em;
   text-transform: uppercase;
   color: #7a96a4;
-  margin: 0 0 2px;
+  margin: 0;
+}
+
+.stat-card-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.stat-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  margin-bottom: 2px;
+}
+
+.stat-threshold-badge {
+  font-size: 0.62rem;
+  font-weight: 600;
+  padding: 1px 6px;
+  border-radius: 999px;
+  white-space: nowrap;
+  letter-spacing: 0.01em;
+  transition: all 0.15s ease;
+}
+
+.stat-threshold-badge.badge-safe {
+  color: #0284c7;
+  background: rgba(2, 132, 199, 0.08);
+  border: 1px solid rgba(2, 132, 199, 0.18);
+}
+
+.stat-threshold-badge.badge-exceeded {
+  color: #dc2626;
+  background: rgba(220, 38, 38, 0.10);
+  border: 1px solid rgba(220, 38, 38, 0.25);
+  font-weight: 700;
+}
+
+.manager-stat-card.card-exceeded {
+  border-color: rgba(220, 38, 38, 0.28);
+  background: linear-gradient(180deg, #ffffff 0%, rgba(254, 242, 242, 0.4) 100%);
 }
 
 .manager-stat-card strong {
